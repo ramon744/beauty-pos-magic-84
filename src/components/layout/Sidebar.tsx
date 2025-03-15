@@ -40,7 +40,7 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, label, requiredRoles = ['ad
       to={to}
       className={({ isActive }) =>
         cn(
-          "flex items-center gap-3 py-3 px-3 rounded-lg transition-colors",
+          "flex items-center gap-3 rounded-lg transition-colors",
           "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
           isActive 
             ? "bg-sidebar-accent text-sidebar-primary font-medium" 
@@ -48,8 +48,12 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, label, requiredRoles = ['ad
         )
       }
     >
-      {icon}
-      <span>{label}</span>
+      <div className="min-w-[40px] h-10 flex items-center justify-center">
+        {icon}
+      </div>
+      <span className="transition-opacity duration-200 whitespace-nowrap">
+        {label}
+      </span>
     </NavLink>
   );
 };
@@ -64,10 +68,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle }) => {
       )}
     >
       <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
-        <div className={cn("overflow-hidden transition-all", isOpen ? "w-auto opacity-100" : "w-0 opacity-0")}>
+        {isOpen ? (
           <h1 className="text-xl font-bold text-white">Beauty<span className="text-sidebar-primary">POS</span></h1>
-        </div>
-        {!isOpen && (
+        ) : (
           <div className="flex justify-center w-full">
             <span className="text-xl font-bold text-sidebar-primary">B</span>
           </div>
