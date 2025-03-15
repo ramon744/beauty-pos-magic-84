@@ -1,9 +1,9 @@
-
 import React, { useState, useRef } from 'react';
 import { 
   ShoppingCart, 
   Search, 
   Plus, 
+  Minus,
   Trash2, 
   CreditCard, 
   Receipt, 
@@ -60,9 +60,8 @@ const Sales = () => {
     const savedCart = storageService.getItem<CartItem[]>(CART_STORAGE_KEY);
     return savedCart || [];
   });
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [quantity, setQuantity] = useState(1);
   const [isScannerActive, setIsScannerActive] = useState(false);
+  const [scanQuantity, setScanQuantity] = useState(1);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Save cart to local storage whenever it changes
@@ -80,7 +79,7 @@ const Sales = () => {
     // Search for product with the scanned barcode (using ID for demo)
     const product = mockProducts.find(p => p.id === barcode);
     if (product) {
-      addProductToCart(product, 1);
+      addProductToCart(product, scanQuantity);
     } else {
       toast({
         title: "Produto não encontrado",
@@ -178,12 +177,24 @@ const Sales = () => {
         description: `${product.name} adicionado ao carrinho`
       });
     }
-    
-    // Reset selection and quantity if manually adding
-    if (selectedProduct) {
-      setSelectedProduct(null);
-      setQuantity(1);
+  };
+
+  // Update cart item quantity
+  const updateCartItemQuantity = (productId: string, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      removeFromCart(productId);
+      return;
     }
+
+    setCart(cart.map(item => 
+      item.id === productId
+        ? { 
+            ...item, 
+            quantity: newQuantity,
+            subtotal: newQuantity * item.price
+          }
+        : item
+    ));
   };
 
   // Remove item from cart
@@ -211,7 +222,25 @@ const Sales = () => {
       accessorKey: 'quantity',
       header: 'Qtd',
       cell: ({ row }) => (
-        <div className="text-center">{row.original.quantity}</div>
+        <div className="flex items-center justify-center gap-2">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="h-7 w-7"
+            onClick={() => updateCartItemQuantity(row.original.id, row.original.quantity - 1)}
+          >
+            <Minus className="h-3 w-3" />
+          </Button>
+          <span className="w-8 text-center">{row.original.quantity}</span>
+          <Button 
+            variant="outline" 
+            size="icon"
+            className="h-7 w-7" 
+            onClick={() => updateCartItemQuantity(row.original.id, row.original.quantity + 1)}
+          >
+            <Plus className="h-3 w-3" />
+          </Button>
+        </div>
       ),
     },
     {
@@ -280,12 +309,9 @@ const Sales = () => {
       cell: ({ row }) => (
         <div className="text-right">
           <Button
-            variant="ghost"
+            variant="secondary"
             size="sm"
-            onClick={() => {
-              setSelectedProduct(row.original);
-              setQuantity(1);
-            }}
+            onClick={() => addProductToCart(row.original, 1)}
             className="text-primary hover:text-primary/90"
           >
             <Plus className="h-4 w-4 mr-1" />
@@ -389,12 +415,36 @@ const Sales = () => {
               </div>
               
               {isScannerActive && (
-                <div className="mb-4 p-4 border rounded-md bg-muted/20 flex justify-center">
-                  <div className="text-center">
-                    <Camera className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">
-                      Posicione o código de barras na frente da câmera
-                    </p>
+                <div className="mb-4 p-4 border rounded-md bg-muted/20">
+                  <div className="flex flex-col md:flex-row gap-4 items-center">
+                    <div className="text-center flex-1">
+                      <Camera className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        Posicione o código de barras na frente da câmera
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2 md:mt-0">
+                      <span className="text-sm whitespace-nowrap">Quantidade:</span>
+                      <div className="flex items-center border rounded-md">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => setScanQuantity(prev => Math.max(1, prev - 1))}
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <span className="w-8 text-center">{scanQuantity}</span>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => setScanQuantity(prev => prev + 1)}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -443,64 +493,8 @@ const Sales = () => {
           </Card>
         </div>
 
-        {/* Side panel - selected product and checkout */}
+        {/* Side panel - checkout */}
         <div className={`space-y-6 ${isMobile ? 'col-span-5' : 'col-span-2'}`}>
-          {/* Selected product */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">
-                Produto Selecionado
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {selectedProduct ? (
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-medium">{selectedProduct.name}</h3>
-                    <p className="text-sm text-muted-foreground">{selectedProduct.description}</p>
-                  </div>
-                  
-                  <div className="flex justify-between text-sm">
-                    <span>Preço unitário:</span>
-                    <span className="font-medium">R$ {selectedProduct.price.toFixed(2)}</span>
-                  </div>
-
-                  <div className="flex justify-between text-sm">
-                    <span>Estoque disponível:</span>
-                    <span className={`font-medium ${selectedProduct.stock < 5 ? 'text-destructive' : ''}`}>
-                      {selectedProduct.stock} unidades
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <label htmlFor="quantity" className="text-sm">Quantidade:</label>
-                    <Input
-                      id="quantity"
-                      type="number"
-                      min={1}
-                      max={selectedProduct.stock}
-                      value={quantity}
-                      onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                      className="w-20"
-                    />
-                    
-                    <Button 
-                      onClick={() => addProductToCart(selectedProduct, quantity)} 
-                      className="ml-auto"
-                    >
-                      <Plus className="mr-1 h-4 w-4" />
-                      Adicionar
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-6 text-muted-foreground">
-                  Selecione um produto para adicionar ao carrinho
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          
           {/* Checkout */}
           <Card>
             <CardHeader className="pb-3">
