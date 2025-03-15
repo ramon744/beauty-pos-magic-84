@@ -52,8 +52,8 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, label, requiredRoles = ['ad
         {icon}
       </div>
       <span className={cn(
-        "transition-all duration-200 whitespace-nowrap",
-        "group-[.sidebar-collapsed]:opacity-0 group-[.sidebar-collapsed]:w-0 group-[.sidebar-collapsed]:invisible group-[.sidebar-collapsed]:absolute"
+        "transition-all duration-200",
+        "group-[.sidebar-collapsed]:opacity-0 group-[.sidebar-collapsed]:w-0 group-[.sidebar-collapsed]:hidden"
       )}>
         {label}
       </span>
@@ -140,7 +140,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle }) => {
       <div className="p-3 border-t border-sidebar-border">
         <div className={cn(
           "transition-all", 
-          isOpen ? "opacity-100" : "opacity-0 h-0 overflow-hidden invisible"
+          isOpen ? "opacity-100" : "opacity-0 h-0 hidden"
         )}>
           <div className="rounded-lg bg-sidebar-accent p-3 text-xs text-sidebar-foreground">
             <p className="font-medium mb-1">Loja Ipanema</p>
