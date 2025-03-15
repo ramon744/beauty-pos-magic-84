@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   ShoppingCart, 
   Search, 
@@ -110,37 +110,29 @@ const Sales = () => {
     }
   };
 
-  // Search products
-  const handleSearch = () => {
-    if (!searchQuery.trim()) {
+  // Search products as user types
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      const results = mockProducts.filter(product => 
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.id.includes(searchQuery)
+      );
+      
+      setSearchResults(results);
+      setHasSearched(true);
+      
+      if (results.length === 0 && searchQuery.trim().length > 2) {
+        toast({
+          title: "Nenhum produto encontrado",
+          description: "Tente outro termo de busca",
+          variant: "destructive"
+        });
+      }
+    } else {
       setSearchResults([]);
       setHasSearched(false);
-      return;
     }
-    
-    const results = mockProducts.filter(product => 
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.id.includes(searchQuery)
-    );
-    
-    setSearchResults(results);
-    setHasSearched(true);
-    
-    if (results.length === 0) {
-      toast({
-        title: "Nenhum produto encontrado",
-        description: "Tente outro termo de busca",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // Handle search on Enter key press
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
-  };
+  }, [searchQuery, toast]);
 
   // Add product to cart
   const addProductToCart = (product: Product, qty: number) => {
@@ -274,34 +266,20 @@ const Sales = () => {
     },
   ];
 
-  // Product search/selection columns
+  // Simplified product columns - only showing name, price and add button
   const productColumns: ColumnDef<Product>[] = [
-    {
-      accessorKey: 'id',
-      header: 'Código',
-    },
     {
       accessorKey: 'name',
       header: 'Produto',
-    },
-    {
-      accessorKey: 'category',
-      header: 'Categoria',
+      cell: ({ row }) => (
+        <div className="font-medium">{row.original.name}</div>
+      ),
     },
     {
       accessorKey: 'price',
       header: 'Preço',
       cell: ({ row }) => (
         <div className="text-right">R$ {row.original.price.toFixed(2)}</div>
-      ),
-    },
-    {
-      accessorKey: 'stock',
-      header: 'Estoque',
-      cell: ({ row }) => (
-        <div className={`text-center ${row.original.stock < 5 ? 'text-destructive' : ''}`}>
-          {row.original.stock}
-        </div>
       ),
     },
     {
@@ -399,19 +377,10 @@ const Sales = () => {
                     placeholder="Buscar por nome, código ou SKU..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyPress={handleKeyPress}
                     className="pr-10"
                   />
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="absolute right-0 top-0 h-full" 
-                    onClick={handleSearch}
-                  >
-                    <Search className="h-4 w-4" />
-                  </Button>
+                  <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 </div>
-                <Button onClick={handleSearch}>Buscar</Button>
               </div>
               
               {isScannerActive && (
@@ -449,7 +418,7 @@ const Sales = () => {
                 </div>
               )}
               
-              {hasSearched && (
+              {searchQuery.trim() && (
                 <>
                   {searchResults.length > 0 ? (
                     <div className="rounded-md border">
