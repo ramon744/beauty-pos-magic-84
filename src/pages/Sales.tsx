@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   ShoppingCart, 
   Search, 
@@ -7,7 +7,9 @@ import {
   Trash2, 
   CreditCard, 
   Receipt, 
-  ArrowRight
+  Barcode,
+  Camera,
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +18,9 @@ import { DataTable } from '@/components/common/DataTable';
 import { useAuth } from '@/contexts/AuthContext';
 import { ColumnDef } from '@tanstack/react-table';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { storageService } from '@/services/storage-service';
+import { useToast } from '@/hooks/use-toast';
+import { useBarcodeScan } from '@/hooks/use-barcode-scan';
 
 interface Product {
   id: string;
@@ -42,54 +47,152 @@ const mockProducts: Product[] = [
   { id: '7', name: 'Paleta de Sombras', description: 'Paleta com 12 cores', price: 120.00, stock: 5, category: 'Olhos' },
 ];
 
+const CART_STORAGE_KEY = 'makeup-pos-cart';
+
 const Sales = () => {
   const isMobile = useIsMobile();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    const savedCart = storageService.getItem<CartItem[]>(CART_STORAGE_KEY);
+    return savedCart || [];
+  });
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [isScannerActive, setIsScannerActive] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Filter products based on search query
-  const filteredProducts = mockProducts.filter(product => 
-    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.id.includes(searchQuery)
-  );
+  // Save cart to local storage whenever it changes
+  React.useEffect(() => {
+    storageService.setItem(CART_STORAGE_KEY, cart);
+  }, [cart]);
+
+  // Handle barcode scanning
+  const handleBarcodeDetected = (barcode: string) => {
+    toast({
+      title: "Código de barras detectado",
+      description: `Código: ${barcode}`,
+    });
+    
+    // Search for product with the scanned barcode (using ID for demo)
+    const product = mockProducts.find(p => p.id === barcode);
+    if (product) {
+      addProductToCart(product, 1);
+    } else {
+      toast({
+        title: "Produto não encontrado",
+        description: `Nenhum produto encontrado com o código ${barcode}`,
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Use custom hook for barcode scanning
+  const { startScanning, stopScanning } = useBarcodeScan(handleBarcodeDetected);
+
+  // Toggle barcode scanner
+  const toggleScanner = () => {
+    if (isScannerActive) {
+      stopScanning();
+      setIsScannerActive(false);
+      toast({
+        title: "Leitor de código de barras desativado",
+      });
+    } else {
+      startScanning();
+      setIsScannerActive(true);
+      toast({
+        title: "Leitor de código de barras ativado",
+        description: "Posicione o código de barras na frente da câmera"
+      });
+    }
+  };
+
+  // Search products
+  const handleSearch = () => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      setHasSearched(false);
+      return;
+    }
+    
+    const results = mockProducts.filter(product => 
+      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.id.includes(searchQuery)
+    );
+    
+    setSearchResults(results);
+    setHasSearched(true);
+    
+    if (results.length === 0) {
+      toast({
+        title: "Nenhum produto encontrado",
+        description: "Tente outro termo de busca",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Handle search on Enter key press
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
 
   // Add product to cart
-  const addToCart = () => {
-    if (!selectedProduct || quantity <= 0) return;
+  const addProductToCart = (product: Product, qty: number) => {
+    if (!product || qty <= 0) return;
     
-    const existingItem = cart.find(item => item.id === selectedProduct.id);
+    const existingItem = cart.find(item => item.id === product.id);
     
     if (existingItem) {
       // Update existing item
       setCart(cart.map(item => 
-        item.id === selectedProduct.id
+        item.id === product.id
           ? { 
               ...item, 
-              quantity: item.quantity + quantity,
-              subtotal: (item.quantity + quantity) * item.price
+              quantity: item.quantity + qty,
+              subtotal: (item.quantity + qty) * item.price
             }
           : item
       ));
+      
+      toast({
+        title: "Produto atualizado",
+        description: `${product.name} (${qty}) adicionado ao carrinho`
+      });
     } else {
       // Add new item
       setCart([...cart, {
-        ...selectedProduct,
-        quantity,
-        subtotal: quantity * selectedProduct.price
+        ...product,
+        quantity: qty,
+        subtotal: qty * product.price
       }]);
+      
+      toast({
+        title: "Produto adicionado",
+        description: `${product.name} adicionado ao carrinho`
+      });
     }
     
-    // Reset selection and quantity
-    setSelectedProduct(null);
-    setQuantity(1);
+    // Reset selection and quantity if manually adding
+    if (selectedProduct) {
+      setSelectedProduct(null);
+      setQuantity(1);
+    }
   };
 
   // Remove item from cart
   const removeFromCart = (productId: string) => {
     setCart(cart.filter(item => item.id !== productId));
+    toast({
+      title: "Produto removido",
+      description: "Item removido do carrinho"
+    });
   };
 
   // Calculate total
@@ -193,6 +296,25 @@ const Sales = () => {
     },
   ];
 
+  // Clear cart
+  const clearCart = () => {
+    setCart([]);
+    toast({
+      title: "Carrinho limpo",
+      description: "Todos os itens foram removidos"
+    });
+  };
+
+  // Finalize sale (placeholder)
+  const finalizeSale = () => {
+    toast({
+      title: "Venda finalizada",
+      description: `Total: R$ ${cartTotal.toFixed(2)}`
+    });
+    // Here you would handle saving the sale to database
+    clearCart();
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -218,27 +340,81 @@ const Sales = () => {
           {/* Product search */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center">
-                <Search className="mr-2 h-5 w-5" />
-                Buscar Produtos
+              <CardTitle className="text-lg flex items-center justify-between">
+                <div className="flex items-center">
+                  <Search className="mr-2 h-5 w-5" />
+                  Buscar Produtos
+                </div>
+                <Button 
+                  onClick={toggleScanner} 
+                  variant={isScannerActive ? "destructive" : "outline"}
+                  size="sm"
+                  className="ml-auto"
+                >
+                  {isScannerActive ? (
+                    <>
+                      <X className="mr-1 h-4 w-4" />
+                      Desativar Scanner
+                    </>
+                  ) : (
+                    <>
+                      <Barcode className="mr-1 h-4 w-4" />
+                      Leitor de Código
+                    </>
+                  )}
+                </Button>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex mb-4">
-                <Input
-                  placeholder="Buscar por nome ou código..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1"
-                />
+              <div className="flex gap-2 mb-4">
+                <div className="relative flex-1">
+                  <Input
+                    ref={searchInputRef}
+                    placeholder="Buscar por nome, código ou SKU..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    className="pr-10"
+                  />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute right-0 top-0 h-full" 
+                    onClick={handleSearch}
+                  >
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </div>
+                <Button onClick={handleSearch}>Buscar</Button>
               </div>
               
-              <div className="rounded-md border">
-                <DataTable
-                  columns={productColumns}
-                  data={filteredProducts}
-                />
-              </div>
+              {isScannerActive && (
+                <div className="mb-4 p-4 border rounded-md bg-muted/20 flex justify-center">
+                  <div className="text-center">
+                    <Camera className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      Posicione o código de barras na frente da câmera
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {hasSearched && (
+                <>
+                  {searchResults.length > 0 ? (
+                    <div className="rounded-md border">
+                      <DataTable
+                        columns={productColumns}
+                        data={searchResults}
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 text-muted-foreground">
+                      Nenhum produto encontrado. Tente outra busca.
+                    </div>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -308,7 +484,10 @@ const Sales = () => {
                       className="w-20"
                     />
                     
-                    <Button onClick={addToCart} className="ml-auto">
+                    <Button 
+                      onClick={() => addProductToCart(selectedProduct, quantity)} 
+                      className="ml-auto"
+                    >
                       <Plus className="mr-1 h-4 w-4" />
                       Adicionar
                     </Button>
@@ -345,6 +524,7 @@ const Sales = () => {
                 className="w-full" 
                 size="lg" 
                 disabled={cart.length === 0}
+                onClick={finalizeSale}
               >
                 <CreditCard className="mr-2 h-5 w-5" />
                 Finalizar Venda
@@ -363,7 +543,7 @@ const Sales = () => {
                   variant="outline" 
                   className="flex-1"
                   disabled={cart.length === 0}
-                  onClick={() => setCart([])}
+                  onClick={clearCart}
                 >
                   <Trash2 className="mr-1 h-4 w-4" />
                   Limpar
