@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,16 +8,16 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 const MainLayout: React.FC = () => {
   const isMobile = useIsMobile();
-  const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
 
-  // Update sidebar state when screen size changes
   useEffect(() => {
-    setSidebarOpen(!isMobile);
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
   }, [isMobile]);
 
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       navigate('/');

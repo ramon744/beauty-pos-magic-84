@@ -51,7 +51,10 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, label, requiredRoles = ['ad
       <div className="min-w-[40px] h-10 flex items-center justify-center">
         {icon}
       </div>
-      <span className="transition-opacity duration-200 whitespace-nowrap">
+      <span className={cn(
+        "transition-opacity duration-200 whitespace-nowrap",
+        "group-[.sidebar-collapsed]:opacity-0 group-[.sidebar-collapsed]:w-0 group-[.sidebar-collapsed]:overflow-hidden"
+      )}>
         {label}
       </span>
     </NavLink>
@@ -63,7 +66,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle }) => {
     <aside
       className={cn(
         "fixed inset-y-0 left-0 z-20 flex flex-col bg-sidebar transition-all duration-300 ease-in-out",
-        isOpen ? "w-[240px]" : "w-[70px]",
+        isOpen ? "w-[240px]" : "w-[70px] sidebar-collapsed",
         "md:relative md:left-0 md:top-0 md:translate-x-0"
       )}
     >
@@ -135,7 +138,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle }) => {
       </div>
       
       <div className="p-3 border-t border-sidebar-border">
-        <div className={cn("transition-all", isOpen ? "opacity-100" : "opacity-0 h-0 overflow-hidden")}>
+        <div className={cn(
+          "transition-all", 
+          isOpen ? "opacity-100" : "opacity-0 h-0 overflow-hidden"
+        )}>
           <div className="rounded-lg bg-sidebar-accent p-3 text-xs text-sidebar-foreground">
             <p className="font-medium mb-1">Loja Ipanema</p>
             <p>Versão 1.0</p>
