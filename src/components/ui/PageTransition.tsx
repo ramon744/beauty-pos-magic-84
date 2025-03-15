@@ -23,7 +23,7 @@ const PageTransition: React.FC<PageTransitionProps> = ({ children }) => {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.4,
+        duration: 0.3,
         ease: [0.22, 1, 0.36, 1]
       }
     },

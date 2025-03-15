@@ -1,455 +1,377 @@
 
 import React, { useState } from 'react';
-import { Search, ShoppingCart, Plus, Minus, Trash2, Check, CreditCard, Banknote, Smartphone } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  ShoppingCart, 
+  Search, 
+  Plus, 
+  Trash2, 
+  CreditCard, 
+  Receipt, 
+  ArrowRight
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
-import { toast } from 'sonner';
-import { Product, CartItem, PaymentMethod } from '@/types';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataTable } from '@/components/common/DataTable';
+import { useAuth } from '@/contexts/AuthContext';
+import { ColumnDef } from '@tanstack/react-table';
+import { useIsMobile } from '@/hooks/use-mobile';
+
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  category: string;
+}
+
+interface CartItem extends Product {
+  quantity: number;
+  subtotal: number;
+}
 
 // Mock products for demonstration
 const mockProducts: Product[] = [
-  {
-    id: '1',
-    name: 'Base Líquida Matte',
-    description: 'Base líquida de alta cobertura com acabamento matte',
-    code: 'B001',
-    category: { id: '1', name: 'Base' },
-    salePrice: 89.90,
-    costPrice: 45.00,
-    stock: 15,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '2',
-    name: 'Batom Líquido Vermelho',
-    description: 'Batom líquido longa duração cor vermelho intenso',
-    code: 'BL001',
-    category: { id: '2', name: 'Batom' },
-    salePrice: 59.90,
-    costPrice: 30.00,
-    stock: 20,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '3',
-    name: 'Paleta de Sombras Nude',
-    description: 'Paleta com 12 cores em tons neutros',
-    code: 'PS001',
-    category: { id: '3', name: 'Sombra' },
-    salePrice: 120.00,
-    costPrice: 65.00,
-    stock: 8,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
+  { id: '1', name: 'Batom Matte Vermelho', description: 'Batom de longa duração', price: 29.90, stock: 15, category: 'Lábios' },
+  { id: '2', name: 'Base Líquida Natural', description: 'Base para todos os tipos de pele', price: 89.90, stock: 8, category: 'Rosto' },
+  { id: '3', name: 'Máscara de Cílios Volume', description: 'Máscara para volume', price: 59.90, stock: 12, category: 'Olhos' },
+  { id: '4', name: 'Pó Compacto Translúcido', description: 'Pó para fixação', price: 49.90, stock: 10, category: 'Rosto' },
+  { id: '5', name: 'Delineador Líquido Preto', description: 'Delineador à prova d\'água', price: 39.90, stock: 20, category: 'Olhos' },
+  { id: '6', name: 'Blush Rosado', description: 'Blush em pó', price: 45.90, stock: 7, category: 'Rosto' },
+  { id: '7', name: 'Paleta de Sombras', description: 'Paleta com 12 cores', price: 120.00, stock: 5, category: 'Olhos' },
 ];
 
 const Sales = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [totalDiscount, setTotalDiscount] = useState(0);
-  const [searchResults, setSearchResults] = useState<Product[]>([]);
-  const [showPaymentMethods, setShowPaymentMethods] = useState(false);
+  const isMobile = useIsMobile();
+  const { user } = useAuth();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [quantity, setQuantity] = useState(1);
 
-  const searchProducts = (term: string) => {
-    setSearchTerm(term);
-    if (term.length > 2) {
-      const results = mockProducts.filter(
-        product => 
-          product.name.toLowerCase().includes(term.toLowerCase()) ||
-          product.code.toLowerCase().includes(term.toLowerCase())
-      );
-      setSearchResults(results);
-    } else {
-      setSearchResults([]);
-    }
-  };
+  // Filter products based on search query
+  const filteredProducts = mockProducts.filter(product => 
+    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    product.id.includes(searchQuery)
+  );
 
-  const addToCart = (product: Product) => {
-    const existingItem = cartItems.find(item => item.product.id === product.id);
+  // Add product to cart
+  const addToCart = () => {
+    if (!selectedProduct || quantity <= 0) return;
+    
+    const existingItem = cart.find(item => item.id === selectedProduct.id);
     
     if (existingItem) {
-      // Increase quantity of existing item
-      setCartItems(
-        cartItems.map(item => 
-          item.product.id === product.id 
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        )
-      );
+      // Update existing item
+      setCart(cart.map(item => 
+        item.id === selectedProduct.id
+          ? { 
+              ...item, 
+              quantity: item.quantity + quantity,
+              subtotal: (item.quantity + quantity) * item.price
+            }
+          : item
+      ));
     } else {
       // Add new item
-      setCartItems([
-        ...cartItems,
-        { 
-          product,
-          quantity: 1,
-          price: product.salePrice,
-          discount: 0
-        }
-      ]);
+      setCart([...cart, {
+        ...selectedProduct,
+        quantity,
+        subtotal: quantity * selectedProduct.price
+      }]);
     }
     
-    // Clear search results
-    setSearchTerm('');
-    setSearchResults([]);
-    
-    toast.success(`${product.name} adicionado ao carrinho`);
+    // Reset selection and quantity
+    setSelectedProduct(null);
+    setQuantity(1);
   };
 
-  const updateQuantity = (id: string, change: number) => {
-    setCartItems(
-      cartItems.map(item => {
-        if (item.product.id === id) {
-          const newQuantity = Math.max(1, item.quantity + change);
-          return { ...item, quantity: newQuantity };
-        }
-        return item;
-      })
-    );
+  // Remove item from cart
+  const removeFromCart = (productId: string) => {
+    setCart(cart.filter(item => item.id !== productId));
   };
 
-  const updateDiscount = (id: string, discountValue: number) => {
-    setCartItems(
-      cartItems.map(item => {
-        if (item.product.id === id) {
-          return { ...item, discount: discountValue };
-        }
-        return item;
-      })
-    );
-  };
+  // Calculate total
+  const cartTotal = cart.reduce((total, item) => total + item.subtotal, 0);
 
-  const removeFromCart = (id: string) => {
-    setCartItems(cartItems.filter(item => item.product.id !== id));
-    toast.info("Item removido do carrinho");
-  };
+  // Cart item columns for DataTable
+  const cartColumns: ColumnDef<CartItem>[] = [
+    {
+      accessorKey: 'name',
+      header: 'Produto',
+      cell: ({ row }) => (
+        <div className="font-medium">{row.original.name}</div>
+      ),
+    },
+    {
+      accessorKey: 'quantity',
+      header: 'Qtd',
+      cell: ({ row }) => (
+        <div className="text-center">{row.original.quantity}</div>
+      ),
+    },
+    {
+      accessorKey: 'price',
+      header: 'Preço',
+      cell: ({ row }) => (
+        <div className="text-right">R$ {row.original.price.toFixed(2)}</div>
+      ),
+    },
+    {
+      accessorKey: 'subtotal',
+      header: 'Subtotal',
+      cell: ({ row }) => (
+        <div className="text-right font-medium">R$ {row.original.subtotal.toFixed(2)}</div>
+      ),
+    },
+    {
+      id: 'actions',
+      cell: ({ row }) => (
+        <div className="text-right">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => removeFromCart(row.original.id)}
+            className="text-destructive hover:text-destructive/90"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
 
-  const calculateSubtotal = () => {
-    return cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  };
-
-  const calculateItemDiscount = (item: CartItem) => {
-    return (item.discount / 100) * (item.price * item.quantity);
-  };
-
-  const calculateTotalDiscount = () => {
-    const itemDiscounts = cartItems.reduce((sum, item) => sum + calculateItemDiscount(item), 0);
-    return itemDiscounts + totalDiscount;
-  };
-
-  const calculateTotal = () => {
-    const subtotal = calculateSubtotal();
-    const discount = calculateTotalDiscount();
-    return subtotal - discount;
-  };
-
-  const handleFinishSale = (paymentMethod: PaymentMethod) => {
-    if (cartItems.length === 0) {
-      toast.error("Adicione produtos ao carrinho para finalizar a venda");
-      return;
-    }
-    
-    // Here we would normally process the sale through an API
-    // For demo purposes, we'll just show a success message
-    toast.success(`Venda finalizada com sucesso! Forma de pagamento: ${getPaymentMethodName(paymentMethod)}`);
-    
-    // Reset the cart
-    setCartItems([]);
-    setTotalDiscount(0);
-    setShowPaymentMethods(false);
-  };
-
-  const getPaymentMethodName = (method: PaymentMethod): string => {
-    const methods: Record<PaymentMethod, string> = {
-      cash: 'Dinheiro',
-      credit_card: 'Cartão de Crédito',
-      debit_card: 'Cartão de Débito',
-      pix: 'PIX',
-      transfer: 'Transferência',
-    };
-    return methods[method];
-  };
+  // Product search/selection columns
+  const productColumns: ColumnDef<Product>[] = [
+    {
+      accessorKey: 'id',
+      header: 'Código',
+    },
+    {
+      accessorKey: 'name',
+      header: 'Produto',
+    },
+    {
+      accessorKey: 'category',
+      header: 'Categoria',
+    },
+    {
+      accessorKey: 'price',
+      header: 'Preço',
+      cell: ({ row }) => (
+        <div className="text-right">R$ {row.original.price.toFixed(2)}</div>
+      ),
+    },
+    {
+      accessorKey: 'stock',
+      header: 'Estoque',
+      cell: ({ row }) => (
+        <div className={`text-center ${row.original.stock < 5 ? 'text-destructive' : ''}`}>
+          {row.original.stock}
+        </div>
+      ),
+    },
+    {
+      id: 'actions',
+      cell: ({ row }) => (
+        <div className="text-right">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSelectedProduct(row.original);
+              setQuantity(1);
+            }}
+            className="text-primary hover:text-primary/90"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Adicionar
+          </Button>
+        </div>
+      ),
+    },
+  ];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Left side - Product search and cart */}
-      <div className="lg:col-span-2 space-y-6">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle>Pesquisar Produtos</CardTitle>
-            <CardDescription>Pesquise por nome ou código do produto</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center relative">
-              <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Digite o nome ou código do produto..."
-                value={searchTerm}
-                onChange={(e) => searchProducts(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            
-            {searchResults.length > 0 && (
-              <div className="mt-2 border rounded-md overflow-hidden shadow-sm max-h-[300px] overflow-y-auto">
-                <div className="divide-y">
-                  {searchResults.map(product => (
-                    <div 
-                      key={product.id} 
-                      className="flex items-center justify-between p-3 hover:bg-muted cursor-pointer"
-                      onClick={() => addToCart(product)}
-                    >
-                      <div>
-                        <p className="font-medium">{product.name}</p>
-                        <p className="text-sm text-muted-foreground">Código: {product.code}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium">R$ {product.salePrice.toFixed(2).replace('.', ',')}</p>
-                        <p className="text-sm text-muted-foreground">Estoque: {product.stock}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle>Carrinho de Compras</CardTitle>
-              <div className="flex items-center text-muted-foreground">
-                <ShoppingCart className="h-5 w-5 mr-2" />
-                <span>{cartItems.reduce((sum, item) => sum + item.quantity, 0)} itens</span>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {cartItems.length === 0 ? (
-              <div className="text-center py-8">
-                <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground" />
-                <p className="mt-2 text-muted-foreground">Carrinho vazio</p>
-                <p className="text-sm">Adicione produtos para iniciar uma venda</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="grid grid-cols-12 gap-4 text-sm font-medium text-muted-foreground">
-                  <div className="col-span-6">Produto</div>
-                  <div className="col-span-2 text-center">Qtd</div>
-                  <div className="col-span-2 text-center">Desconto</div>
-                  <div className="col-span-2 text-right">Subtotal</div>
-                </div>
-                <Separator />
-                
-                {cartItems.map(item => {
-                  const itemSubtotal = item.price * item.quantity;
-                  const itemDiscount = calculateItemDiscount(item);
-                  const itemTotal = itemSubtotal - itemDiscount;
-                  
-                  return (
-                    <div key={item.product.id} className="grid grid-cols-12 gap-4 items-center">
-                      <div className="col-span-6">
-                        <div className="font-medium">{item.product.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          R$ {item.price.toFixed(2).replace('.', ',')} / un
-                        </div>
-                      </div>
-                      
-                      <div className="col-span-2 flex items-center justify-center space-x-1">
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          className="h-7 w-7"
-                          onClick={() => updateQuantity(item.product.id, -1)}
-                        >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        <span className="w-6 text-center">{item.quantity}</span>
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          className="h-7 w-7"
-                          onClick={() => updateQuantity(item.product.id, 1)}
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
-                      
-                      <div className="col-span-2 flex items-center justify-center">
-                        <Input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={item.discount}
-                          onChange={(e) => updateDiscount(item.product.id, parseFloat(e.target.value) || 0)}
-                          className="h-8 w-16 text-center"
-                        />
-                        <span className="ml-1">%</span>
-                      </div>
-                      
-                      <div className="col-span-1 text-right font-medium">
-                        R$ {itemTotal.toFixed(2).replace('.', ',')}
-                      </div>
-                      
-                      <div className="col-span-1 flex justify-end">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-7 w-7 text-destructive"
-                          onClick={() => removeFromCart(item.product.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-                
-                <Separator />
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Desconto adicional (R$)</span>
-                      <Input
-                        type="number"
-                        min="0"
-                        value={totalDiscount}
-                        onChange={(e) => setTotalDiscount(parseFloat(e.target.value) || 0)}
-                        className="h-8 w-24 text-right"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-1 text-right">
-                    <div className="flex justify-between text-sm">
-                      <span>Subtotal:</span>
-                      <span>R$ {calculateSubtotal().toFixed(2).replace('.', ',')}</span>
-                    </div>
-                    <div className="flex justify-between text-sm text-green-600">
-                      <span>Desconto total:</span>
-                      <span>- R$ {calculateTotalDiscount().toFixed(2).replace('.', ',')}</span>
-                    </div>
-                    <div className="flex justify-between font-bold text-lg mt-2">
-                      <span>Total:</span>
-                      <span>R$ {calculateTotal().toFixed(2).replace('.', ',')}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+        <h2 className="text-3xl font-bold tracking-tight flex items-center">
+          <ShoppingCart className="mr-2 h-8 w-8" />
+          Nova Venda
+        </h2>
+        <p className="text-muted-foreground">
+          <span className="font-medium">Atendente: {user?.name}</span> • 
+          {new Date().toLocaleDateString('pt-BR', { 
+            day: '2-digit', 
+            month: 'long', 
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
+        </p>
       </div>
-      
-      {/* Right side - Payment and customer info */}
-      <div className="space-y-6">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle>Finalizar Venda</CardTitle>
-            <CardDescription>Informações do cliente e pagamento</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Cliente (opcional)</label>
-              <Input placeholder="Pesquisar cliente por nome ou CPF" />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Notas da Venda (opcional)</label>
-              <textarea
-                className="w-full min-h-[80px] rounded-md border p-2 resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                placeholder="Adicione observações para esta venda..."
-              ></textarea>
-            </div>
-            
-            <div className="p-4 rounded-lg bg-muted">
-              <h3 className="text-lg font-semibold mb-2">Resumo da Venda</h3>
-              <div className="space-y-1 text-sm">
+
+      <div className="grid gap-6 md:grid-cols-5">
+        {/* Main content - product search and cart */}
+        <div className={`space-y-6 ${isMobile ? 'col-span-5' : 'col-span-3'}`}>
+          {/* Product search */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center">
+                <Search className="mr-2 h-5 w-5" />
+                Buscar Produtos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex mb-4">
+                <Input
+                  placeholder="Buscar por nome ou código..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1"
+                />
+              </div>
+              
+              <div className="rounded-md border">
+                <DataTable
+                  columns={productColumns}
+                  data={filteredProducts}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Cart items */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center">
+                <ShoppingCart className="mr-2 h-5 w-5" />
+                Itens no Carrinho
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {cart.length > 0 ? (
+                <div className="rounded-md border">
+                  <DataTable
+                    columns={cartColumns}
+                    data={cart}
+                  />
+                </div>
+              ) : (
+                <div className="text-center py-6 text-muted-foreground">
+                  Carrinho vazio. Adicione produtos para iniciar a venda.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Side panel - selected product and checkout */}
+        <div className={`space-y-6 ${isMobile ? 'col-span-5' : 'col-span-2'}`}>
+          {/* Selected product */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">
+                Produto Selecionado
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {selectedProduct ? (
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-medium">{selectedProduct.name}</h3>
+                    <p className="text-sm text-muted-foreground">{selectedProduct.description}</p>
+                  </div>
+                  
+                  <div className="flex justify-between text-sm">
+                    <span>Preço unitário:</span>
+                    <span className="font-medium">R$ {selectedProduct.price.toFixed(2)}</span>
+                  </div>
+
+                  <div className="flex justify-between text-sm">
+                    <span>Estoque disponível:</span>
+                    <span className={`font-medium ${selectedProduct.stock < 5 ? 'text-destructive' : ''}`}>
+                      {selectedProduct.stock} unidades
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="quantity" className="text-sm">Quantidade:</label>
+                    <Input
+                      id="quantity"
+                      type="number"
+                      min={1}
+                      max={selectedProduct.stock}
+                      value={quantity}
+                      onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                      className="w-20"
+                    />
+                    
+                    <Button onClick={addToCart} className="ml-auto">
+                      <Plus className="mr-1 h-4 w-4" />
+                      Adicionar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-6 text-muted-foreground">
+                  Selecione um produto para adicionar ao carrinho
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          
+          {/* Checkout */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Resumo da Venda</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
                 <div className="flex justify-between">
-                  <span>Quantidade de Itens:</span>
-                  <span>{cartItems.reduce((sum, item) => sum + item.quantity, 0)}</span>
+                  <span className="font-medium">Total de Itens:</span>
+                  <span>{cart.reduce((total, item) => total + item.quantity, 0)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Subtotal:</span>
-                  <span>R$ {calculateSubtotal().toFixed(2).replace('.', ',')}</span>
-                </div>
-                <div className="flex justify-between text-green-600">
-                  <span>Desconto Total:</span>
-                  <span>- R$ {calculateTotalDiscount().toFixed(2).replace('.', ',')}</span>
-                </div>
-                <Separator className="my-2" />
-                <div className="flex justify-between font-bold">
-                  <span>Total a Pagar:</span>
-                  <span>R$ {calculateTotal().toFixed(2).replace('.', ',')}</span>
+                
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Total:</span>
+                  <span>R$ {cartTotal.toFixed(2)}</span>
                 </div>
               </div>
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            {!showPaymentMethods ? (
+            </CardContent>
+            <CardFooter className="flex flex-col gap-2">
               <Button 
                 className="w-full" 
-                disabled={cartItems.length === 0}
-                onClick={() => setShowPaymentMethods(true)}
+                size="lg" 
+                disabled={cart.length === 0}
               >
-                <Check className="mr-2 h-4 w-4" />
-                Prosseguir para Pagamento
+                <CreditCard className="mr-2 h-5 w-5" />
+                Finalizar Venda
               </Button>
-            ) : (
-              <div className="space-y-3 w-full">
-                <h3 className="font-medium">Selecione a forma de pagamento:</h3>
-                <div className="grid grid-cols-1 gap-2">
-                  <Button 
-                    variant="outline" 
-                    className="justify-start"
-                    onClick={() => handleFinishSale('credit_card')}
-                  >
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Cartão de Crédito
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="justify-start"
-                    onClick={() => handleFinishSale('debit_card')}
-                  >
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Cartão de Débito
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="justify-start"
-                    onClick={() => handleFinishSale('cash')}
-                  >
-                    <Banknote className="mr-2 h-4 w-4" />
-                    Dinheiro
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="justify-start"
-                    onClick={() => handleFinishSale('pix')}
-                  >
-                    <Smartphone className="mr-2 h-4 w-4" />
-                    PIX
-                  </Button>
-                </div>
+              
+              <div className="flex gap-2 w-full">
                 <Button 
-                  variant="ghost" 
-                  className="w-full mt-2"
-                  onClick={() => setShowPaymentMethods(false)}
+                  variant="outline" 
+                  className="flex-1"
+                  disabled={cart.length === 0}
                 >
-                  Voltar
+                  <Receipt className="mr-1 h-4 w-4" />
+                  Salvar
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  disabled={cart.length === 0}
+                  onClick={() => setCart([])}
+                >
+                  <Trash2 className="mr-1 h-4 w-4" />
+                  Limpar
                 </Button>
               </div>
-            )}
-          </CardFooter>
-        </Card>
+            </CardFooter>
+          </Card>
+        </div>
       </div>
     </div>
   );

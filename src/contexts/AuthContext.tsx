@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { User, UserRole } from '@/types';
 
-// Mock users for the demo
+// Mock users for the demo - will be replaced with DB integration in the future
 const MOCK_USERS = [
   {
     id: '1',
@@ -32,6 +32,15 @@ const MOCK_USERS = [
   },
 ];
 
+// Local storage keys - centralizing for future DB migration
+const STORAGE_KEYS = {
+  AUTH: 'beautyPosAuth',
+  PRODUCTS: 'beautyPosProducts',
+  CUSTOMERS: 'beautyPosCustomers',
+  SALES: 'beautyPosSales',
+  PROMOTIONS: 'beautyPosPromotions',
+};
+
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
@@ -50,47 +59,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Check for saved auth on mount
   useEffect(() => {
-    const savedAuth = localStorage.getItem('beautyPosAuth');
+    const savedAuth = localStorage.getItem(STORAGE_KEYS.AUTH);
     if (savedAuth) {
       try {
         const parsedAuth = JSON.parse(savedAuth);
         setUser(parsedAuth);
       } catch (error) {
         console.error('Failed to parse stored auth', error);
-        localStorage.removeItem('beautyPosAuth');
+        localStorage.removeItem(STORAGE_KEYS.AUTH);
       }
     }
     setIsLoading(false);
   }, []);
 
+  // Database integration future-proofing:
+  // This function can be modified to call an API endpoint in the future
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    const foundUser = MOCK_USERS.find(
-      u => u.email === email && u.password === password
-    );
-    
-    if (foundUser) {
-      // Remove password from user object before storing
-      const { password, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('beautyPosAuth', JSON.stringify(userWithoutPassword));
-      toast.success(`Bem-vindo, ${userWithoutPassword.name}!`);
-      setIsLoading(false);
-      return true;
-    } else {
-      toast.error('Credenciais inválidas. Tente novamente.');
-      setIsLoading(false);
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // This will be replaced with actual API call in the future
+      const foundUser = MOCK_USERS.find(
+        u => u.email === email && u.password === password
+      );
+      
+      if (foundUser) {
+        // Remove password from user object before storing
+        const { password, ...userWithoutPassword } = foundUser;
+        setUser(userWithoutPassword);
+        
+        // Store in localStorage (will be replaced with tokens/session management)
+        localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(userWithoutPassword));
+        toast.success(`Bem-vindo, ${userWithoutPassword.name}!`);
+        return true;
+      } else {
+        toast.error('Credenciais inválidas. Tente novamente.');
+        return false;
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error('Erro ao fazer login. Tente novamente.');
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('beautyPosAuth');
+    localStorage.removeItem(STORAGE_KEYS.AUTH);
     navigate('/');
     toast.info('Logout realizado com sucesso');
   };
@@ -123,3 +143,6 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+
+// Helper for future database adapters
+export const storageKeys = STORAGE_KEYS;

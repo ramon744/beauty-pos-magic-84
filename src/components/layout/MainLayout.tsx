@@ -5,11 +5,18 @@ import { useAuth } from '@/contexts/AuthContext';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import PageTransition from '@/components/ui/PageTransition';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const MainLayout: React.FC = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const isMobile = useIsMobile();
+  const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+
+  // Update sidebar state when screen size changes
+  useEffect(() => {
+    setSidebarOpen(!isMobile);
+  }, [isMobile]);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -41,7 +48,7 @@ const MainLayout: React.FC = () => {
       <div className="flex flex-1 flex-col overflow-hidden">
         <Navbar toggleSidebar={toggleSidebar} />
         
-        <main className={`flex-1 overflow-y-auto p-6 pt-20 transition-all duration-300`}>
+        <main className={`flex-1 overflow-y-auto p-4 md:p-6 pt-20 transition-all duration-300`}>
           <PageTransition>
             <Outlet />
           </PageTransition>
