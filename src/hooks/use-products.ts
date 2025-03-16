@@ -1,7 +1,7 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Product, Category } from '@/types';
 import { storageService } from '@/services/storage-service';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Define the Statistics interface
 interface ProductStatistics {
@@ -13,11 +13,28 @@ interface ProductStatistics {
   approachingMinimumStock: number;
 }
 
+// Define StockHistory interface
+export interface StockHistoryEntry {
+  id: string;
+  productId: string;
+  productName: string;
+  previousStock: number;
+  newStock: number;
+  adjustmentType: 'balance' | 'add' | 'remove';
+  quantity: number;
+  reason: string;
+  userId: string;
+  userName: string;
+  userRole: string;
+  timestamp: Date;
+}
+
 // Storage keys
 const STORAGE_KEYS = {
   PRODUCTS: 'products',
   CATEGORIES: 'categories',
   STATISTICS: 'products-statistics',
+  STOCK_HISTORY: 'stock-history',
 };
 
 // Initial mock data for categories
@@ -139,6 +156,7 @@ const initialProducts: Product[] = [
 const initializeData = () => {
   const existingProducts = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS);
   const existingCategories = storageService.getItem<Category[]>(STORAGE_KEYS.CATEGORIES);
+  const existingStockHistory = storageService.getItem<StockHistoryEntry[]>(STORAGE_KEYS.STOCK_HISTORY);
   
   if (!existingProducts) {
     storageService.setItem(STORAGE_KEYS.PRODUCTS, initialProducts);
@@ -146,6 +164,10 @@ const initializeData = () => {
   
   if (!existingCategories) {
     storageService.setItem(STORAGE_KEYS.CATEGORIES, initialCategories);
+  }
+  
+  if (!existingStockHistory) {
+    storageService.setItem(STORAGE_KEYS.STOCK_HISTORY, []);
   }
   
   // Calculate and update statistics
@@ -329,6 +351,109 @@ export function useDeleteProduct() {
       // Invalidate queries to refetch the data
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['statistics'] });
+    },
+  });
+}
+
+// New hook for adjusting stock and recording history
+export function useStockAdjustment() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  
+  return useMutation({
+    mutationFn: async ({
+      product,
+      newStock,
+      adjustmentType,
+      reason
+    }: {
+      product: Product;
+      newStock: number;
+      adjustmentType: 'balance' | 'add' | 'remove';
+      reason: string;
+    }) => {
+      if (!user) throw new Error('User must be logged in to adjust stock');
+      
+      // Calculate quantity based on adjustment type
+      const quantity = adjustmentType === 'balance' 
+        ? Math.abs(newStock - product.stock)
+        : adjustmentType === 'add'
+          ? newStock - product.stock
+          : product.stock - newStock;
+          
+      // Get existing history or initialize empty array
+      const stockHistory = storageService.getItem<StockHistoryEntry[]>(STORAGE_KEYS.STOCK_HISTORY) || [];
+      
+      // Create history entry
+      const historyEntry: StockHistoryEntry = {
+        id: Date.now().toString(),
+        productId: product.id,
+        productName: product.name,
+        previousStock: product.stock,
+        newStock,
+        adjustmentType,
+        quantity,
+        reason,
+        userId: user.id,
+        userName: user.name,
+        userRole: user.role,
+        timestamp: new Date()
+      };
+      
+      // Add to history
+      stockHistory.push(historyEntry);
+      storageService.setItem(STORAGE_KEYS.STOCK_HISTORY, stockHistory);
+      
+      // Update product stock
+      const products = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
+      const productIndex = products.findIndex(p => p.id === product.id);
+      
+      if (productIndex === -1) throw new Error('Product not found');
+      
+      // Update the product with new stock
+      const updatedProduct = {
+        ...products[productIndex],
+        stock: newStock,
+        updatedAt: new Date()
+      };
+      
+      products[productIndex] = updatedProduct;
+      storageService.setItem(STORAGE_KEYS.PRODUCTS, products);
+      
+      // Update statistics
+      updateStatistics();
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      return { updatedProduct, historyEntry };
+    },
+    onSuccess: () => {
+      // Invalidate queries to refetch the data
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['statistics'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-history'] });
+    },
+  });
+}
+
+// Hook for fetching stock history
+export function useStockHistory(productId?: string) {
+  return useQuery({
+    queryKey: ['stock-history', productId],
+    queryFn: async () => {
+      // Get full history
+      const history = storageService.getItem<StockHistoryEntry[]>(STORAGE_KEYS.STOCK_HISTORY) || [];
+      
+      // Sort by timestamp (newest first)
+      const sortedHistory = [...history].sort((a, b) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+      
+      // Filter by productId if provided
+      return productId 
+        ? sortedHistory.filter(entry => entry.productId === productId)
+        : sortedHistory;
     },
   });
 }

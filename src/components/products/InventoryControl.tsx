@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useFetchProducts, useSaveProduct } from '@/hooks/use-products';
+import { useFetchProducts, useStockAdjustment, useStockHistory } from '@/hooks/use-products';
 import { DataTable } from '@/components/common/DataTable';
 import { ColumnDef } from '@tanstack/react-table';
 import { Product } from '@/types';
@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   Search, X, AlertTriangle, CheckCircle, PackageCheck, Plus, Minus, 
-  Scale, PackagePlus, PackageMinus, Save, ArrowUp, ArrowDown, RefreshCw
+  Scale, PackagePlus, PackageMinus, Save, ArrowUp, ArrowDown, RefreshCw,
+  Clock, User, CalendarClock
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,13 +19,36 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { useAuth } from '@/contexts/AuthContext';
+import { 
+  Table, 
+  TableBody, 
+  TableCaption, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const InventoryControl = () => {
   const { data: products, isLoading } = useFetchProducts();
+  const { data: stockHistory } = useStockHistory();
   const [searchValue, setSearchValue] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const { mutate: saveProduct } = useSaveProduct();
+  const { mutate: adjustStock } = useStockAdjustment();
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  // Tab state for inventory control tabs
+  const [activeInventoryTab, setActiveInventoryTab] = useState<string>('products');
 
   // New states for the stock control dialogs
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -73,7 +97,9 @@ const InventoryControl = () => {
     
     if (type === 'balance') {
       setNewStockValue(product.stock);
-    } else {
+    } else if (type === 'add') {
+      setAdjustmentQuantity(1);
+    } else { // remove
       setAdjustmentQuantity(1);
     }
     
@@ -103,27 +129,30 @@ const InventoryControl = () => {
       return;
     }
     
-    const updatedProduct = {
-      ...product,
-      stock: newStock,
-      updatedAt: new Date()
-    };
-    
-    saveProduct(updatedProduct, {
-      onSuccess: () => {
-        toast({
-          title: "Estoque atualizado",
-          description: `Estoque do produto ${product.name} atualizado para ${newStock} unidades.`,
-        });
+    // Use the new stock adjustment hook
+    adjustStock(
+      {
+        product,
+        newStock,
+        adjustmentType: adjustment > 0 ? 'add' : 'remove',
+        reason: 'Ajuste rápido de estoque'
       },
-      onError: () => {
-        toast({
-          variant: "destructive",
-          title: "Erro",
-          description: "Ocorreu um erro ao atualizar o estoque.",
-        });
+      {
+        onSuccess: () => {
+          toast({
+            title: "Estoque atualizado",
+            description: `Estoque do produto ${product.name} atualizado para ${newStock} unidades.`,
+          });
+        },
+        onError: () => {
+          toast({
+            variant: "destructive",
+            title: "Erro",
+            description: "Ocorreu um erro ao atualizar o estoque.",
+          });
+        }
       }
-    });
+    );
   };
 
   // Function to handle the confirmation of the dialog
@@ -131,26 +160,22 @@ const InventoryControl = () => {
     if (!selectedProduct || adjustmentType === null) return;
 
     let newStock: number;
-    let actionDescription: string;
     
     switch (adjustmentType) {
       case 'balance':
         newStock = newStockValue;
-        actionDescription = `balanço de estoque (${selectedProduct.stock} → ${newStock})`;
         break;
       case 'add':
         newStock = selectedProduct.stock + adjustmentQuantity;
-        actionDescription = `entrada de ${adjustmentQuantity} unidades`;
         break;
       case 'remove':
         newStock = selectedProduct.stock - adjustmentQuantity;
-        actionDescription = `retirada de ${adjustmentQuantity} unidades`;
         break;
       default:
         return;
     }
 
-    // Prevent negative stock for 'remove' type
+    // Prevent negative stock
     if (newStock < 0) {
       toast({
         variant: "destructive",
@@ -160,28 +185,38 @@ const InventoryControl = () => {
       return;
     }
 
-    const updatedProduct = {
-      ...selectedProduct,
-      stock: newStock,
-      updatedAt: new Date()
-    };
-    
-    saveProduct(updatedProduct, {
-      onSuccess: () => {
-        toast({
-          title: "Estoque atualizado",
-          description: `${selectedProduct.name}: ${actionDescription} realizada com sucesso.${adjustmentReason ? ` Motivo: ${adjustmentReason}` : ''}`,
-        });
-        closeAdjustmentDialog();
+    // Use the new stock adjustment hook with history logging
+    adjustStock(
+      {
+        product: selectedProduct,
+        newStock,
+        adjustmentType,
+        reason: adjustmentReason || `Ajuste de estoque (${adjustmentType})`
       },
-      onError: () => {
-        toast({
-          variant: "destructive",
-          title: "Erro",
-          description: "Ocorreu um erro ao atualizar o estoque.",
-        });
+      {
+        onSuccess: ({ updatedProduct, historyEntry }) => {
+          const actionMap = {
+            'balance': 'Balanço',
+            'add': 'Entrada',
+            'remove': 'Retirada'
+          };
+          
+          toast({
+            title: "Estoque atualizado",
+            description: `${actionMap[adjustmentType]} de estoque registrado com sucesso.`,
+          });
+          
+          closeAdjustmentDialog();
+        },
+        onError: (error) => {
+          toast({
+            variant: "destructive",
+            title: "Erro",
+            description: error instanceof Error ? error.message : "Ocorreu um erro ao atualizar o estoque.",
+          });
+        }
       }
-    });
+    );
   };
 
   // Calculate statistics
@@ -199,6 +234,15 @@ const InventoryControl = () => {
   };
 
   const stats = calculateStats();
+
+  // Helper function to get adjustment type text
+  const getAdjustmentTypeText = (type: 'balance' | 'add' | 'remove') => {
+    switch (type) {
+      case 'balance': return 'Balanço';
+      case 'add': return 'Entrada';
+      case 'remove': return 'Retirada';
+    }
+  };
 
   // Table columns
   const columns: ColumnDef<Product>[] = [
@@ -332,114 +376,202 @@ const InventoryControl = () => {
     }
   };
 
+  // Format timestamp for display
+  const formatDateTime = (date: Date | string) => {
+    return format(new Date(date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+  };
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className={`${stats.outOfStock > 0 ? 'border-red-200 bg-red-50' : ''}`}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Sem Estoque</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {stats.outOfStock}
-            </div>
-            <CardDescription>
-              produtos esgotados
-            </CardDescription>
-          </CardContent>
-        </Card>
-
-        <Card className={`${stats.lowStock > 0 ? 'border-red-200 bg-red-50' : ''}`}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Abaixo do Mínimo</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {stats.lowStock}
-            </div>
-            <CardDescription>
-              produtos em estado crítico
-            </CardDescription>
-          </CardContent>
-        </Card>
-
-        <Card className={`${stats.warningStock > 0 ? 'border-amber-200 bg-amber-50' : ''}`}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Próximo do Mínimo</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-amber-600">
-              {stats.warningStock}
-            </div>
-            <CardDescription>
-              produtos em alerta
-            </CardDescription>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Estoque Saudável</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {stats.healthyStock}
-            </div>
-            <CardDescription>
-              produtos com estoque adequado
-            </CardDescription>
-          </CardContent>
-        </Card>
-      </div>
-
-      {(stats.outOfStock > 0 || stats.lowStock > 0) && (
-        <Alert variant="destructive" className="bg-red-50 border-red-200">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            <span className="font-medium">Alerta:</span> Você tem {stats.outOfStock + stats.lowStock} produto(s) com estoque crítico que precisam de atenção.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <Tabs defaultValue="all" value={statusFilter} onValueChange={setStatusFilter}>
-        <TabsList>
-          <TabsTrigger value="all">Todos</TabsTrigger>
-          <TabsTrigger value="out-of-stock" className="text-red-600">Sem Estoque</TabsTrigger>
-          <TabsTrigger value="low-stock" className="text-red-600">Abaixo do Mínimo</TabsTrigger>
-          <TabsTrigger value="warning-stock" className="text-amber-600">Próximo do Mínimo</TabsTrigger>
-          <TabsTrigger value="healthy-stock" className="text-green-600">Estoque Saudável</TabsTrigger>
+      <Tabs value={activeInventoryTab} onValueChange={setActiveInventoryTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="products">Produtos e Ajustes</TabsTrigger>
+          <TabsTrigger value="history">Histórico de Movimentações</TabsTrigger>
         </TabsList>
-      </Tabs>
+        
+        <TabsContent value="products" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card className={`${stats.outOfStock > 0 ? 'border-red-200 bg-red-50' : ''}`}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Sem Estoque</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">
+                  {stats.outOfStock}
+                </div>
+                <CardDescription>
+                  produtos esgotados
+                </CardDescription>
+              </CardContent>
+            </Card>
 
-      <div className="relative">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Pesquisar por código ou nome do produto..."
-            className="pl-8 pr-8"
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-          />
-          {searchValue && (
-            <button 
-              onClick={clearSearch}
-              className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
-              aria-label="Limpar pesquisa"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            <Card className={`${stats.lowStock > 0 ? 'border-red-200 bg-red-50' : ''}`}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Abaixo do Mínimo</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">
+                  {stats.lowStock}
+                </div>
+                <CardDescription>
+                  produtos em estado crítico
+                </CardDescription>
+              </CardContent>
+            </Card>
+
+            <Card className={`${stats.warningStock > 0 ? 'border-amber-200 bg-amber-50' : ''}`}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Próximo do Mínimo</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-amber-600">
+                  {stats.warningStock}
+                </div>
+                <CardDescription>
+                  produtos em alerta
+                </CardDescription>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Estoque Saudável</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">
+                  {stats.healthyStock}
+                </div>
+                <CardDescription>
+                  produtos com estoque adequado
+                </CardDescription>
+              </CardContent>
+            </Card>
+          </div>
+
+          {(stats.outOfStock > 0 || stats.lowStock > 0) && (
+            <Alert variant="destructive" className="bg-red-50 border-red-200">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <span className="font-medium">Alerta:</span> Você tem {stats.outOfStock + stats.lowStock} produto(s) com estoque crítico que precisam de atenção.
+              </AlertDescription>
+            </Alert>
           )}
-        </div>
-      </div>
 
-      <div className="rounded-md border shadow">
-        <DataTable
-          columns={columns}
-          data={filteredProducts}
-          isLoading={isLoading}
-        />
-      </div>
+          <Tabs defaultValue="all" value={statusFilter} onValueChange={setStatusFilter}>
+            <TabsList>
+              <TabsTrigger value="all">Todos</TabsTrigger>
+              <TabsTrigger value="out-of-stock" className="text-red-600">Sem Estoque</TabsTrigger>
+              <TabsTrigger value="low-stock" className="text-red-600">Abaixo do Mínimo</TabsTrigger>
+              <TabsTrigger value="warning-stock" className="text-amber-600">Próximo do Mínimo</TabsTrigger>
+              <TabsTrigger value="healthy-stock" className="text-green-600">Estoque Saudável</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <div className="relative">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Pesquisar por código ou nome do produto..."
+                className="pl-8 pr-8"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+              />
+              {searchValue && (
+                <button 
+                  onClick={clearSearch}
+                  className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                  aria-label="Limpar pesquisa"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-md border shadow">
+            <DataTable
+              columns={columns}
+              data={filteredProducts}
+              isLoading={isLoading}
+            />
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="history" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Clock className="h-5 w-5 mr-2" />
+                Histórico de Movimentações de Estoque
+              </CardTitle>
+              <CardDescription>
+                Registro de todas as operações de ajuste, entrada e retirada de estoque
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!stockHistory || stockHistory.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhuma movimentação de estoque registrada.
+                </div>
+              ) : (
+                <div className="border rounded-md">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Data/Hora</TableHead>
+                        <TableHead>Produto</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Estoque</TableHead>
+                        <TableHead>Quantidade</TableHead>
+                        <TableHead>Responsável</TableHead>
+                        <TableHead>Motivo</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {stockHistory.slice(0, 50).map(entry => (
+                        <TableRow key={entry.id}>
+                          <TableCell className="font-medium whitespace-nowrap">
+                            {formatDateTime(entry.timestamp)}
+                          </TableCell>
+                          <TableCell>{entry.productName}</TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant="outline" 
+                              className={cn(
+                                entry.adjustmentType === 'add' ? "bg-green-50 text-green-700 border-green-200" :
+                                entry.adjustmentType === 'remove' ? "bg-red-50 text-red-700 border-red-200" :
+                                "bg-blue-50 text-blue-700 border-blue-200"
+                              )}
+                            >
+                              {getAdjustmentTypeText(entry.adjustmentType)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {entry.previousStock} → {entry.newStock}
+                          </TableCell>
+                          <TableCell>
+                            {entry.quantity}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <div className="flex items-center space-x-1">
+                              <User className="h-3 w-3" />
+                              <span>{entry.userName}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="max-w-xs truncate">
+                            {entry.reason || "-"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Stock Adjustment Dialog */}
       <Dialog open={adjustmentType !== null} onOpenChange={(open) => !open && closeAdjustmentDialog()}>
@@ -462,6 +594,12 @@ const InventoryControl = () => {
             <div className="flex items-center space-x-2">
               <div className="font-medium min-w-[120px]">Estoque atual:</div>
               <div className="font-bold">{selectedProduct?.stock || 0} unidades</div>
+            </div>
+
+            {/* User info field - automatically filled */}
+            <div className="flex items-center space-x-2">
+              <div className="font-medium min-w-[120px]">Responsável:</div>
+              <div className="font-bold">{user?.name} ({user?.role === 'admin' ? 'Administrador' : 'Gerente'})</div>
             </div>
 
             {adjustmentType === 'balance' ? (
@@ -507,7 +645,7 @@ const InventoryControl = () => {
               <div className="col-span-3">
                 <Input
                   id="adjustment-reason"
-                  placeholder="Informe o motivo do ajuste (opcional)"
+                  placeholder="Informe o motivo do ajuste"
                   value={adjustmentReason}
                   onChange={(e) => setAdjustmentReason(e.target.value)}
                 />
@@ -565,7 +703,8 @@ const InventoryControl = () => {
               disabled={
                 (adjustmentType === 'balance' && selectedProduct?.stock === newStockValue) ||
                 (adjustmentType !== 'balance' && adjustmentQuantity <= 0) ||
-                (adjustmentType === 'remove' && selectedProduct && (selectedProduct.stock - adjustmentQuantity < 0))
+                (adjustmentType === 'remove' && selectedProduct && (selectedProduct.stock - adjustmentQuantity < 0)) ||
+                !adjustmentReason // Make reason field required
               }
               className={cn(
                 adjustmentType === 'remove' ? "bg-red-600 hover:bg-red-700" : 
