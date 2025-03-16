@@ -1,7 +1,6 @@
 
 // Storage service - abstraction layer for future DB migration
 // This will make it easier to switch to a real database in the future
-import { Statistics } from '@/types';
 
 export interface StorageService {
   getItem<T>(key: string): T | null;
@@ -9,16 +8,6 @@ export interface StorageService {
   removeItem(key: string): void;
   clear(): void;
 }
-
-// Constants for storage keys
-export const STORAGE_KEYS = {
-  USERS: 'salon-app-users',
-  PRODUCTS: 'salon-app-products',
-  CUSTOMERS: 'salon-app-customers',
-  SUPPLIERS: 'salon-app-suppliers',
-  CATEGORIES: 'salon-app-categories',
-  STATISTICS: 'salon-app-statistics',
-};
 
 class LocalStorageService implements StorageService {
   getItem<T>(key: string): T | null {

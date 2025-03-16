@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PackageSearch, DollarSign, AlertCircle, Package } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Statistics } from '@/types';
 
 export function ProductStats() {
   const { data: stats, isLoading } = useStatistics();
@@ -29,38 +28,31 @@ export function ProductStats() {
     );
   }
 
-  const statistics: Statistics = stats || {
-    totalProducts: 0,
-    stockValue: 0,
-    outOfStock: 0,
-    categories: 0
-  };
-
   const statItems = [
     {
       title: "Total de Produtos",
-      value: statistics.totalProducts,
+      value: stats?.totalProducts || 0,
       description: "produtos cadastrados",
       icon: <Package className="h-4 w-4 text-muted-foreground" />,
       color: "text-blue-500",
     },
     {
       title: "Valor em Estoque",
-      value: formatCurrency(statistics.stockValue),
+      value: formatCurrency(stats?.stockValue || 0),
       description: "valor total do estoque",
       icon: <DollarSign className="h-4 w-4 text-muted-foreground" />,
       color: "text-green-500",
     },
     {
       title: "Produtos sem Estoque",
-      value: statistics.outOfStock,
+      value: stats?.outOfStock || 0,
       description: "produtos sem estoque",
       icon: <AlertCircle className="h-4 w-4 text-muted-foreground" />,
       color: "text-red-500",
     },
     {
       title: "Categorias",
-      value: statistics.categories,
+      value: stats?.categories || 0,
       description: "categorias de produtos",
       icon: <PackageSearch className="h-4 w-4 text-muted-foreground" />,
       color: "text-purple-500",

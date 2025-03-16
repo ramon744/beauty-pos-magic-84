@@ -1,136 +1,231 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { storageService, STORAGE_KEYS } from '@/services/storage-service';
-import { toast } from '@/components/ui/use-toast';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { User, UserRole } from '@/types';
-import { v4 as uuidv4 } from 'uuid';
 
-interface AuthContextProps {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  hasPermission: (requiredRoles: UserRole[]) => boolean;
-  // New properties for user management
-  users: User[];
-  addUser: (userData: Omit<User, 'id' | 'createdAt'>) => Promise<void>;
-  updateUser: (userId: string, userData: Partial<User>) => Promise<void>;
-  removeUser: (userId: string) => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextProps>({
-  user: null,
-  isAuthenticated: false,
-  isLoading: true,
-  login: async () => false,
-  logout: () => {},
-  hasPermission: () => false,
-  // Initialize new properties
-  users: [],
-  addUser: async () => {},
-  updateUser: async () => {},
-  removeUser: async () => {},
-});
-
-export const useAuth = () => useContext(AuthContext);
-
-// Demo users
-const demoUsers: User[] = [
+// Mock users for the demo - will be replaced with DB integration in the future
+const INITIAL_USERS = [
   {
     id: '1',
     name: 'Admin User',
     email: 'admin@beauty.com',
-    role: 'admin',
     password: 'admin123',
-    createdAt: new Date()
+    role: 'admin' as UserRole,
+    createdAt: new Date(),
   },
   {
     id: '2',
     name: 'Manager User',
     email: 'manager@beauty.com',
-    role: 'manager',
     password: 'manager123',
-    createdAt: new Date()
+    role: 'manager' as UserRole,
+    createdAt: new Date(),
   },
   {
     id: '3',
     name: 'Employee User',
     email: 'employee@beauty.com',
-    role: 'employee',
     password: 'employee123',
-    createdAt: new Date()
-  }
+    role: 'employee' as UserRole,
+    createdAt: new Date(),
+  },
 ];
+
+// Local storage keys - centralizing for future DB migration
+const STORAGE_KEYS = {
+  AUTH: 'beautyPosAuth',
+  USERS: 'beautyPosUsers',
+  PRODUCTS: 'beautyPosProducts',
+  CUSTOMERS: 'beautyPosCustomers',
+  SALES: 'beautyPosSales',
+  PROMOTIONS: 'beautyPosPromotions',
+};
+
+interface AuthContextType {
+  user: User | null;
+  users: User[];
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  hasPermission: (requiredRoles: UserRole[]) => boolean;
+  addUser: (userData: { name: string; email: string; password: string; role: UserRole }) => Promise<User>;
+  updateUser: (id: string, userData: { name: string; email: string; role: UserRole; password?: string }) => Promise<User>;
+  removeUser: (id: string) => Promise<boolean>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
-  // Initialize users in storage if they don't exist
+  // Load users from localStorage or initialize with defaults
   useEffect(() => {
-    const storedUsers = storageService.getItem<User[]>(STORAGE_KEYS.USERS);
-    if (!storedUsers) {
-      storageService.setItem(STORAGE_KEYS.USERS, demoUsers);
-      setUsers(demoUsers);
-    } else {
-      setUsers(storedUsers);
-    }
-    
-    // Check for session
-    const sessionUser = localStorage.getItem('session-user');
-    if (sessionUser) {
+    const savedUsers = localStorage.getItem(STORAGE_KEYS.USERS);
+    if (savedUsers) {
       try {
-        setUser(JSON.parse(sessionUser));
+        const parsedUsers = JSON.parse(savedUsers);
+        // Convert string dates back to Date objects
+        const usersWithDates = parsedUsers.map((u: any) => ({
+          ...u,
+          createdAt: new Date(u.createdAt)
+        }));
+        setUsers(usersWithDates);
       } catch (error) {
-        console.error('Failed to parse session user');
-        localStorage.removeItem('session-user');
+        console.error('Failed to parse stored users', error);
+        setUsers(INITIAL_USERS);
+        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(INITIAL_USERS));
+      }
+    } else {
+      // Initialize with default users
+      setUsers(INITIAL_USERS);
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(INITIAL_USERS));
+    }
+  }, []);
+
+  // Check for saved auth on mount
+  useEffect(() => {
+    const savedAuth = localStorage.getItem(STORAGE_KEYS.AUTH);
+    if (savedAuth) {
+      try {
+        const parsedAuth = JSON.parse(savedAuth);
+        // Convert createdAt string back to Date object
+        if (parsedAuth && typeof parsedAuth.createdAt === 'string') {
+          parsedAuth.createdAt = new Date(parsedAuth.createdAt);
+        }
+        setUser(parsedAuth);
+      } catch (error) {
+        console.error('Failed to parse stored auth', error);
+        localStorage.removeItem(STORAGE_KEYS.AUTH);
       }
     }
-    
     setIsLoading(false);
   }, []);
 
+  // Save users to localStorage whenever they change
+  useEffect(() => {
+    if (users.length > 0) {
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+    }
+  }, [users]);
+
+  // Add a new user
+  const addUser = async (userData: { name: string; email: string; password: string; role: UserRole }): Promise<User> => {
+    // Check if email already exists
+    if (users.some(u => u.email === userData.email)) {
+      throw new Error('Email já está em uso');
+    }
+    
+    const newUser = {
+      id: Date.now().toString(),
+      ...userData,
+      createdAt: new Date(),
+    };
+    
+    setUsers(prevUsers => [...prevUsers, newUser]);
+    
+    // Return user without password
+    const { password, ...userWithoutPassword } = newUser;
+    return userWithoutPassword;
+  };
+
+  // Update an existing user
+  const updateUser = async (id: string, userData: { 
+    name: string; 
+    email: string; 
+    role: UserRole;
+    password?: string 
+  }): Promise<User> => {
+    // Check if email already exists and belongs to a different user
+    if (users.some(u => u.email === userData.email && u.id !== id)) {
+      throw new Error('Email já está em uso');
+    }
+    
+    const updatedUsers = users.map(u => {
+      if (u.id === id) {
+        // Create updated user object
+        const updatedUser = { 
+          ...u,
+          name: userData.name,
+          email: userData.email,
+          role: userData.role
+        };
+        
+        // Update password only if it was provided
+        if (userData.password) {
+          updatedUser.password = userData.password;
+        }
+        
+        // If this is the currently logged in user, update the auth state too
+        if (user && user.id === id) {
+          // Strip password from user state
+          const { password, ...userWithoutPassword } = updatedUser;
+          setUser(userWithoutPassword);
+          localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(userWithoutPassword));
+        }
+        
+        return updatedUser;
+      }
+      return u;
+    });
+    
+    setUsers(updatedUsers);
+    const updatedUser = updatedUsers.find(u => u.id === id);
+    
+    if (!updatedUser) {
+      throw new Error('Usuário não encontrado');
+    }
+    
+    // Return user without password
+    const { password, ...userWithoutPassword } = updatedUser;
+    return userWithoutPassword;
+  };
+
+  // Remove a user
+  const removeUser = async (id: string): Promise<boolean> => {
+    // Don't allow removing the currently logged in user
+    if (user && user.id === id) {
+      throw new Error('Não é possível remover o usuário logado');
+    }
+    
+    setUsers(prevUsers => prevUsers.filter(u => u.id !== id));
+    return true;
+  };
+
+  // Database integration future-proofing:
+  // This function can be modified to call an API endpoint in the future
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
     try {
-      const users = storageService.getItem<User[]>(STORAGE_KEYS.USERS) || [];
-      const foundUser = users.find(u => u.email === email && u.password === password);
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // This will be replaced with actual API call in the future
+      const foundUser = users.find(
+        u => u.email === email && u.password === password
+      );
       
       if (foundUser) {
-        // Create a sanitized user object (without password)
-        const sessionUser = { ...foundUser };
-        delete sessionUser.password;
+        // Remove password from user object before storing
+        const { password, ...userWithoutPassword } = foundUser;
+        setUser(userWithoutPassword);
         
-        setUser(sessionUser);
-        localStorage.setItem('session-user', JSON.stringify(sessionUser));
-        
-        toast({
-          title: "Login realizado com sucesso",
-          description: `Bem-vindo, ${sessionUser.name}!`,
-        });
-        
+        // Store in localStorage (will be replaced with tokens/session management)
+        localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(userWithoutPassword));
+        toast.success(`Bem-vindo, ${userWithoutPassword.name}!`);
         return true;
       } else {
-        toast({
-          variant: "destructive",
-          title: "Falha no login",
-          description: "Email ou senha incorretos",
-        });
+        toast.error('Credenciais inválidas. Tente novamente.');
         return false;
       }
     } catch (error) {
       console.error('Login error:', error);
-      toast({
-        variant: "destructive",
-        title: "Erro no login",
-        description: "Ocorreu um erro ao tentar fazer login",
-      });
+      toast.error('Erro ao fazer login. Tente novamente.');
       return false;
     } finally {
       setIsLoading(false);
@@ -139,11 +234,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('session-user');
-    toast({
-      title: "Logout realizado",
-      description: "Você foi desconectado com sucesso.",
-    });
+    localStorage.removeItem(STORAGE_KEYS.AUTH);
+    navigate('/');
+    toast.info('Logout realizado com sucesso');
   };
 
   const hasPermission = (requiredRoles: UserRole[]): boolean => {
@@ -151,106 +244,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return requiredRoles.includes(user.role);
   };
 
-  // New user management functions
-  const addUser = async (userData: Omit<User, 'id' | 'createdAt'>): Promise<void> => {
-    try {
-      // Check if email already exists
-      const existingUser = users.find(u => u.email === userData.email);
-      if (existingUser) {
-        throw new Error('Este email já está em uso');
-      }
-
-      // Create new user with ID and createdAt
-      const newUser: User = {
-        ...userData,
-        id: uuidv4(),
-        createdAt: new Date()
-      };
-
-      // Update state and storage
-      const updatedUsers = [...users, newUser];
-      setUsers(updatedUsers);
-      storageService.setItem(STORAGE_KEYS.USERS, updatedUsers);
-    } catch (error) {
-      console.error('Error adding user:', error);
-      throw error;
-    }
-  };
-
-  const updateUser = async (userId: string, userData: Partial<User>): Promise<void> => {
-    try {
-      // Find user
-      const userIndex = users.findIndex(u => u.id === userId);
-      if (userIndex === -1) {
-        throw new Error('Usuário não encontrado');
-      }
-
-      // Check if email already exists (if changing email)
-      if (userData.email && userData.email !== users[userIndex].email) {
-        const existingUser = users.find(u => u.email === userData.email && u.id !== userId);
-        if (existingUser) {
-          throw new Error('Este email já está em uso');
-        }
-      }
-
-      // Update user
-      const updatedUsers = [...users];
-      updatedUsers[userIndex] = {
-        ...updatedUsers[userIndex],
-        ...userData
-      };
-
-      // Update state and storage
-      setUsers(updatedUsers);
-      storageService.setItem(STORAGE_KEYS.USERS, updatedUsers);
-
-      // If currently logged in user is updated, update session
-      if (user && user.id === userId) {
-        const updatedUser = { ...user, ...userData };
-        delete updatedUser.password;
-        setUser(updatedUser);
-        localStorage.setItem('session-user', JSON.stringify(updatedUser));
-      }
-    } catch (error) {
-      console.error('Error updating user:', error);
-      throw error;
-    }
-  };
-
-  const removeUser = async (userId: string): Promise<void> => {
-    try {
-      // Cannot remove your own account
-      if (user && user.id === userId) {
-        throw new Error('Você não pode remover sua própria conta');
-      }
-
-      // Remove user
-      const updatedUsers = users.filter(u => u.id !== userId);
-      
-      // Update state and storage
-      setUsers(updatedUsers);
-      storageService.setItem(STORAGE_KEYS.USERS, updatedUsers);
-    } catch (error) {
-      console.error('Error removing user:', error);
-      throw error;
-    }
-  };
-
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated: !!user,
-      isLoading,
-      login,
-      logout,
-      hasPermission,
-      // Provide the new user management functions
-      users,
-      addUser,
-      updateUser,
-      removeUser
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        users,
+        isAuthenticated: !!user,
+        isLoading,
+        login,
+        logout,
+        hasPermission,
+        addUser,
+        updateUser,
+        removeUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
+
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+// Helper for future database adapters
+export const storageKeys = STORAGE_KEYS;
