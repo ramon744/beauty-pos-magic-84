@@ -1,9 +1,10 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Supplier } from '@/types';
+import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 
-// Mock data for development
-const mockSuppliers: Supplier[] = [
+// Initial mock data for suppliers
+const initialSuppliers: Supplier[] = [
   {
     id: '1',
     name: 'Distribuidora de Cosméticos ABC',
@@ -39,13 +40,29 @@ const mockSuppliers: Supplier[] = [
   },
 ];
 
+// Initialize localStorage with default suppliers if empty
+const initializeSuppliers = () => {
+  const storedSuppliers = storageService.getItem<Supplier[]>(STORAGE_KEYS.SUPPLIERS);
+  if (!storedSuppliers) {
+    storageService.setItem(STORAGE_KEYS.SUPPLIERS, initialSuppliers);
+  }
+};
+
+// Initialize suppliers on module load
+initializeSuppliers();
+
 // Hook for fetching all suppliers
 export function useFetchSuppliers() {
   return useQuery({
     queryKey: ['suppliers'],
     queryFn: async () => {
-      // In a real app, we would fetch from an API
-      return mockSuppliers;
+      const suppliers = storageService.getItem<Supplier[]>(STORAGE_KEYS.SUPPLIERS) || [];
+      // Convert string dates back to Date objects
+      return suppliers.map(supplier => ({
+        ...supplier,
+        createdAt: new Date(supplier.createdAt),
+        updatedAt: new Date(supplier.updatedAt),
+      }));
     },
   });
 }
@@ -58,11 +75,16 @@ export function useFetchSupplier(id: string) {
       // Skip the request if id is empty
       if (!id) return null;
       
-      // In a real app, we would fetch from an API
-      const supplier = mockSuppliers.find(s => s.id === id);
+      const suppliers = storageService.getItem<Supplier[]>(STORAGE_KEYS.SUPPLIERS) || [];
+      const supplier = suppliers.find(s => s.id === id);
       if (!supplier) throw new Error('Supplier not found');
       
-      return supplier;
+      // Convert string dates back to Date objects
+      return {
+        ...supplier,
+        createdAt: new Date(supplier.createdAt),
+        updatedAt: new Date(supplier.updatedAt),
+      };
     },
     enabled: !!id, // Only run the query if id is provided
   });
@@ -74,11 +96,22 @@ export function useSaveSupplier() {
   
   return useMutation({
     mutationFn: async (supplier: Supplier) => {
-      // In a real app, we would call an API
-      console.log('Saving supplier:', supplier);
+      // Get current suppliers
+      const suppliers = storageService.getItem<Supplier[]>(STORAGE_KEYS.SUPPLIERS) || [];
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Find if supplier already exists
+      const existingIndex = suppliers.findIndex(s => s.id === supplier.id);
+      
+      if (existingIndex >= 0) {
+        // Update existing supplier
+        suppliers[existingIndex] = supplier;
+      } else {
+        // Add new supplier
+        suppliers.push(supplier);
+      }
+      
+      // Save updated suppliers list
+      storageService.setItem(STORAGE_KEYS.SUPPLIERS, suppliers);
       
       return supplier;
     },

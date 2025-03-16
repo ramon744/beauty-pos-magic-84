@@ -9,6 +9,16 @@ export interface StorageService {
   clear(): void;
 }
 
+// Constants for storage keys
+export const STORAGE_KEYS = {
+  USERS: 'salon-app-users',
+  PRODUCTS: 'salon-app-products',
+  CUSTOMERS: 'salon-app-customers',
+  SUPPLIERS: 'salon-app-suppliers',
+  CATEGORIES: 'salon-app-categories',
+  STATISTICS: 'salon-app-statistics',
+};
+
 class LocalStorageService implements StorageService {
   getItem<T>(key: string): T | null {
     try {

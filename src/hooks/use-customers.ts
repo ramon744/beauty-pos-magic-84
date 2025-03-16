@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Customer } from '@/types';
-import { storageKeys } from '@/contexts/AuthContext';
+import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 
 // Interface for customer data without ID and dates
 interface CustomerInput {
@@ -10,8 +10,8 @@ interface CustomerInput {
   phone: string;
   cpf: string;
   address?: string;
-  addressNumber?: string; // Added house/building number
-  addressComplement?: string; // Added address complement
+  addressNumber?: string; 
+  addressComplement?: string;
   cep?: string;
 }
 
@@ -81,12 +81,11 @@ export const useCustomers = () => {
 
   // Load customers from localStorage on mount
   useEffect(() => {
-    const savedCustomers = localStorage.getItem(storageKeys.CUSTOMERS);
+    const savedCustomers = storageService.getItem<Customer[]>(STORAGE_KEYS.CUSTOMERS);
     if (savedCustomers) {
       try {
-        const parsedCustomers = JSON.parse(savedCustomers);
         // Convert string dates back to Date objects
-        const customersWithDates = parsedCustomers.map((c: any) => ({
+        const customersWithDates = savedCustomers.map((c: any) => ({
           ...c,
           createdAt: new Date(c.createdAt),
           updatedAt: new Date(c.updatedAt)
@@ -102,7 +101,7 @@ export const useCustomers = () => {
   // Save customers to localStorage whenever they change
   useEffect(() => {
     if (customers.length > 0) {
-      localStorage.setItem(storageKeys.CUSTOMERS, JSON.stringify(customers));
+      storageService.setItem(STORAGE_KEYS.CUSTOMERS, customers);
     }
   }, [customers]);
 

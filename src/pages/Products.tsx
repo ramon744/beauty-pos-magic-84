@@ -7,10 +7,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlusCircle } from 'lucide-react';
 import { ProductStats } from '@/components/products/ProductStats';
 import { ProductCategories } from '@/components/products/ProductCategories';
+import { useToast } from '@/components/ui/use-toast';
 
 const Products = () => {
   const [activeTab, setActiveTab] = useState('list');
   const [editProductId, setEditProductId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const handleNewProduct = () => {
     setEditProductId(null);
@@ -25,6 +27,11 @@ const Products = () => {
   const handleFormSubmitted = () => {
     setActiveTab('list');
     setEditProductId(null);
+    
+    toast({
+      title: editProductId ? 'Produto atualizado' : 'Produto adicionado',
+      description: 'Os dados foram salvos com sucesso no sistema.',
+    });
   };
 
   return (
