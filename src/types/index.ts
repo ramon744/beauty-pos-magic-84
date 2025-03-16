@@ -1,4 +1,3 @@
-
 // User roles
 export type UserRole = 'admin' | 'manager' | 'employee';
 
@@ -116,6 +115,8 @@ export interface Promotion {
   bundleProducts?: string[];
   bundlePrice?: number;
   productId?: string;
+  secondaryProductId?: string; // Added for "buy X get Y" with different products
+  secondaryProductDiscount?: number; // Added discount percentage for secondary product
   categoryId?: string;
   startDate: Date;
   endDate: Date;

@@ -78,8 +78,15 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
         return `${promotion.discountPercent}% de desconto em ${promotion.categoryId ? getCategoryName(promotion.categoryId) : getProductName(promotion.productId)}`;
       case 'discount_value':
         return `${formatCurrency(promotion.discountValue || 0)} de desconto em ${promotion.categoryId ? getCategoryName(promotion.categoryId) : getProductName(promotion.productId)}`;
-      case 'buy_x_get_y':
-        return `Compre ${promotion.buyQuantity} e leve ${(promotion.buyQuantity || 0) + (promotion.getQuantity || 0)} de ${getProductName(promotion.productId)}`;
+      case 'buy_x_get_y': {
+        const mainProduct = getProductName(promotion.productId);
+        const secondaryProduct = promotion.secondaryProductId ? getProductName(promotion.secondaryProductId) : mainProduct;
+        const discountText = (promotion.secondaryProductDiscount || 0) < 100 
+          ? `com ${promotion.secondaryProductDiscount}% de desconto` 
+          : 'grátis';
+        
+        return `Compre ${promotion.buyQuantity} ${mainProduct} e leve ${promotion.getQuantity} ${secondaryProduct} ${discountText}`;
+      }
       case 'fixed_price':
         return `Preço fixo de ${formatCurrency(promotion.fixedPrice || 0)} para ${getProductName(promotion.productId)}`;
       case 'bundle':

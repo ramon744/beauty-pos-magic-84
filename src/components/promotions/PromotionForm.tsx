@@ -61,6 +61,8 @@ const promotionFormSchema = z.object({
   fixedPrice: z.coerce.number().optional(),
   buyQuantity: z.coerce.number().optional(),
   getQuantity: z.coerce.number().optional(),
+  secondaryProductId: z.string().optional(),
+  secondaryProductDiscount: z.coerce.number().optional(),
   bundlePrice: z.coerce.number().optional(),
   productId: z.string().optional(),
   categoryId: z.string().optional(),
@@ -117,9 +119,13 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
   const { data: categories, isLoading: loadingCategories } = useCategories();
   const { user } = useAuth();
   
-  // State for bundle products selection
+  // State for bundle products selection and product search
   const [selectedBundleProducts, setSelectedBundleProducts] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [productSearchQuery, setProductSearchQuery] = useState('');
+  const [secondaryProductSearchQuery, setSecondaryProductSearchQuery] = useState('');
+  const [productSearchOpen, setProductSearchOpen] = useState(false);
+  const [secondaryProductSearchOpen, setSecondaryProductSearchOpen] = useState(false);
 
   // Initialize the form
   const form = useForm<PromotionFormValues>({
@@ -133,6 +139,8 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
       fixedPrice: undefined,
       buyQuantity: undefined,
       getQuantity: undefined,
+      secondaryProductId: undefined,
+      secondaryProductDiscount: 100, // Default to 100% (free)
       bundlePrice: undefined,
       productId: undefined,
       categoryId: undefined,
@@ -150,6 +158,12 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
   const selectedProductId = form.watch('productId');
   const selectedProduct = selectedProductId 
     ? products?.find(p => p.id === selectedProductId) 
+    : null;
+
+  // Get selected secondary product details for buy_x_get_y
+  const selectedSecondaryProductId = form.watch('secondaryProductId');
+  const selectedSecondaryProduct = selectedSecondaryProductId
+    ? products?.find(p => p.id === selectedSecondaryProductId)
     : null;
 
   // Get selected category details
@@ -175,6 +189,8 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
         fixedPrice: promotion.fixedPrice,
         buyQuantity: promotion.buyQuantity,
         getQuantity: promotion.getQuantity,
+        secondaryProductId: promotion.secondaryProductId,
+        secondaryProductDiscount: promotion.secondaryProductDiscount ?? 100,
         bundlePrice: promotion.bundlePrice,
         productId: promotion.productId,
         categoryId: promotion.categoryId,
@@ -212,6 +228,8 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
       fixedPrice: data.type === 'fixed_price' ? data.fixedPrice : undefined,
       buyQuantity: data.type === 'buy_x_get_y' ? data.buyQuantity : undefined,
       getQuantity: data.type === 'buy_x_get_y' ? data.getQuantity : undefined,
+      secondaryProductId: data.type === 'buy_x_get_y' ? data.secondaryProductId : undefined,
+      secondaryProductDiscount: data.type === 'buy_x_get_y' ? data.secondaryProductDiscount : undefined,
       bundlePrice: data.type === 'bundle' ? data.bundlePrice : undefined,
       bundleProducts: bundleProducts,
       productId: ['buy_x_get_y', 'fixed_price'].includes(data.type) || 
@@ -265,7 +283,7 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
     form.setValue('bundleProducts', updatedProducts);
   };
 
-  // Filter products based on search query
+  // Filter products based on search query for bundle
   const filteredProducts = products?.filter(product => {
     if (!searchQuery) return true;
     
@@ -275,6 +293,42 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
       product.code.toLowerCase().includes(query)
     );
   });
+
+  // Filter products based on product search query for buy_x_get_y
+  const filteredProductsForSearch = products?.filter(product => {
+    if (!productSearchQuery) return true;
+    
+    const query = productSearchQuery.toLowerCase();
+    return (
+      product.name.toLowerCase().includes(query) ||
+      product.code.toLowerCase().includes(query)
+    );
+  });
+
+  // Filter products based on secondary product search query for buy_x_get_y
+  const filteredSecondaryProductsForSearch = products?.filter(product => {
+    if (!secondaryProductSearchQuery) return true;
+    
+    const query = secondaryProductSearchQuery.toLowerCase();
+    return (
+      product.name.toLowerCase().includes(query) ||
+      product.code.toLowerCase().includes(query)
+    );
+  });
+
+  // Handle selecting a product from the search
+  const handleSelectProduct = (productId: string) => {
+    form.setValue('productId', productId);
+    setProductSearchOpen(false);
+    setProductSearchQuery('');
+  };
+
+  // Handle selecting a secondary product from the search
+  const handleSelectSecondaryProduct = (productId: string) => {
+    form.setValue('secondaryProductId', productId);
+    setSecondaryProductSearchOpen(false);
+    setSecondaryProductSearchQuery('');
+  };
 
   // Get total bundle value (original prices)
   const getBundleTotalValue = () => {
@@ -350,6 +404,8 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                           form.setValue('buyQuantity', undefined);
                           form.setValue('getQuantity', undefined);
                           form.setValue('bundlePrice', undefined);
+                          form.setValue('secondaryProductId', undefined);
+                          form.setValue('secondaryProductDiscount', undefined);
                         } else if (value === 'discount_value') {
                           form.setValue('discountPercent', undefined);
                           form.setValue('discountValue', 10);
@@ -357,6 +413,8 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                           form.setValue('buyQuantity', undefined);
                           form.setValue('getQuantity', undefined);
                           form.setValue('bundlePrice', undefined);
+                          form.setValue('secondaryProductId', undefined);
+                          form.setValue('secondaryProductDiscount', undefined);
                         } else if (value === 'fixed_price') {
                           form.setValue('discountPercent', undefined);
                           form.setValue('discountValue', undefined);
@@ -365,6 +423,8 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                           form.setValue('getQuantity', undefined);
                           form.setValue('bundlePrice', undefined);
                           form.setValue('categoryId', undefined);
+                          form.setValue('secondaryProductId', undefined);
+                          form.setValue('secondaryProductDiscount', undefined);
                         } else if (value === 'buy_x_get_y') {
                           form.setValue('discountPercent', undefined);
                           form.setValue('discountValue', undefined);
@@ -373,6 +433,7 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                           form.setValue('getQuantity', 1);
                           form.setValue('bundlePrice', undefined);
                           form.setValue('categoryId', undefined);
+                          form.setValue('secondaryProductDiscount', 100);
                         } else if (value === 'bundle') {
                           form.setValue('discountPercent', undefined);
                           form.setValue('discountValue', undefined);
@@ -382,6 +443,8 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                           form.setValue('bundlePrice', 99.90);
                           form.setValue('productId', undefined);
                           form.setValue('categoryId', undefined);
+                          form.setValue('secondaryProductId', undefined);
+                          form.setValue('secondaryProductDiscount', undefined);
                         }
                       }}
                     >
@@ -755,35 +818,111 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
             
             {promotionType === 'buy_x_get_y' && (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="productId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Produto</FormLabel>
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione um produto" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {products?.map((product) => (
-                              <SelectItem key={product.id} value={product.id}>
-                                {product.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <FormLabel>Produto Principal</FormLabel>
+                    <div className="relative">
+                      <Popover open={productSearchOpen} onOpenChange={setProductSearchOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={productSearchOpen}
+                            className="w-full justify-between"
+                          >
+                            {selectedProduct ? selectedProduct.name : "Buscar produto..."}
+                            <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0">
+                          <Command>
+                            <CommandInput 
+                              placeholder="Buscar por nome ou código" 
+                              value={productSearchQuery}
+                              onValueChange={setProductSearchQuery}
+                            />
+                            <CommandList>
+                              <CommandEmpty>Nenhum produto encontrado</CommandEmpty>
+                              <CommandGroup>
+                                {filteredProductsForSearch?.map(product => (
+                                  <CommandItem
+                                    key={product.id}
+                                    value={product.id}
+                                    onSelect={() => handleSelectProduct(product.id)}
+                                  >
+                                    <div className="flex flex-col">
+                                      <span>{product.name}</span>
+                                      <span className="text-xs text-muted-foreground">
+                                        Código: {product.code} | {formatCurrency(product.salePrice)}
+                                      </span>
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    {!selectedProduct && (
+                      <p className="text-sm text-destructive">
+                        Selecione um produto para a promoção
+                      </p>
                     )}
-                  />
+                  </div>
                   
+                  <div className="space-y-4">
+                    <FormLabel>Produto Secundário (Opcional)</FormLabel>
+                    <div className="relative">
+                      <Popover open={secondaryProductSearchOpen} onOpenChange={setSecondaryProductSearchOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={secondaryProductSearchOpen}
+                            className="w-full justify-between"
+                          >
+                            {selectedSecondaryProduct ? selectedSecondaryProduct.name : "Mesmo produto ou buscar outro..."}
+                            <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0">
+                          <Command>
+                            <CommandInput 
+                              placeholder="Buscar por nome ou código" 
+                              value={secondaryProductSearchQuery}
+                              onValueChange={setSecondaryProductSearchQuery}
+                            />
+                            <CommandList>
+                              <CommandEmpty>Nenhum produto encontrado</CommandEmpty>
+                              <CommandGroup>
+                                {filteredSecondaryProductsForSearch?.map(product => (
+                                  <CommandItem
+                                    key={product.id}
+                                    value={product.id}
+                                    onSelect={() => handleSelectSecondaryProduct(product.id)}
+                                  >
+                                    <div className="flex flex-col">
+                                      <span>{product.name}</span>
+                                      <span className="text-xs text-muted-foreground">
+                                        Código: {product.code} | {formatCurrency(product.salePrice)}
+                                      </span>
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Se não selecionar, será usado o mesmo produto da promoção.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <FormField
                     control={form.control}
                     name="buyQuantity"
@@ -803,10 +942,33 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                     name="getQuantity"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Quantos Levar de Brinde</FormLabel>
+                        <FormLabel>Quantos Levar</FormLabel>
                         <FormControl>
                           <Input type="number" min="1" step="1" {...field} />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="secondaryProductDiscount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Desconto no Produto (%)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            min="0" 
+                            max="100" 
+                            step="1" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          100% = grátis, 50% = metade do preço
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -818,21 +980,43 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                     <CardContent className="p-4">
                       <h4 className="font-medium mb-2">Prévia da Promoção</h4>
                       <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>Produto:</div>
+                        <div>Produto Principal:</div>
                         <div className="font-semibold">{selectedProduct.name}</div>
                         <div>Preço Unitário:</div>
                         <div className="font-semibold">{formatCurrency(selectedProduct.salePrice)}</div>
+
+                        {selectedSecondaryProduct && selectedSecondaryProduct.id !== selectedProduct.id ? (
+                          <>
+                            <div>Produto Secundário:</div>
+                            <div className="font-semibold">{selectedSecondaryProduct.name}</div>
+                            <div>Preço Unitário Secundário:</div>
+                            <div className="font-semibold">{formatCurrency(selectedSecondaryProduct.salePrice)}</div>
+                          </>
+                        ) : null}
+
                         <div>Compra:</div>
                         <div className="font-semibold">
-                          {form.watch('buyQuantity')} unidades ({formatCurrency((form.watch('buyQuantity') || 0) * selectedProduct.salePrice)})
+                          {form.watch('buyQuantity')} unidades de {selectedProduct.name} ({formatCurrency((form.watch('buyQuantity') || 0) * selectedProduct.salePrice)})
                         </div>
+                        
                         <div>Leva:</div>
                         <div className="font-semibold text-green-600">
-                          {(form.watch('buyQuantity') || 0) + (form.watch('getQuantity') || 0)} unidades
+                          {form.watch('buyQuantity')} unidades de {selectedProduct.name} + {form.watch('getQuantity')} unidades 
+                          {selectedSecondaryProduct && selectedSecondaryProduct.id !== selectedProduct.id 
+                            ? ` de ${selectedSecondaryProduct.name}` 
+                            : ` do mesmo produto`}
                         </div>
+                        
+                        <div>Desconto no Produto:</div>
+                        <div className="font-semibold">{form.watch('secondaryProductDiscount')}%</div>
+                        
                         <div>Economia:</div>
                         <div className="font-semibold text-destructive">
-                          -{formatCurrency((form.watch('getQuantity') || 0) * selectedProduct.salePrice)}
+                          -{formatCurrency(
+                            (form.watch('getQuantity') || 0) * 
+                            (selectedSecondaryProduct?.salePrice || selectedProduct.salePrice) * 
+                            (form.watch('secondaryProductDiscount') || 0) / 100
+                          )}
                         </div>
                       </div>
                     </CardContent>

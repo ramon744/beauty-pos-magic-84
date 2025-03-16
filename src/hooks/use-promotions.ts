@@ -40,6 +40,7 @@ const initialPromotions: Promotion[] = [
     buyQuantity: 2,
     getQuantity: 1,
     productId: '1', // Shampoo product
+    secondaryProductDiscount: 100, // 100% discount (free)
     startDate: new Date(2023, 6, 1), // July 1st
     endDate: new Date(2023, 8, 30), // September 30th
     isActive: true,
@@ -58,6 +59,22 @@ const initialPromotions: Promotion[] = [
     isActive: false,
     createdBy: '1', // Admin
     createdAt: new Date(2023, 6, 10), // July 10th
+  },
+  {
+    id: '4',
+    name: 'Compre 1 Condicionador Leve 1 Máscara com 50% OFF',
+    type: 'buy_x_get_y',
+    description: 'Compre 1 condicionador e leve 1 máscara capilar com 50% de desconto',
+    buyQuantity: 1,
+    getQuantity: 1,
+    productId: '2', // Condicionador product
+    secondaryProductId: '5', // Máscara capilar product
+    secondaryProductDiscount: 50, // 50% discount
+    startDate: new Date(2023, 5, 15), // June 15th
+    endDate: new Date(2023, 8, 15), // September 15th
+    isActive: true,
+    createdBy: '1', // Admin
+    createdAt: new Date(2023, 5, 10), // June 10th
   },
 ];
 
