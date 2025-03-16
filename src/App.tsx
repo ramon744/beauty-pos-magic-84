@@ -14,6 +14,7 @@ import Suppliers from "./pages/Suppliers";
 import Users from "./pages/Users";
 import Customers from "./pages/Customers";
 import Promotions from "./pages/Promotions";
+import Orders from "./pages/Orders";
 import MainLayout from "./components/layout/MainLayout";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
               <Route path="/users" element={<Users />} />
               <Route path="/customers" element={<Customers />} />
               <Route path="/promotions" element={<Promotions />} />
+              <Route path="/orders" element={<Orders />} />
               <Route path="/reports" element={<div className="p-4">Página de Relatórios - Em desenvolvimento</div>} />
               <Route path="/history" element={<div className="p-4">Página de Histórico - Em desenvolvimento</div>} />
             </Route>

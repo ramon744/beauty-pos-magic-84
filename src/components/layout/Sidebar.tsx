@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Truck,
+  ShoppingBag,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UserRole } from '@/types';
@@ -114,6 +115,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle }) => {
             to="/customers" 
             icon={<Users size={20} />} 
             label="Clientes" 
+          />
+          <NavItem 
+            to="/orders" 
+            icon={<ShoppingBag size={20} />} 
+            label="Pedidos" 
+            requiredRoles={['admin', 'manager']}
           />
           <NavItem 
             to="/promotions" 
