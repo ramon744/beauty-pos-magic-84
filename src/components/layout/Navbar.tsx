@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Bell, Search, User } from 'lucide-react';
+import { Bell, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   DropdownMenu,
@@ -31,7 +31,7 @@ const Navbar: React.FC<NavbarProps> = ({ toggleSidebar }) => {
 
   return (
     <header className="h-16 w-full flex items-center justify-between p-4 border-b bg-white/80 backdrop-blur-md supports-backdrop-blur:bg-white/60 z-10 fixed top-0">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center">
         <Button
           variant="ghost"
           size="icon"
@@ -55,14 +55,6 @@ const Navbar: React.FC<NavbarProps> = ({ toggleSidebar }) => {
             />
           </svg>
         </Button>
-        <div className="flex relative items-center rounded-full">
-          <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Pesquisar..."
-            className="pl-10 py-2 pr-4 border rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground w-64"
-          />
-        </div>
       </div>
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" className="relative">
