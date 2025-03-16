@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlusCircle } from 'lucide-react';
 import { ProductStats } from '@/components/products/ProductStats';
 import { ProductCategories } from '@/components/products/ProductCategories';
+import ExpirationControl from '@/components/products/ExpirationControl';
 
 const Products = () => {
   const [activeTab, setActiveTab] = useState('list');
@@ -40,11 +41,12 @@ const Products = () => {
       <ProductStats />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="list">Lista de Produtos</TabsTrigger>
           <TabsTrigger value="form">
             {editProductId ? 'Editar Produto' : 'Novo Produto'}
           </TabsTrigger>
+          <TabsTrigger value="expiration">Controle de Validade</TabsTrigger>
         </TabsList>
         <TabsContent value="list" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
@@ -61,6 +63,9 @@ const Products = () => {
             productId={editProductId}
             onSubmitted={handleFormSubmitted}
           />
+        </TabsContent>
+        <TabsContent value="expiration">
+          <ExpirationControl />
         </TabsContent>
       </Tabs>
     </div>
