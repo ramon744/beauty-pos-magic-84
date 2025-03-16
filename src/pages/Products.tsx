@@ -8,6 +8,7 @@ import { PlusCircle, AlertTriangle } from 'lucide-react';
 import { ProductStats } from '@/components/products/ProductStats';
 import { ProductCategories } from '@/components/products/ProductCategories';
 import ExpirationControl from '@/components/products/ExpirationControl';
+import InventoryControl from '@/components/products/InventoryControl';
 import { useFetchProducts } from '@/hooks/use-products';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -74,11 +75,12 @@ const Products = () => {
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="list">Lista de Produtos</TabsTrigger>
           <TabsTrigger value="form">
             {editProductId ? 'Editar Produto' : 'Novo Produto'}
           </TabsTrigger>
+          <TabsTrigger value="inventory">Controle de Estoque</TabsTrigger>
           <TabsTrigger value="expiration">Controle de Validade</TabsTrigger>
         </TabsList>
         <TabsContent value="list" className="space-y-6">
@@ -96,6 +98,9 @@ const Products = () => {
             productId={editProductId}
             onSubmitted={handleFormSubmitted}
           />
+        </TabsContent>
+        <TabsContent value="inventory">
+          <InventoryControl />
         </TabsContent>
         <TabsContent value="expiration">
           <ExpirationControl />
