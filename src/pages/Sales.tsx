@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   ShoppingCart, 
   Search, 
@@ -10,7 +10,9 @@ import {
   Barcode,
   Camera,
   X,
-  Percent
+  Percent,
+  Tag,
+  Gift
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,12 +25,22 @@ import { storageService } from '@/services/storage-service';
 import { useToast } from '@/hooks/use-toast';
 import { useBarcodeScan } from '@/hooks/use-barcode-scan';
 import { useFetchProducts } from '@/hooks/use-products';
-import { Product } from '@/types';
+import { useFetchPromotions } from '@/hooks/use-promotions';
+import { Product, CartItem as CartItemType } from '@/types';
 import { ManagerAuthDialog } from '@/components/auth/ManagerAuthDialog';
+import { PromotionSelectionDialog } from '@/components/sales/PromotionSelectionDialog';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { 
+  getAvailablePromotions, 
+  getBestPromotion, 
+  calculatePromotionDiscount,
+  formatPromotionBadge,
+  AppliedPromotion 
+} from '@/utils/promotions-utils';
+import { Badge } from '@/components/ui/badge';
 
 interface CartItem {
   id: string;
@@ -69,8 +81,11 @@ const Sales = () => {
   const [productIdToDelete, setProductIdToDelete] = useState<string | null>(null);
   const [manualDiscount, setManualDiscount] = useState<{type: 'percentage' | 'fixed', value: number} | null>(null);
   const [isDiscountDialogOpen, setIsDiscountDialogOpen] = useState(false);
+  const [isPromotionDialogOpen, setIsPromotionDialogOpen] = useState(false);
+  const [selectedPromotionId, setSelectedPromotionId] = useState<string | null>(null);
   
   const { data: products = [] } = useFetchProducts();
+  const { data: promotions = [] } = useFetchPromotions();
 
   const discountForm = useForm<DiscountFormValues>({
     resolver: zodResolver(discountFormSchema),
@@ -79,6 +94,62 @@ const Sales = () => {
       discountValue: 0
     }
   });
+
+  const cartItemsForPromotions = useMemo(() => {
+    return cart.map(item => {
+      const product = products.find(p => p.id === item.id);
+      return {
+        product: product ? { 
+          ...product, 
+          category: { id: product.category.id, name: product.category.name } 
+        } : {
+          id: item.id,
+          name: item.name,
+          description: item.description,
+          salePrice: item.price,
+          costPrice: 0,
+          stock: item.stock,
+          code: '',
+          category: { id: '', name: item.category },
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        quantity: item.quantity,
+        price: item.price,
+        discount: 0
+      };
+    });
+  }, [cart, products]);
+
+  const availablePromotions = useMemo(() => {
+    if (cart.length === 0) return [];
+    return getAvailablePromotions(cartItemsForPromotions, promotions);
+  }, [cartItemsForPromotions, promotions]);
+
+  const appliedPromotion = useMemo((): AppliedPromotion | null => {
+    if (cart.length === 0 || availablePromotions.length === 0) return null;
+    
+    if (selectedPromotionId) {
+      const selectedPromotion = availablePromotions.find(p => p.id === selectedPromotionId);
+      if (selectedPromotion) {
+        return calculatePromotionDiscount(cartItemsForPromotions, selectedPromotion, products);
+      }
+      return null;
+    }
+    
+    return getBestPromotion(cartItemsForPromotions, availablePromotions, products);
+  }, [cartItemsForPromotions, availablePromotions, selectedPromotionId, products]);
+
+  const promotionDiscountAmount = useMemo(
+    () => appliedPromotion?.discountAmount || 0,
+    [appliedPromotion]
+  );
+
+  const appliedPromotionDetails = useMemo(() => {
+    if (!appliedPromotion) return null;
+    const promotion = promotions.find(p => p.id === appliedPromotion.promotionId);
+    return promotion || null;
+  }, [appliedPromotion, promotions]);
 
   React.useEffect(() => {
     storageService.setItem(CART_STORAGE_KEY, cart);
@@ -256,13 +327,14 @@ const Sales = () => {
 
   const cartSubtotal = cart.reduce((total, item) => total + item.subtotal, 0);
   
-  const discountAmount = manualDiscount 
+  const manualDiscountAmount = manualDiscount 
     ? manualDiscount.type === 'percentage' 
       ? (cartSubtotal * manualDiscount.value / 100) 
       : Math.min(manualDiscount.value, cartSubtotal)
     : 0;
   
-  const cartTotal = cartSubtotal - discountAmount;
+  const totalDiscountAmount = manualDiscountAmount + promotionDiscountAmount;
+  const cartTotal = cartSubtotal - totalDiscountAmount;
 
   const cartColumns: ColumnDef<CartItem>[] = [
     {
@@ -371,6 +443,7 @@ const Sales = () => {
   const doClearCart = () => {
     setCart([]);
     setManualDiscount(null);
+    setSelectedPromotionId(null);
     toast({
       title: "Carrinho limpo",
       description: "Todos os itens foram removidos"
@@ -404,6 +477,22 @@ const Sales = () => {
     toast({
       title: "Desconto removido",
       description: "Desconto manual removido da venda"
+    });
+  };
+
+  const handleOpenPromotions = () => {
+    setIsPromotionDialogOpen(true);
+  };
+
+  const handleSelectPromotion = (promotionId: string | null) => {
+    setSelectedPromotionId(promotionId);
+  };
+
+  const removePromotion = () => {
+    setSelectedPromotionId(null);
+    toast({
+      title: "Promoção removida",
+      description: "Promoção automática removida da venda"
     });
   };
 
@@ -542,6 +631,24 @@ const Sales = () => {
                   <span>R$ {cartSubtotal.toFixed(2)}</span>
                 </div>
                 
+                {appliedPromotionDetails && (
+                  <div className="flex justify-between text-green-600">
+                    <span className="font-medium flex items-center">
+                      <Gift className="mr-1 h-4 w-4" />
+                      Promoção: {appliedPromotionDetails.name}
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6 ml-1 text-green-600"
+                        onClick={removePromotion}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </span>
+                    <span>- R$ {promotionDiscountAmount.toFixed(2)}</span>
+                  </div>
+                )}
+                
                 {manualDiscount && (
                   <div className="flex justify-between text-destructive">
                     <span className="font-medium flex items-center">
@@ -556,7 +663,14 @@ const Sales = () => {
                         <X className="h-3 w-3" />
                       </Button>
                     </span>
-                    <span>- R$ {discountAmount.toFixed(2)}</span>
+                    <span>- R$ {manualDiscountAmount.toFixed(2)}</span>
+                  </div>
+                )}
+                
+                {(manualDiscountAmount > 0 || promotionDiscountAmount > 0) && (
+                  <div className="flex justify-between pt-2 border-t">
+                    <span className="font-medium">Economia Total:</span>
+                    <span className="text-green-600">R$ {totalDiscountAmount.toFixed(2)}</span>
                   </div>
                 )}
                 
@@ -587,6 +701,16 @@ const Sales = () => {
                   <Percent className="mr-1 h-4 w-4" />
                   Desconto
                 </Button>
+                {availablePromotions.length > 0 && (
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={handleOpenPromotions}
+                  >
+                    <Gift className="mr-1 h-4 w-4" />
+                    Promoções
+                  </Button>
+                )}
                 <Button 
                   variant="outline" 
                   className="flex-1"
@@ -686,6 +810,15 @@ const Sales = () => {
             </form>
           </Form>
         }
+      />
+
+      <PromotionSelectionDialog
+        isOpen={isPromotionDialogOpen}
+        onClose={() => setIsPromotionDialogOpen(false)}
+        promotions={availablePromotions}
+        selectedPromotionId={selectedPromotionId}
+        onSelectPromotion={handleSelectPromotion}
+        products={products}
       />
     </div>
   );
