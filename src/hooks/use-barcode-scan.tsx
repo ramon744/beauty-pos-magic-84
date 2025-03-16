@@ -1,5 +1,5 @@
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type BarcodeScanCallback = (barcode: string) => void;
 
@@ -8,6 +8,7 @@ export function useBarcodeScan(onBarcodeDetected: BarcodeScanCallback) {
   const lastKeyTime = useRef<number>(0);
   const timeoutRef = useRef<number | null>(null);
   const isActive = useRef<boolean>(false);
+  const [scannerActive, setScannerActive] = useState(false);
 
   // Clear the buffer if there's a pause in typing
   const resetBuffer = () => {
@@ -58,10 +59,12 @@ export function useBarcodeScan(onBarcodeDetected: BarcodeScanCallback) {
 
   const startScanning = () => {
     isActive.current = true;
+    setScannerActive(true);
   };
 
   const stopScanning = () => {
     isActive.current = false;
+    setScannerActive(false);
     resetBuffer();
     if (timeoutRef.current) {
       window.clearTimeout(timeoutRef.current);
@@ -82,6 +85,7 @@ export function useBarcodeScan(onBarcodeDetected: BarcodeScanCallback) {
 
   return {
     startScanning,
-    stopScanning
+    stopScanning,
+    isScanning: scannerActive
   };
 }

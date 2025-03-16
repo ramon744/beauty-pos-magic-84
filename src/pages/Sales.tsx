@@ -43,13 +43,12 @@ const Sales = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [searchResults, setSearchResults] = useState<Omit<CartItem, 'quantity' | 'subtotal'>[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [cart, setCart] = useState<CartItem[]>(() => {
     const savedCart = storageService.getItem<CartItem[]>(CART_STORAGE_KEY);
     return savedCart || [];
   });
-  const [isScannerActive, setIsScannerActive] = useState(false);
   const [scanQuantity, setScanQuantity] = useState(1);
   const searchInputRef = useRef<HTMLInputElement>(null);
   
@@ -93,19 +92,26 @@ const Sales = () => {
   };
 
   // Use custom hook for barcode scanning
-  const { startScanning, stopScanning } = useBarcodeScan(handleBarcodeDetected);
+  const { startScanning, stopScanning, isScanning } = useBarcodeScan(handleBarcodeDetected);
+
+  // Effect to maintain scanner state when component re-renders
+  useEffect(() => {
+    // If the scanner was active before and we haven't explicitly stopped it,
+    // ensure it's still active after re-render
+    if (isScanning) {
+      startScanning();
+    }
+  }, [isScanning, startScanning]);
 
   // Toggle barcode scanner
   const toggleScanner = () => {
-    if (isScannerActive) {
+    if (isScanning) {
       stopScanning();
-      setIsScannerActive(false);
       toast({
         title: "Leitor de código de barras desativado",
       });
     } else {
       startScanning();
-      setIsScannerActive(true);
       toast({
         title: "Leitor de código de barras ativado",
         description: "Posicione o código de barras na frente da câmera"
@@ -362,11 +368,11 @@ const Sales = () => {
                 </div>
                 <Button 
                   onClick={toggleScanner} 
-                  variant={isScannerActive ? "destructive" : "outline"}
+                  variant={isScanning ? "destructive" : "outline"}
                   size="sm"
                   className="ml-auto"
                 >
-                  {isScannerActive ? (
+                  {isScanning ? (
                     <>
                       <X className="mr-1 h-4 w-4" />
                       Desativar Scanner
@@ -394,7 +400,7 @@ const Sales = () => {
                 </div>
               </div>
               
-              {isScannerActive && (
+              {isScanning && (
                 <div className="mb-4 p-4 border rounded-md bg-muted/20">
                   <div className="flex flex-col md:flex-row gap-4 items-center">
                     <div className="text-center flex-1">
