@@ -635,253 +635,243 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                       />
                     </div>
                   
-                  {/* New section for multiple products selection */}
-                  <div className="space-y-2 mt-4">
-                    <FormLabel>Ou Selecione Múltiplos Produtos</FormLabel>
-                    <div className="space-y-4">
-                      <div className="relative">
-                        <Popover open={multiProductSearchOpen} onOpenChange={setMultiProductSearchOpen}>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              aria-expanded={multiProductSearchOpen}
-                              className="w-full justify-between"
-                              disabled={!!form.watch('productId') || !!form.watch('categoryId')}
-                            >
-                              {selectedProducts.length > 0 
-                                ? `${selectedProducts.length} produtos selecionados` 
-                                : "Buscar produtos..."}
-                              <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[300px] p-0">
-                            <Command>
-                              <CommandInput 
-                                placeholder="Buscar por nome ou código" 
-                                value={multiProductSearchQuery}
-                                onValueChange={setMultiProductSearchQuery}
-                              />
-                              <CommandList>
-                                <CommandEmpty>Nenhum produto encontrado</CommandEmpty>
-                                <CommandGroup>
-                                  {filteredMultiProducts?.map(product => (
-                                    <CommandItem
-                                      key={product.id}
-                                      value={product.id}
-                                      onSelect={() => handleSelectMultiProduct(product.id)}
-                                    >
-                                      <div className="flex flex-col">
-                                        <span>{product.name}</span>
-                                        <span className="text-xs text-muted-foreground">
-                                          Código: {product.code} | {formatCurrency(product.salePrice)}
-                                        </span>
-                                      </div>
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-
-                      {/* Display selected products */}
-                      {selectedProducts.length > 0 && (
-                        <div className="space-y-2">
-                          <div className="text-sm font-medium">Produtos selecionados:</div>
-                          <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                            {selectedProducts.map((productId) => {
-                              const product = products?.find(p => p.id === productId);
-                              if (!product) return null;
-                              
-                              return (
-                                <div key={product.id} className="flex items-center justify-between border p-2 rounded-md">
-                                  <div>
-                                    <div className="font-medium">{product.name}</div>
-                                    <div className="text-sm text-muted-foreground">
-                                      {formatCurrency(product.salePrice)}
-                                    </div>
-                                  </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleRemoveMultiProduct(product.id)}
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              );
-                            })}
-                          </div>
+                    {/* New section for multiple products selection */}
+                    <div className="space-y-2 mt-4">
+                      <FormLabel>Ou Selecione Múltiplos Produtos</FormLabel>
+                      <div className="space-y-4">
+                        <div className="relative">
+                          <Popover open={multiProductSearchOpen} onOpenChange={setMultiProductSearchOpen}>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={multiProductSearchOpen}
+                                className="w-full justify-between"
+                                disabled={!!form.watch('productId') || !!form.watch('categoryId')}
+                              >
+                                {selectedProducts.length > 0 
+                                  ? `${selectedProducts.length} produtos selecionados` 
+                                  : "Buscar produtos..."}
+                                <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[300px] p-0">
+                              <Command>
+                                <CommandInput 
+                                  placeholder="Buscar por nome ou código" 
+                                  value={multiProductSearchQuery}
+                                  onValueChange={setMultiProductSearchQuery}
+                                />
+                                <CommandList>
+                                  <CommandEmpty>Nenhum produto encontrado</CommandEmpty>
+                                  <CommandGroup>
+                                    {filteredMultiProducts?.map(product => (
+                                      <CommandItem
+                                        key={product.id}
+                                        value={product.id}
+                                        onSelect={() => handleSelectMultiProduct(product.id)}
+                                      >
+                                        <div className="flex flex-col">
+                                          <span>{product.name}</span>
+                                          <span className="text-xs text-muted-foreground">
+                                            Código: {product.code} | {formatCurrency(product.salePrice)}
+                                          </span>
+                                        </div>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {!form.watch('productId') && !form.watch('categoryId') && selectedProducts.length === 0 && (
-                    <p className="text-sm text-destructive">
-                      Selecione um produto, múltiplos produtos ou uma categoria.
-                    </p>
-                  )}
-                </div>
-              </div>
-              
-              {selectedProduct && (
-                <Card>
-                  <CardContent className="p-4">
-                    <h4 className="font-medium mb-2">Prévia do Desconto</h4>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>Preço Original:</div>
-                      <div className="font-semibold">{formatCurrency(selectedProduct.salePrice)}</div>
-                      <div>Desconto ({form.watch('discountPercent')}%):</div>
-                      <div className="font-semibold text-destructive">
-                        -{formatCurrency((selectedProduct.salePrice * (form.watch('discountPercent') || 0)) / 100)}
-                      </div>
-                      <div>Preço Final:</div>
-                      <div className="font-semibold text-green-600">
-                        {formatCurrency(selectedProduct.salePrice - ((selectedProduct.salePrice * (form.watch('discountPercent') || 0)) / 100))}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-              
-              {selectedProducts.length > 0 && (
-                <Card>
-                  <CardContent className="p-4">
-                    <h4 className="font-medium mb-2">Prévia do Desconto para Múltiplos Produtos</h4>
-                    <div className="space-y-4 max-h-[300px] overflow-y-auto">
-                      {selectedProducts.map(productId => {
-                        const product = products?.find(p => p.id === productId);
-                        if (!product) return null;
-                        
-                        const discountAmount = (product.salePrice * (form.watch('discountPercent') || 0)) / 100;
-                        const finalPrice = product.salePrice - discountAmount;
-                        
-                        return (
-                          <div key={product.id} className="border-b pb-2">
-                            <div className="font-medium">{product.name}</div>
-                            <div className="grid grid-cols-2 gap-2 text-sm">
-                              <div>Preço Original:</div>
-                              <div>{formatCurrency(product.salePrice)}</div>
-                              <div>Desconto ({form.watch('discountPercent')}%):</div>
-                              <div className="text-destructive">-{formatCurrency(discountAmount)}</div>
-                              <div>Preço Final:</div>
-                              <div className="text-green-600">{formatCurrency(finalPrice)}</div>
+
+                        {/* Display selected products */}
+                        {selectedProducts.length > 0 && (
+                          <div className="space-y-2">
+                            <div className="text-sm font-medium">Produtos selecionados:</div>
+                            <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                              {selectedProducts.map((productId) => {
+                                const product = products?.find(p => p.id === productId);
+                                if (!product) return null;
+                                
+                                return (
+                                  <div key={product.id} className="flex items-center justify-between border p-2 rounded-md">
+                                    <div>
+                                      <div className="font-medium">{product.name}</div>
+                                      <div className="text-sm text-muted-foreground">
+                                        {formatCurrency(product.salePrice)}
+                                      </div>
+                                    </div>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleRemoveMultiProduct(product.id)}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
-                        );
-                      })}
+                        )}
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-              
-              {selectedCategory && (
-                <div className="text-sm">
-                  Aplicando desconto de {form.watch('discountPercent')}% em todos os produtos da categoria <strong>{selectedCategory.name}</strong>.
+                  
+                    {!form.watch('productId') && !form.watch('categoryId') && selectedProducts.length === 0 && (
+                      <p className="text-sm text-destructive">
+                        Selecione um produto, múltiplos produtos ou uma categoria.
+                      </p>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
-          )}
-          
-          {promotionType === 'discount_value' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="discountValue"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Valor do Desconto (R$)</FormLabel>
-                      <FormControl>
-                        <Input type="number" min="0.01" step="0.01" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              
+                {selectedProduct && (
+                  <Card>
+                    <CardContent className="p-4">
+                      <h4 className="font-medium mb-2">Prévia do Desconto</h4>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>Preço Original:</div>
+                        <div className="font-semibold">{formatCurrency(selectedProduct.salePrice)}</div>
+                        <div>Desconto ({form.watch('discountPercent')}%):</div>
+                        <div className="font-semibold text-destructive">
+                          -{formatCurrency((selectedProduct.salePrice * (form.watch('discountPercent') || 0)) / 100)}
+                        </div>
+                        <div>Preço Final:</div>
+                        <div className="font-semibold text-green-600">
+                          {formatCurrency(selectedProduct.salePrice - ((selectedProduct.salePrice * (form.watch('discountPercent') || 0)) / 100))}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
                 
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium">Aplicar em:</h3>
+                {selectedProducts.length > 0 && (
+                  <Card>
+                    <CardContent className="p-4">
+                      <h4 className="font-medium mb-2">Prévia do Desconto para Múltiplos Produtos</h4>
+                      <div className="space-y-4 max-h-[300px] overflow-y-auto">
+                        {selectedProducts.map(productId => {
+                          const product = products?.find(p => p.id === productId);
+                          if (!product) return null;
+                          
+                          const discountAmount = (product.salePrice * (form.watch('discountPercent') || 0)) / 100;
+                          const finalPrice = product.salePrice - discountAmount;
+                          
+                          return (
+                            <div key={product.id} className="border-b pb-2">
+                              <div className="font-medium">{product.name}</div>
+                              <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div>Preço Original:</div>
+                                <div>{formatCurrency(product.salePrice)}</div>
+                                <div>Desconto ({form.watch('discountPercent')}%):</div>
+                                <div className="text-destructive">-{formatCurrency(discountAmount)}</div>
+                                <div>Preço Final:</div>
+                                <div className="text-green-600">{formatCurrency(finalPrice)}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {selectedCategory && (
+                  <div className="text-sm">
+                    Aplicando desconto de {form.watch('discountPercent')}% em todos os produtos da categoria <strong>{selectedCategory.name}</strong>.
                   </div>
+                )}
+              </div>
+            )}
+            
+            {promotionType === 'discount_value' && (
+              <div className="space-y-6">
+                {/* Content for discount_value type */}
+                {/* (Similar to discount_percentage with appropriate fields) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="discountValue"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Valor do Desconto (R$)</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="0.01" step="0.01" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="productId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Produto Específico</FormLabel>
-                          <Select
-                            value={field.value}
-                            onValueChange={(value) => {
-                              field.onChange(value);
-                              if (value) {
-                                form.setValue('categoryId', undefined);
-                                // Clear multiple products selection when single product is selected
-                                setSelectedProducts([]);
-                                form.setValue('productIds', []);
-                              }
-                            }}
-                            disabled={!!form.watch('categoryId') || selectedProducts.length > 0}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione um produto" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {products?.map((product) => (
-                                <SelectItem key={product.id} value={product.id}>
-                                  {product.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-medium">Aplicar em:</h3>
+                    </div>
                     
-                    <FormField
-                      control={form.control}
-                      name="categoryId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Categoria</FormLabel>
-                          <Select
-                            value={field.value}
-                            onValueChange={(value) => {
-                              field.onChange(value);
-                              if (value) {
-                                form.setValue('productId', undefined);
-                                // Clear multiple products selection when category is selected
-                                setSelectedProducts([]);
-                                form.setValue('productIds', []);
-                              }
-                            }}
-                            disabled={!!form.watch('productId') || selectedProducts.length > 0}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione uma categoria" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {categories?.map((category) => (
-                                <SelectItem key={category.id} value={category.id}>
-                                  {category.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  {/* New
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="productId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Produto Específico</FormLabel>
+                            <Select
+                              value={field.value}
+                              onValueChange={(value) => {
+                                field.onChange(value);
+                                if (value) {
+                                  form.setValue('categoryId', undefined);
+                                  // Clear multiple products selection when single product is selected
+                                  setSelectedProducts([]);
+                                  form.setValue('productIds', []);
+                                }
+                              }}
+                              disabled={!!form.watch('categoryId') || selectedProducts.length > 0}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione um produto" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {products?.map((product) => (
+                                  <SelectItem key={product.id} value={product.id}>
+                                    {product.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="categoryId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Categoria</FormLabel>
+                            <Select
+                              value={field.value}
+                              onValueChange={(value) => {
+                                field.onChange(value);
+                                if (value) {
+                                  form.setValue('productId', undefined);
+                                  // Clear multiple products selection when category is selected
+                                  setSelectedProducts([]);
+                                  form.setValue('productIds', []);
+                                }
+                              }}
+                              disabled={!!form.watch('productId') || selectedProducts.length > 0}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione uma categoria" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {categories?.map((category) => (
+                                  <SelectItem key={category.id} value={category.id}>
