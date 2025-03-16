@@ -27,6 +27,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { ImageUpload } from '@/components/products/ImageUpload';
+import { Product } from '@/types';
 
 // Define the form schema
 const productFormSchema = z.object({
@@ -51,7 +52,7 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
   const { toast } = useToast();
   const { data: categories, isLoading: loadingCategories } = useCategories();
   const { data: product, isLoading: loadingProduct } = useFetchProduct(productId || "");
-  const { mutate: saveProduct, isLoading: saving } = useSaveProduct();
+  const { mutate: saveProduct, isPending: saving } = useSaveProduct();
 
   // Initialize the form
   const form = useForm<ProductFormValues>({
@@ -85,33 +86,39 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
   }, [product, productId, form]);
 
   const onSubmit = (data: ProductFormValues) => {
-    saveProduct(
-      {
-        id: productId || crypto.randomUUID(),
-        ...data,
-        category: categories?.find(c => c.id === data.categoryId) || { id: data.categoryId, name: 'Unknown' },
-        createdAt: product?.createdAt || new Date(),
-        updatedAt: new Date(),
+    // Ensure all required fields are present
+    const productToSave: Product = {
+      id: productId || crypto.randomUUID(),
+      name: data.name,
+      description: data.description || '',
+      code: data.code,
+      category: categories?.find(c => c.id === data.categoryId) || { id: data.categoryId, name: 'Unknown' },
+      salePrice: data.salePrice,
+      costPrice: data.costPrice,
+      stock: data.stock,
+      image: data.image,
+      createdAt: product?.createdAt || new Date(),
+      updatedAt: new Date(),
+    };
+    
+    saveProduct(productToSave, {
+      onSuccess: () => {
+        toast({
+          title: productId ? 'Produto atualizado' : 'Produto criado',
+          description: productId 
+            ? 'O produto foi atualizado com sucesso' 
+            : 'O produto foi criado com sucesso',
+        });
+        onSubmitted();
       },
-      {
-        onSuccess: () => {
-          toast({
-            title: productId ? 'Produto atualizado' : 'Produto criado',
-            description: productId 
-              ? 'O produto foi atualizado com sucesso' 
-              : 'O produto foi criado com sucesso',
-          });
-          onSubmitted();
-        },
-        onError: () => {
-          toast({
-            variant: 'destructive',
-            title: 'Erro',
-            description: 'Ocorreu um erro ao salvar o produto',
-          });
-        }
+      onError: () => {
+        toast({
+          variant: 'destructive',
+          title: 'Erro',
+          description: 'Ocorreu um erro ao salvar o produto',
+        });
       }
-    );
+    });
   };
 
   const handleImageUpload = (imageUrl: string) => {
