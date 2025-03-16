@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -29,7 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { ImageUpload } from '@/components/products/ImageUpload';
 import { Product, Supplier } from '@/types';
-import { Search, X, CalendarIcon } from 'lucide-react';
+import { Search, X, CalendarIcon, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { 
   Command,
@@ -43,8 +42,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format, parse, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
-// Define the form schema
 const productFormSchema = z.object({
   name: z.string().min(3, { message: 'Nome deve ter pelo menos 3 caracteres' }),
   description: z.string().optional(),
@@ -53,10 +52,11 @@ const productFormSchema = z.object({
   salePrice: z.coerce.number().positive({ message: 'Preço de venda deve ser maior que zero' }),
   costPrice: z.coerce.number().positive({ message: 'Preço de custo deve ser maior que zero' }),
   stock: z.coerce.number().int().nonnegative({ message: 'Estoque não pode ser negativo' }),
+  minimumStock: z.coerce.number().int().nonnegative({ message: 'Estoque mínimo não pode ser negativo' }).optional(),
   image: z.string().optional(),
   supplierIds: z.array(z.string()).optional(),
-  expirationDate: z.date().optional(), // Added expiration date field
-  expirationDateInput: z.string().optional(), // For manual input
+  expirationDate: z.date().optional(),
+  expirationDateInput: z.string().optional(),
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -73,12 +73,10 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
   const { mutate: saveProduct, isPending: saving } = useSaveProduct();
   const { data: suppliers, isLoading: loadingSuppliers } = useFetchSuppliers();
   
-  // State for selected suppliers
   const [selectedSuppliers, setSelectedSuppliers] = useState<Supplier[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [dateInputMode, setDateInputMode] = useState<'calendar' | 'manual'>('calendar');
 
-  // Initialize the form
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
@@ -89,6 +87,7 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
       salePrice: 0,
       costPrice: 0,
       stock: 0,
+      minimumStock: 0,
       image: '',
       supplierIds: [],
       expirationDate: undefined,
@@ -96,10 +95,8 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
     },
   });
 
-  // Populate form when editing an existing product
   useEffect(() => {
     if (product && productId) {
-      // Find all suppliers that are linked to this product
       const productSuppliers = product.supplierIds 
         ? suppliers?.filter(s => product.supplierIds?.includes(s.id)) || []
         : [];
@@ -114,6 +111,7 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
         salePrice: product.salePrice,
         costPrice: product.costPrice,
         stock: product.stock,
+        minimumStock: product.minimumStock || 0,
         image: product.image,
         supplierIds: product.supplierIds || [],
         expirationDate: product.expirationDate,
@@ -122,33 +120,25 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
     }
   }, [product, productId, form, suppliers]);
 
-  // Handle manual date input with auto formatting
   const handleDateInput = (value: string) => {
-    // Remove any non-digit characters
     const digitsOnly = value.replace(/\D/g, '');
     
-    // Format with slashes
     let formattedValue = '';
     if (digitsOnly.length > 0) {
-      // Add first two digits (day)
       formattedValue = digitsOnly.substring(0, Math.min(2, digitsOnly.length));
       
-      // Add slash and next two digits (month)
       if (digitsOnly.length > 2) {
         formattedValue += '/' + digitsOnly.substring(2, Math.min(4, digitsOnly.length));
       }
       
-      // Add slash and last four digits (year)
       if (digitsOnly.length > 4) {
         formattedValue += '/' + digitsOnly.substring(4, Math.min(8, digitsOnly.length));
       }
     }
     
-    // Update the form input
     form.setValue('expirationDateInput', formattedValue);
     
-    // Try to parse the date
-    if (formattedValue.length === 10) { // Full date format: DD/MM/YYYY
+    if (formattedValue.length === 10) {
       try {
         const parsedDate = parse(formattedValue, 'dd/MM/yyyy', new Date());
         
@@ -156,12 +146,10 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
           form.setValue('expirationDate', parsedDate);
         }
       } catch (error) {
-        // Invalid date format, don't update the date
       }
     }
   };
 
-  // Update the input field when calendar date changes
   const handleCalendarDateChange = (date: Date | undefined) => {
     form.setValue('expirationDate', date);
     if (date) {
@@ -172,11 +160,9 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
   };
 
   const onSubmit = (data: ProductFormValues) => {
-    // Get all selected suppliers
     const productSuppliers = selectedSuppliers.length > 0 ? selectedSuppliers : undefined;
     const supplierIds = selectedSuppliers.map(s => s.id);
     
-    // Ensure all required fields are present
     const productToSave: Product = {
       id: productId || crypto.randomUUID(),
       name: data.name,
@@ -186,10 +172,11 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
       salePrice: data.salePrice,
       costPrice: data.costPrice,
       stock: data.stock,
+      minimumStock: data.minimumStock || 0,
       image: data.image,
       supplierIds: supplierIds.length > 0 ? supplierIds : undefined,
       suppliers: productSuppliers,
-      expirationDate: data.expirationDate, // Added expiration date
+      expirationDate: data.expirationDate,
       createdAt: product?.createdAt || new Date(),
       updatedAt: new Date(),
     };
@@ -218,26 +205,21 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
     form.setValue('image', imageUrl);
   };
 
-  // Handle adding a supplier to the selected list
   const handleSelectSupplier = (supplier: Supplier) => {
-    // Check if supplier is already selected to avoid duplicates
     if (!selectedSuppliers.some(s => s.id === supplier.id)) {
       const updatedSuppliers = [...selectedSuppliers, supplier];
       setSelectedSuppliers(updatedSuppliers);
       form.setValue('supplierIds', updatedSuppliers.map(s => s.id));
     }
-    // Clear search after selection
     setSearchQuery('');
   };
 
-  // Handle removing a supplier from the selected list
   const handleRemoveSupplier = (supplierId: string) => {
     const updatedSuppliers = selectedSuppliers.filter(s => s.id !== supplierId);
     setSelectedSuppliers(updatedSuppliers);
     form.setValue('supplierIds', updatedSuppliers.map(s => s.id));
   };
 
-  // Filter suppliers based on search query (name, cnpj)
   const filteredSuppliers = suppliers?.filter(supplier => {
     if (!searchQuery) return true;
     
@@ -247,6 +229,13 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
       supplier.cnpj.toLowerCase().includes(query)
     );
   });
+
+  const isMinimumStockValid = () => {
+    const stock = form.watch('stock');
+    const minStock = form.watch('minimumStock');
+    
+    return minStock !== undefined && minStock > 0 && minStock < stock;
+  };
 
   if ((productId && loadingProduct) || loadingCategories || loadingSuppliers) {
     return (
@@ -391,9 +380,36 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
                 )}
               />
             </div>
+
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="minimumStock"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      Estoque Mínimo
+                      <AlertCircle className="h-4 w-4 text-amber-500" />
+                    </FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {form.watch('minimumStock') > 0 && (
+                <Alert variant="default" className="bg-amber-50 text-amber-800 border-amber-200">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    O sistema irá alertar quando o estoque estiver próximo ou abaixo de {form.watch('minimumStock')} unidades.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
           </TabsContent>
           
-          {/* Date tab with improved expiration date input */}
           <TabsContent value="dates" className="space-y-6 py-4">
             <Card>
               <CardContent className="p-6">
@@ -494,7 +510,6 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
                     <FormItem>
                       <FormLabel>Fornecedores</FormLabel>
                       <div className="space-y-4">
-                        {/* Supplier search */}
                         <div className="relative">
                           <Command className="rounded-lg border shadow-md">
                             <div className="flex items-center border-b px-3">
@@ -538,7 +553,6 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
                           </Command>
                         </div>
 
-                        {/* Selected suppliers */}
                         <div className="space-y-2">
                           <div className="text-sm font-medium">Fornecedores selecionados:</div>
                           {selectedSuppliers.length === 0 ? (

@@ -48,10 +48,11 @@ export interface Product {
   salePrice: number;
   costPrice: number;
   stock: number;
+  minimumStock?: number;  // Added minimum stock field
   image?: string;
-  supplierIds?: string[];  // Changed from supplierId to supplierIds array
-  suppliers?: Supplier[];  // Changed from supplier to suppliers array
-  expirationDate?: Date;   // Added expiration date field
+  supplierIds?: string[];
+  suppliers?: Supplier[];
+  expirationDate?: Date;
   createdAt: Date;
   updatedAt: Date;
 }

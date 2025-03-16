@@ -9,6 +9,8 @@ interface ProductStatistics {
   stockValue: number;
   outOfStock: number;
   categories: number;
+  belowMinimumStock: number;
+  approachingMinimumStock: number;
 }
 
 // Storage keys
@@ -45,6 +47,7 @@ const initialProducts: Product[] = [
     salePrice: 29.90,
     costPrice: 15.50,
     stock: 45,
+    minimumStock: 20,
     image: 'https://images.unsplash.com/photo-1559599101-f09722fb4948?ixlib=rb-1.2.1&auto=format&fit=crop&w=1050&q=80',
     supplierIds: ['1'],
     expirationDate: getFutureDate(180), // 6 months expiration
@@ -60,6 +63,7 @@ const initialProducts: Product[] = [
     salePrice: 34.90,
     costPrice: 17.80,
     stock: 38,
+    minimumStock: 25,
     image: 'https://images.unsplash.com/photo-1598454444427-8babb28c1776?ixlib=rb-1.2.1&auto=format&fit=crop&w=1050&q=80',
     supplierIds: ['1'],
     expirationDate: getFutureDate(90), // 3 months expiration
@@ -75,6 +79,7 @@ const initialProducts: Product[] = [
     salePrice: 45.90,
     costPrice: 25.30,
     stock: 15,
+    minimumStock: 20,
     image: 'https://images.unsplash.com/photo-1609097164673-7e236f3e1f3b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1050&q=80',
     supplierIds: ['2'],
     expirationDate: getFutureDate(365), // 1 year expiration
@@ -90,6 +95,7 @@ const initialProducts: Product[] = [
     salePrice: 59.90,
     costPrice: 28.75,
     stock: 22,
+    minimumStock: 15,
     image: 'https://images.unsplash.com/photo-1574180566232-aaad1b5b8450?ixlib=rb-1.2.1&auto=format&fit=crop&w=1050&q=80',
     supplierIds: ['3'],
     expirationDate: getFutureDate(30), // 1 month expiration (soon to expire)
@@ -105,6 +111,7 @@ const initialProducts: Product[] = [
     salePrice: 89.90,
     costPrice: 45.00,
     stock: 8,
+    minimumStock: 10,
     image: 'https://images.unsplash.com/photo-1590159763121-7c9fd312071f?ixlib=rb-1.2.1&auto=format&fit=crop&w=1050&q=80',
     // No expiration date for non-perishable items
     createdAt: new Date(2022, 9, 30),
@@ -119,6 +126,7 @@ const initialProducts: Product[] = [
     salePrice: 49.90,
     costPrice: 24.95,
     stock: 0,
+    minimumStock: 12,
     image: 'https://images.unsplash.com/photo-1617897903246-719242758050?ixlib=rb-1.2.1&auto=format&fit=crop&w=1050&q=80',
     supplierIds: ['2'],
     expirationDate: getFutureDate(-15), // Expired product for demo
@@ -149,11 +157,23 @@ const updateStatistics = () => {
   const products = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
   const categories = storageService.getItem<Category[]>(STORAGE_KEYS.CATEGORIES) || [];
   
+  const belowMinimumStock = products.filter(
+    product => product.minimumStock && product.stock <= product.minimumStock
+  ).length;
+  
+  const approachingMinimumStock = products.filter(
+    product => product.minimumStock && 
+              product.stock > product.minimumStock && 
+              product.stock <= product.minimumStock * 1.5
+  ).length;
+  
   const statistics: ProductStatistics = {
     totalProducts: products.length,
     stockValue: products.reduce((total, product) => total + (product.costPrice * product.stock), 0),
     outOfStock: products.filter(product => product.stock === 0).length,
     categories: categories.length,
+    belowMinimumStock,
+    approachingMinimumStock
   };
   
   storageService.setItem(STORAGE_KEYS.STATISTICS, statistics);
