@@ -22,6 +22,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 // Storage key for categories
 const CATEGORIES_STORAGE_KEY = 'categories';
@@ -300,7 +306,16 @@ export function ProductCategories() {
                   </div>
                 ) : (
                   <>
-                    <span className="truncate max-w-[70%]">{category.name}</span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="truncate max-w-[50%]">{category.name}</span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{category.name}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                     <div className="flex shrink-0 space-x-1">
                       <Button
                         onClick={() => setEditingCategory(category)}
