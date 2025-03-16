@@ -1,4 +1,3 @@
-
 // User roles
 export type UserRole = 'admin' | 'manager' | 'employee';
 
@@ -52,7 +51,7 @@ export interface Product {
   image?: string;
   supplierIds?: string[];
   suppliers?: Supplier[];
-  expirationDate?: Date;
+  expirationDate?: Date | null;  // Updated to allow null
   createdAt: Date;
   updatedAt: Date;
 }

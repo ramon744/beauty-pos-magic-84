@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -55,7 +56,7 @@ const productFormSchema = z.object({
   minimumStock: z.coerce.number().int().nonnegative({ message: 'Estoque mínimo não pode ser negativo' }).optional(),
   image: z.string().optional(),
   supplierIds: z.array(z.string()).optional(),
-  expirationDate: z.date().optional(),
+  expirationDate: z.date().optional().nullable(),
   expirationDateInput: z.string().optional(),
 });
 
@@ -90,13 +91,14 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
       minimumStock: 0,
       image: '',
       supplierIds: [],
-      expirationDate: undefined,
+      expirationDate: null,
       expirationDateInput: '',
     },
   });
 
   useEffect(() => {
     if (product && productId) {
+      console.log("Loading product data for edit:", product);
       const productSuppliers = product.supplierIds 
         ? suppliers?.filter(s => product.supplierIds?.includes(s.id)) || []
         : [];
@@ -114,7 +116,7 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
         minimumStock: product.minimumStock || 0,
         image: product.image,
         supplierIds: product.supplierIds || [],
-        expirationDate: product.expirationDate,
+        expirationDate: product.expirationDate || null,
         expirationDateInput: product.expirationDate ? format(product.expirationDate, 'dd/MM/yyyy') : '',
       });
     }
@@ -146,12 +148,16 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
           form.setValue('expirationDate', parsedDate);
         }
       } catch (error) {
+        console.error("Error parsing date:", error);
       }
+    } else {
+      // Clear the date field if input is not complete
+      form.setValue('expirationDate', null);
     }
   };
 
   const handleCalendarDateChange = (date: Date | undefined) => {
-    form.setValue('expirationDate', date);
+    form.setValue('expirationDate', date || null);
     if (date) {
       form.setValue('expirationDateInput', format(date, 'dd/MM/yyyy'));
     } else {
@@ -160,6 +166,7 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
   };
 
   const onSubmit = (data: ProductFormValues) => {
+    console.log("Form submission data:", data);
     const productSuppliers = selectedSuppliers.length > 0 ? selectedSuppliers : undefined;
     const supplierIds = selectedSuppliers.map(s => s.id);
     
@@ -176,10 +183,12 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
       image: data.image,
       supplierIds: supplierIds.length > 0 ? supplierIds : undefined,
       suppliers: productSuppliers,
-      expirationDate: data.expirationDate,
+      expirationDate: data.expirationDate || undefined,
       createdAt: product?.createdAt || new Date(),
       updatedAt: new Date(),
     };
+    
+    console.log("Saving product:", productToSave);
     
     saveProduct(productToSave, {
       onSuccess: () => {
@@ -191,7 +200,8 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
         });
         onSubmitted();
       },
-      onError: () => {
+      onError: (error) => {
+        console.error("Error saving product:", error);
         toast({
           variant: 'destructive',
           title: 'Erro',

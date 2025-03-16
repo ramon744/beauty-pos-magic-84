@@ -243,11 +243,15 @@ export function useSaveProduct() {
       if (index >= 0) {
         products[index] = {
           ...product,
+          // Ensure expirationDate is handled properly
+          expirationDate: product.expirationDate === null ? undefined : product.expirationDate,
           updatedAt: new Date(),
         };
       } else {
         products.push({
           ...product,
+          // Ensure expirationDate is handled properly
+          expirationDate: product.expirationDate === null ? undefined : product.expirationDate,
           createdAt: new Date(),
           updatedAt: new Date(),
         });
