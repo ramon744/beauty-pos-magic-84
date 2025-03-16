@@ -4,8 +4,19 @@ import { Card, CardContent } from '@/components/ui/card';
 import { usePromotionStatistics } from '@/hooks/use-promotions';
 import { Percent, Tag, Clock, Calendar } from 'lucide-react';
 
+// Define the type for promotion statistics
+interface PromotionStatistics {
+  totalPromotions: number;
+  activePromotions: number;
+  upcomingPromotions: number;
+  expiredPromotions: number;
+}
+
 export default function PromotionStats() {
-  const { data: stats, isLoading } = usePromotionStatistics();
+  const { data: stats, isLoading } = usePromotionStatistics() as { 
+    data: PromotionStatistics | undefined;
+    isLoading: boolean;
+  };
 
   if (isLoading) {
     return (

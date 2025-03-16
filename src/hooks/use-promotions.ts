@@ -9,6 +9,14 @@ const STORAGE_KEYS = {
   STATISTICS: 'promotions-statistics',
 };
 
+// Types for promotion statistics
+interface PromotionStatistics {
+  totalPromotions: number;
+  activePromotions: number;
+  upcomingPromotions: number;
+  expiredPromotions: number;
+}
+
 // Initial mock data for promotions
 const initialPromotions: Promotion[] = [
   {
@@ -66,10 +74,10 @@ const initializeData = () => {
 };
 
 // Helper function to calculate statistics
-const updateStatistics = () => {
+const updateStatistics = (): PromotionStatistics => {
   const promotions = storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS) || [];
   
-  const statistics = {
+  const statistics: PromotionStatistics = {
     totalPromotions: promotions.length,
     activePromotions: promotions.filter(p => p.isActive).length,
     upcomingPromotions: promotions.filter(p => {
@@ -123,9 +131,9 @@ export function useFetchPromotion(id: string) {
 export function usePromotionStatistics() {
   return useQuery({
     queryKey: ['promotion-statistics'],
-    queryFn: async () => {
+    queryFn: async (): Promise<PromotionStatistics> => {
       // If statistics don't exist, calculate them
-      const stats = storageService.getItem(STORAGE_KEYS.STATISTICS);
+      const stats = storageService.getItem<PromotionStatistics>(STORAGE_KEYS.STATISTICS);
       if (!stats) {
         return updateStatistics();
       }
