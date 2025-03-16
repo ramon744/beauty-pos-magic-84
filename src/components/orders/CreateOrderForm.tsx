@@ -7,7 +7,7 @@ import { Check, Plus, Trash, Search } from 'lucide-react';
 import { toast } from "sonner";
 import { useFetchProducts, useSaveProduct } from '@/hooks/use-products';
 import { useFetchSuppliers, useSaveSupplier } from '@/hooks/use-suppliers';
-import { Product, Supplier } from '@/types';
+import { Product, Supplier, Category } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
@@ -23,6 +23,11 @@ interface OrderItem {
 
 interface CreateOrderFormProps {
   onComplete: () => void;
+}
+
+// Add interface for Supplier with the temporary item ID
+interface TempSupplier extends Partial<Supplier> {
+  forItemId?: string;
 }
 
 export const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onComplete }) => {
@@ -46,7 +51,7 @@ export const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onComplete }) 
   
   // New supplier creation
   const [isNewSupplierDialogOpen, setIsNewSupplierDialogOpen] = useState(false);
-  const [newSupplier, setNewSupplier] = useState<Partial<Supplier>>({
+  const [newSupplier, setNewSupplier] = useState<TempSupplier>({
     name: '',
     phone: '',
     email: '',
@@ -169,7 +174,13 @@ export const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onComplete }) 
     // Create temporary product ID
     const tempId = `temp_${Date.now()}`;
     
-    // Create the product object
+    // Create default category for temporary products
+    const defaultCategory: Category = {
+      id: 'temp_category',
+      name: 'Categoria Temporária'
+    };
+    
+    // Create the product object with required properties
     const productToAdd: Product = {
       id: tempId,
       name: newProduct.name || '',
@@ -181,6 +192,7 @@ export const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onComplete }) 
       createdAt: new Date(),
       updatedAt: new Date(),
       code: `TEMP${Date.now().toString().slice(-6)}`,
+      category: defaultCategory,
       supplierIds: []
     };
 
@@ -228,7 +240,7 @@ export const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onComplete }) 
     // Create temporary supplier ID
     const tempId = `temp_${Date.now()}`;
     
-    // Create the supplier object
+    // Create the supplier object with all required properties
     const supplierToAdd: Supplier = {
       id: tempId,
       name: newSupplier.name || '',
@@ -236,6 +248,7 @@ export const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onComplete }) 
       email: newSupplier.email || '',
       address: newSupplier.address || '',
       contactPerson: newSupplier.contactPerson || '',
+      cnpj: `TEMP${Date.now().toString().slice(-8)}`, // Add required CNPJ property
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -266,7 +279,8 @@ export const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onComplete }) 
       phone: '',
       email: '',
       address: '',
-      contactPerson: ''
+      contactPerson: '',
+      forItemId: undefined
     });
     setSaveSupplierToCatalog(false);
     setIsNewSupplierDialogOpen(false);
@@ -677,3 +691,4 @@ export const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onComplete }) 
     </Form>
   );
 };
+
