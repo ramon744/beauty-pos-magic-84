@@ -122,19 +122,42 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
     }
   }, [product, productId, form, suppliers]);
 
-  // Handle manual date input
+  // Handle manual date input with auto formatting
   const handleDateInput = (value: string) => {
-    form.setValue('expirationDateInput', value);
+    // Remove any non-digit characters
+    const digitsOnly = value.replace(/\D/g, '');
     
-    try {
-      // Parse the manual input date
-      const parsedDate = parse(value, 'dd/MM/yyyy', new Date());
+    // Format with slashes
+    let formattedValue = '';
+    if (digitsOnly.length > 0) {
+      // Add first two digits (day)
+      formattedValue = digitsOnly.substring(0, Math.min(2, digitsOnly.length));
       
-      if (isValid(parsedDate)) {
-        form.setValue('expirationDate', parsedDate);
+      // Add slash and next two digits (month)
+      if (digitsOnly.length > 2) {
+        formattedValue += '/' + digitsOnly.substring(2, Math.min(4, digitsOnly.length));
       }
-    } catch (error) {
-      // Invalid date format, don't update the date
+      
+      // Add slash and last four digits (year)
+      if (digitsOnly.length > 4) {
+        formattedValue += '/' + digitsOnly.substring(4, Math.min(8, digitsOnly.length));
+      }
+    }
+    
+    // Update the form input
+    form.setValue('expirationDateInput', formattedValue);
+    
+    // Try to parse the date
+    if (formattedValue.length === 10) { // Full date format: DD/MM/YYYY
+      try {
+        const parsedDate = parse(formattedValue, 'dd/MM/yyyy', new Date());
+        
+        if (isValid(parsedDate)) {
+          form.setValue('expirationDate', parsedDate);
+        }
+      } catch (error) {
+        // Invalid date format, don't update the date
+      }
     }
   };
 
@@ -445,8 +468,9 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
                           <FormControl>
                             <Input
                               placeholder="DD/MM/AAAA"
-                              {...field}
+                              value={field.value}
                               onChange={(e) => handleDateInput(e.target.value)}
+                              maxLength={10}
                             />
                           </FormControl>
                           <FormMessage />
