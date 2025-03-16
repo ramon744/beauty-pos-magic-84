@@ -6,11 +6,27 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Save, X, Edit, Trash } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { Category } from '@/types';
+import { Category, Product } from '@/types';
 import { storageService } from '@/services/storage-service';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 // Storage key for categories
 const CATEGORIES_STORAGE_KEY = 'categories';
+const PRODUCTS_STORAGE_KEY = 'products';
 
 export function ProductCategories() {
   const { toast } = useToast();
@@ -18,6 +34,11 @@ export function ProductCategories() {
   const [newCategory, setNewCategory] = useState('');
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  
+  // State for category deletion dialog
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+  const [selectedTargetCategory, setSelectedTargetCategory] = useState('');
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const handleAddCategory = () => {
     if (!newCategory.trim()) return;
@@ -91,18 +112,63 @@ export function ProductCategories() {
     }
   };
 
-  const handleDeleteCategory = (category: Category) => {
+  const handleInitiateDelete = (category: Category) => {
+    // Get current products
+    const products = storageService.getItem<Product[]>(PRODUCTS_STORAGE_KEY) || [];
+    
+    // Check if any products use this category
+    const productsWithCategory = products.filter(product => product.category.id === category.id);
+    
+    if (productsWithCategory.length > 0) {
+      // Open dialog to select a new category
+      setCategoryToDelete(category);
+      setSelectedTargetCategory('');
+      setShowDeleteDialog(true);
+    } else {
+      // No products with this category, proceed with deletion
+      handleConfirmDelete(category);
+    }
+  };
+
+  const handleConfirmDelete = (category: Category, targetCategoryId?: string) => {
     try {
-      // Get current categories
+      // Get current categories and products
       const currentCategories = storageService.getItem<Category[]>(CATEGORIES_STORAGE_KEY) || [];
+      const products = storageService.getItem<Product[]>(PRODUCTS_STORAGE_KEY) || [];
       
       // Filter out the deleted category
       const updatedCategories = currentCategories.filter(cat => cat.id !== category.id);
       
-      // Save to storage
+      // Update products if target category is provided
+      if (targetCategoryId) {
+        const targetCategory = currentCategories.find(cat => cat.id === targetCategoryId);
+        
+        if (targetCategory) {
+          const updatedProducts = products.map(product => {
+            if (product.category.id === category.id) {
+              return {
+                ...product,
+                category: targetCategory,
+                updatedAt: new Date()
+              };
+            }
+            return product;
+          });
+          
+          // Save updated products
+          storageService.setItem(PRODUCTS_STORAGE_KEY, updatedProducts);
+          
+          toast({
+            title: "Produtos migrados",
+            description: `Os produtos foram migrados para a categoria "${targetCategory.name}".`,
+          });
+        }
+      }
+      
+      // Save updated categories
       storageService.setItem(CATEGORIES_STORAGE_KEY, updatedCategories);
       
-      // Also need to update product statistics
+      // Update product statistics
       updateProductStatistics();
       
       toast({
@@ -112,6 +178,11 @@ export function ProductCategories() {
       
       // Refresh data
       refetch();
+      
+      // Reset state
+      setCategoryToDelete(null);
+      setSelectedTargetCategory('');
+      setShowDeleteDialog(false);
     } catch (error) {
       console.error("Erro ao excluir categoria:", error);
       toast({
@@ -139,6 +210,11 @@ export function ProductCategories() {
     // Update statistics in storage
     storageService.setItem('products-statistics', statistics);
   };
+  
+  // Get categories available for migration (excluding the one being deleted)
+  const availableCategoriesForMigration = categories?.filter(
+    category => category.id !== categoryToDelete?.id
+  ) || [];
 
   return (
     <Card className="h-full">
@@ -238,7 +314,7 @@ export function ProductCategories() {
                         <Edit className="h-3.5 w-3.5" />
                       </Button>
                       <Button
-                        onClick={() => handleDeleteCategory(category)}
+                        onClick={() => handleInitiateDelete(category)}
                         variant="ghost"
                         size="sm"
                         className="h-7 w-7 p-0 text-destructive hover:text-destructive"
@@ -258,6 +334,73 @@ export function ProductCategories() {
             )}
           </div>
         )}
+        
+        {/* Category deletion dialog */}
+        <Dialog open={showDeleteDialog} onOpenChange={(open) => {
+          if (!open) {
+            setShowDeleteDialog(false);
+            setCategoryToDelete(null);
+            setSelectedTargetCategory('');
+          }
+        }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Migrar produtos antes de excluir</DialogTitle>
+              <DialogDescription>
+                A categoria "{categoryToDelete?.name}" possui produtos associados a ela. 
+                Selecione outra categoria para migrar esses produtos antes de excluir.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="py-4">
+              <Select
+                value={selectedTargetCategory}
+                onValueChange={setSelectedTargetCategory}
+                disabled={availableCategoriesForMigration.length === 0}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione uma categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableCategoriesForMigration.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {availableCategoriesForMigration.length === 0 && (
+                <p className="text-sm text-destructive mt-2">
+                  Não há outras categorias disponíveis. Crie uma nova categoria primeiro.
+                </p>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDeleteDialog(false);
+                  setCategoryToDelete(null);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => {
+                  if (categoryToDelete && selectedTargetCategory) {
+                    handleConfirmDelete(categoryToDelete, selectedTargetCategory);
+                  }
+                }}
+                disabled={!selectedTargetCategory || availableCategoriesForMigration.length === 0}
+                variant="default"
+              >
+                Migrar e Excluir
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
