@@ -15,38 +15,48 @@ import Users from "./pages/Users";
 import Customers from "./pages/Customers";
 import MainLayout from "./components/layout/MainLayout";
 
-const queryClient = new QueryClient();
+// Criando o cliente de consulta fora do componente para evitar recriação
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <Toaster />
-          <Sonner />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            
-            {/* Protected routes with MainLayout */}
-            <Route element={<MainLayout />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/sales" element={<Sales />} />
-              <Route path="/products" element={<Products />} />
-              <Route path="/suppliers" element={<Suppliers />} />
-              <Route path="/users" element={<Users />} />
-              <Route path="/customers" element={<Customers />} />
-              <Route path="/promotions" element={<div className="p-4">Página de Promoções - Em desenvolvimento</div>} />
-              <Route path="/reports" element={<div className="p-4">Página de Relatórios - Em desenvolvimento</div>} />
-              <Route path="/history" element={<div className="p-4">Página de Histórico - Em desenvolvimento</div>} />
-            </Route>
-            
-            {/* Catch-all route */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <Toaster />
+            <Sonner />
+            <Routes>
+              <Route path="/" element={<Index />} />
+              
+              {/* Protected routes with MainLayout */}
+              <Route element={<MainLayout />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/sales" element={<Sales />} />
+                <Route path="/products" element={<Products />} />
+                <Route path="/suppliers" element={<Suppliers />} />
+                <Route path="/users" element={<Users />} />
+                <Route path="/customers" element={<Customers />} />
+                <Route path="/promotions" element={<div className="p-4">Página de Promoções - Em desenvolvimento</div>} />
+                <Route path="/reports" element={<div className="p-4">Página de Relatórios - Em desenvolvimento</div>} />
+                <Route path="/history" element={<div className="p-4">Página de Histórico - Em desenvolvimento</div>} />
+              </Route>
+              
+              {/* Catch-all route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

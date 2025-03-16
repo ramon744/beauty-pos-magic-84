@@ -9,7 +9,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 const MainLayout: React.FC = () => {
   const isMobile = useIsMobile();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
 
