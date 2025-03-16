@@ -1,6 +1,7 @@
 
 // Storage service - abstraction layer for future DB migration
 // This will make it easier to switch to a real database in the future
+import { Statistics } from '@/types';
 
 export interface StorageService {
   getItem<T>(key: string): T | null;

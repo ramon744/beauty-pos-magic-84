@@ -1,4 +1,3 @@
-
 // User roles
 export type UserRole = 'admin' | 'manager' | 'employee';
 
@@ -68,6 +67,14 @@ export interface Customer {
   cep?: string; // CEP/Postal code
   createdAt: Date;
   updatedAt: Date;
+}
+
+// Statistics interface
+export interface Statistics {
+  totalProducts: number;
+  stockValue: number;
+  outOfStock: number;
+  categories: number;
 }
 
 // Payment method

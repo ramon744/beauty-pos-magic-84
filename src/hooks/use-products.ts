@@ -1,6 +1,6 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Product, Category } from '@/types';
+import { Product, Category, Statistics } from '@/types';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 
 // Initial mock data for categories
@@ -119,11 +119,11 @@ const initializeData = () => {
 initializeData();
 
 // Function to update statistics based on current products
-const updateStatistics = () => {
+const updateStatistics = (): Statistics => {
   const products = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
   const categories = storageService.getItem<Category[]>(STORAGE_KEYS.CATEGORIES) || [];
   
-  const statistics = {
+  const statistics: Statistics = {
     totalProducts: products.length,
     stockValue: products.reduce((total, product) => total + (product.costPrice * product.stock), 0),
     outOfStock: products.filter(product => product.stock === 0).length,
@@ -225,7 +225,7 @@ export function useStatistics() {
     queryKey: ['statistics'],
     queryFn: async () => {
       // Get statistics from storage or calculate if not present
-      const statistics = storageService.getItem(STORAGE_KEYS.STATISTICS);
+      const statistics = storageService.getItem<Statistics>(STORAGE_KEYS.STATISTICS);
       return statistics || updateStatistics();
     },
   });
