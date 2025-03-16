@@ -7,7 +7,7 @@ import { ShoppingBag, AlertTriangle, Plus } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useFetchProducts } from '@/hooks/use-products';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { CreateOrderForm } from '@/components/orders/CreateOrderForm';
 
 const Orders = () => {
@@ -78,7 +78,7 @@ const Orders = () => {
           <DialogHeader>
             <DialogTitle>Criar Pedido Avulso</DialogTitle>
             <DialogDescription>
-              Selecione os produtos que deseja incluir no pedido
+              Selecione ou crie os produtos que deseja incluir no pedido
             </DialogDescription>
           </DialogHeader>
           
