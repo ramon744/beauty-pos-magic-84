@@ -48,8 +48,8 @@ export interface Product {
   costPrice: number;
   stock: number;
   image?: string;
-  supplierId?: string;
-  supplier?: Supplier;
+  supplierIds?: string[];  // Changed from supplierId to supplierIds array
+  suppliers?: Supplier[];  // Changed from supplier to suppliers array
   createdAt: Date;
   updatedAt: Date;
 }

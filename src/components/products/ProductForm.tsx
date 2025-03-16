@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -29,6 +29,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { ImageUpload } from '@/components/products/ImageUpload';
 import { Product, Supplier } from '@/types';
+import { Search, X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 
 // Define the form schema
 const productFormSchema = z.object({
@@ -40,7 +50,7 @@ const productFormSchema = z.object({
   costPrice: z.coerce.number().positive({ message: 'Preço de custo deve ser maior que zero' }),
   stock: z.coerce.number().int().nonnegative({ message: 'Estoque não pode ser negativo' }),
   image: z.string().optional(),
-  supplierId: z.string().optional(),
+  supplierIds: z.array(z.string()).optional(),
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -56,6 +66,10 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
   const { data: product, isLoading: loadingProduct } = useFetchProduct(productId || "");
   const { mutate: saveProduct, isPending: saving } = useSaveProduct();
   const { data: suppliers, isLoading: loadingSuppliers } = useFetchSuppliers();
+  
+  // State for selected suppliers
+  const [selectedSuppliers, setSelectedSuppliers] = useState<Supplier[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Initialize the form
   const form = useForm<ProductFormValues>({
@@ -69,13 +83,20 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
       costPrice: 0,
       stock: 0,
       image: '',
-      supplierId: '',
+      supplierIds: [],
     },
   });
 
   // Populate form when editing an existing product
   useEffect(() => {
     if (product && productId) {
+      // Find all suppliers that are linked to this product
+      const productSuppliers = product.supplierIds 
+        ? suppliers?.filter(s => product.supplierIds?.includes(s.id)) || []
+        : [];
+      
+      setSelectedSuppliers(productSuppliers);
+      
       form.reset({
         name: product.name,
         description: product.description,
@@ -85,15 +106,15 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
         costPrice: product.costPrice,
         stock: product.stock,
         image: product.image,
-        supplierId: product.supplierId || '',
+        supplierIds: product.supplierIds || [],
       });
     }
-  }, [product, productId, form]);
+  }, [product, productId, form, suppliers]);
 
   const onSubmit = (data: ProductFormValues) => {
-    // Find supplier if supplierId is provided
-    const selectedSupplier = data.supplierId ? 
-      suppliers?.find(s => s.id === data.supplierId) : undefined;
+    // Get all selected suppliers
+    const productSuppliers = selectedSuppliers.length > 0 ? selectedSuppliers : undefined;
+    const supplierIds = selectedSuppliers.map(s => s.id);
     
     // Ensure all required fields are present
     const productToSave: Product = {
@@ -106,8 +127,8 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
       costPrice: data.costPrice,
       stock: data.stock,
       image: data.image,
-      supplierId: data.supplierId,
-      supplier: selectedSupplier,
+      supplierIds: supplierIds.length > 0 ? supplierIds : undefined,
+      suppliers: productSuppliers,
       createdAt: product?.createdAt || new Date(),
       updatedAt: new Date(),
     };
@@ -136,6 +157,36 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
     form.setValue('image', imageUrl);
   };
 
+  // Handle adding a supplier to the selected list
+  const handleSelectSupplier = (supplier: Supplier) => {
+    // Check if supplier is already selected to avoid duplicates
+    if (!selectedSuppliers.some(s => s.id === supplier.id)) {
+      const updatedSuppliers = [...selectedSuppliers, supplier];
+      setSelectedSuppliers(updatedSuppliers);
+      form.setValue('supplierIds', updatedSuppliers.map(s => s.id));
+    }
+    // Clear search after selection
+    setSearchQuery('');
+  };
+
+  // Handle removing a supplier from the selected list
+  const handleRemoveSupplier = (supplierId: string) => {
+    const updatedSuppliers = selectedSuppliers.filter(s => s.id !== supplierId);
+    setSelectedSuppliers(updatedSuppliers);
+    form.setValue('supplierIds', updatedSuppliers.map(s => s.id));
+  };
+
+  // Filter suppliers based on search query (name, cnpj)
+  const filteredSuppliers = suppliers?.filter(supplier => {
+    if (!searchQuery) return true;
+    
+    const query = searchQuery.toLowerCase();
+    return (
+      supplier.name.toLowerCase().includes(query) ||
+      supplier.cnpj.toLowerCase().includes(query)
+    );
+  });
+
   if ((productId && loadingProduct) || loadingCategories || loadingSuppliers) {
     return (
       <div className="flex justify-center p-12">
@@ -151,7 +202,7 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="general">Informações Gerais</TabsTrigger>
             <TabsTrigger value="pricing">Preços e Estoque</TabsTrigger>
-            <TabsTrigger value="supplier">Fornecedor</TabsTrigger>
+            <TabsTrigger value="supplier">Fornecedores</TabsTrigger>
             <TabsTrigger value="media">Imagens</TabsTrigger>
           </TabsList>
           
@@ -285,31 +336,80 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
               <CardContent className="p-6">
                 <FormField
                   control={form.control}
-                  name="supplierId"
-                  render={({ field }) => (
+                  name="supplierIds"
+                  render={() => (
                     <FormItem>
-                      <FormLabel>Fornecedor</FormLabel>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        disabled={loadingSuppliers}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione um fornecedor" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {/* Fix: The empty SelectItem was causing the error */}
-                          {/* Change from value="" to value="none" */}
-                          <SelectItem value="none">Nenhum fornecedor</SelectItem>
-                          {suppliers?.map((supplier) => (
-                            <SelectItem key={supplier.id} value={supplier.id}>
-                              {supplier.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormLabel>Fornecedores</FormLabel>
+                      <div className="space-y-4">
+                        {/* Supplier search */}
+                        <div className="relative">
+                          <Command className="rounded-lg border shadow-md">
+                            <div className="flex items-center border-b px-3">
+                              <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                              <CommandInput 
+                                placeholder="Buscar por nome ou CNPJ..." 
+                                className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                value={searchQuery}
+                                onValueChange={setSearchQuery}
+                              />
+                            </div>
+                            <CommandList>
+                              <CommandEmpty>Nenhum fornecedor encontrado</CommandEmpty>
+                              <CommandGroup heading="Fornecedores">
+                                {filteredSuppliers?.map((supplier) => (
+                                  <CommandItem
+                                    key={supplier.id}
+                                    value={supplier.id}
+                                    onSelect={() => handleSelectSupplier(supplier)}
+                                    className="flex justify-between"
+                                  >
+                                    <div>
+                                      <span className="font-medium">{supplier.name}</span>
+                                      <p className="text-xs text-muted-foreground">CNPJ: {supplier.cnpj}</p>
+                                    </div>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSelectSupplier(supplier);
+                                      }}
+                                    >
+                                      Adicionar
+                                    </Button>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </div>
+
+                        {/* Selected suppliers */}
+                        <div className="space-y-2">
+                          <div className="text-sm font-medium">Fornecedores selecionados:</div>
+                          {selectedSuppliers.length === 0 ? (
+                            <div className="text-sm text-muted-foreground italic">
+                              Nenhum fornecedor selecionado
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap gap-2">
+                              {selectedSuppliers.map((supplier) => (
+                                <Badge key={supplier.id} variant="secondary" className="flex items-center gap-1">
+                                  {supplier.name}
+                                  <button
+                                    type="button"
+                                    className="ml-1 rounded-full p-1 hover:bg-background"
+                                    onClick={() => handleRemoveSupplier(supplier.id)}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
