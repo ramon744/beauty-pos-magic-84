@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useCategories, useFetchProducts, useSaveProduct } from '@/hooks/use-products';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -975,4 +976,103 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
                   onValueChange={setTempDuration}
                 >
                   <SelectTrigger id="temp-duration" className="w-full">
-                    <SelectValue placeholder="Se
+                    <SelectValue placeholder="Selecione a duração" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 dia</SelectItem>
+                    <SelectItem value="3">3 dias</SelectItem>
+                    <SelectItem value="7">7 dias</SelectItem>
+                    <SelectItem value="14">14 dias</SelectItem>
+                    <SelectItem value="30">30 dias</SelectItem>
+                    <SelectItem value="custom">Data e hora personalizadas</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {tempDuration === 'custom' && (
+                <div className="space-y-2">
+                  <Label>Data e Hora de Expiração</Label>
+                  <div className="flex flex-col space-y-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal"
+                        >
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {customDate ? format(customDate, "PPP") : "Selecione a data"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <CalendarComponent
+                          mode="single"
+                          selected={customDate}
+                          onSelect={(date) => date && setCustomDate(date)}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    
+                    <div className="flex space-x-2">
+                      <div className="w-1/2">
+                        <Label htmlFor="hour">Hora</Label>
+                        <Select
+                          value={customTimeHours}
+                          onValueChange={setCustomTimeHours}
+                        >
+                          <SelectTrigger id="hour" className="w-full">
+                            <SelectValue placeholder="Hora" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 24 }).map((_, idx) => (
+                              <SelectItem key={idx} value={idx.toString().padStart(2, '0')}>
+                                {idx.toString().padStart(2, '0')}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="w-1/2">
+                        <Label htmlFor="minute">Minuto</Label>
+                        <Select
+                          value={customTimeMinutes}
+                          onValueChange={setCustomTimeMinutes}
+                        >
+                          <SelectTrigger id="minute" className="w-full">
+                            <SelectValue placeholder="Minuto" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 60 }).map((_, idx) => (
+                              <SelectItem key={idx} value={idx.toString().padStart(2, '0')}>
+                                {idx.toString().padStart(2, '0')}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowTempCategoryDialog(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleAssignTempCategory}
+                disabled={!selectedTempCategory}
+              >
+                Atribuir
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+}
