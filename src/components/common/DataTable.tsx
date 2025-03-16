@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -56,19 +56,6 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="space-y-4">
-      {searchColumn && (
-        <div className="flex items-center relative max-w-sm">
-          <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={searchPlaceholder}
-            value={(table.getColumn(searchColumn)?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
-              table.getColumn(searchColumn)?.setFilterValue(event.target.value)
-            }
-            className="pl-10"
-          />
-        </div>
-      )}
       <div className="rounded-md border shadow-sm overflow-hidden bg-white">
         <Table>
           <TableHeader className="bg-gray-50">
