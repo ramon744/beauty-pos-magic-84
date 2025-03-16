@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { DataTable } from '@/components/common/DataTable';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,8 @@ import { AlertDialog, AlertDialogTrigger, AlertDialogContent,
   AlertDialogHeader, AlertDialogTitle, AlertDialogDescription,
   AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { formatCurrency } from '@/lib/formatters';
+import { Input } from '@/components/ui/input';
+import { Search, X } from 'lucide-react';
 
 interface ProductsListProps {
   onEditProduct: (productId: string) => void;
@@ -21,6 +24,7 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
   const { data: products, isLoading, error } = useFetchProducts();
   const { mutate: deleteProduct, isPending: isDeleting } = useDeleteProduct();
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
+  const [searchValue, setSearchValue] = useState('');
   
   const handleDeleteProduct = async () => {
     if (!productToDelete) return;
@@ -152,6 +156,21 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
     },
   ];
 
+  // Filter products based on search input
+  const filteredProducts = products ? products.filter(product => {
+    if (!searchValue) return true;
+    
+    const searchLower = searchValue.toLowerCase();
+    return (
+      product.name.toLowerCase().includes(searchLower) ||
+      product.code.toLowerCase().includes(searchLower)
+    );
+  }) : [];
+
+  const clearSearch = () => {
+    setSearchValue('');
+  };
+
   if (error) {
     return (
       <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4 text-destructive">
@@ -162,12 +181,31 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
 
   return (
     <div className="space-y-4">
+      <div className="relative">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Pesquisar por código ou nome do produto..."
+            className="pl-8 pr-8"
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+          />
+          {searchValue && (
+            <button 
+              onClick={clearSearch}
+              className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+              aria-label="Limpar pesquisa"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
       <div className="rounded-md border shadow">
         <DataTable
           columns={columns}
-          data={products || []}
-          searchColumn="name"
-          searchPlaceholder="Buscar produtos..."
+          data={filteredProducts}
           isLoading={isLoading}
         />
       </div>

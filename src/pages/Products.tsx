@@ -65,6 +65,6 @@ const Products = () => {
       </Tabs>
     </div>
   );
-};
+}
 
 export default Products;

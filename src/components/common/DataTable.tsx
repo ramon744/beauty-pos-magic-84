@@ -28,7 +28,7 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
   searchColumn?: string;
   searchPlaceholder?: string;
-  isLoading?: boolean; // Add isLoading prop
+  isLoading?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -36,7 +36,7 @@ export function DataTable<TData, TValue>({
   data,
   searchColumn,
   searchPlaceholder = "Pesquisar...",
-  isLoading = false, // Default to false
+  isLoading = false,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
