@@ -24,6 +24,19 @@ export interface Category {
   name: string;
 }
 
+// Supplier interface
+export interface Supplier {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  address?: string;
+  contactPerson?: string;
+  cnpj: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Product interface
 export interface Product {
   id: string;
@@ -35,6 +48,8 @@ export interface Product {
   costPrice: number;
   stock: number;
   image?: string;
+  supplierId?: string;
+  supplier?: Supplier;
   createdAt: Date;
   updatedAt: Date;
 }

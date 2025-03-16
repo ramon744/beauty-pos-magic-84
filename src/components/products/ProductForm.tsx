@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { useFetchProduct, useCategories, useSaveProduct } from '@/hooks/use-products';
+import { useFetchSuppliers } from '@/hooks/use-suppliers';
 import {
   Form,
   FormControl,
@@ -27,7 +28,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { ImageUpload } from '@/components/products/ImageUpload';
-import { Product } from '@/types';
+import { Product, Supplier } from '@/types';
 
 // Define the form schema
 const productFormSchema = z.object({
@@ -39,6 +40,7 @@ const productFormSchema = z.object({
   costPrice: z.coerce.number().positive({ message: 'Preço de custo deve ser maior que zero' }),
   stock: z.coerce.number().int().nonnegative({ message: 'Estoque não pode ser negativo' }),
   image: z.string().optional(),
+  supplierId: z.string().optional(),
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -53,6 +55,7 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
   const { data: categories, isLoading: loadingCategories } = useCategories();
   const { data: product, isLoading: loadingProduct } = useFetchProduct(productId || "");
   const { mutate: saveProduct, isPending: saving } = useSaveProduct();
+  const { data: suppliers, isLoading: loadingSuppliers } = useFetchSuppliers();
 
   // Initialize the form
   const form = useForm<ProductFormValues>({
@@ -66,6 +69,7 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
       costPrice: 0,
       stock: 0,
       image: '',
+      supplierId: '',
     },
   });
 
@@ -81,11 +85,16 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
         costPrice: product.costPrice,
         stock: product.stock,
         image: product.image,
+        supplierId: product.supplierId || '',
       });
     }
   }, [product, productId, form]);
 
   const onSubmit = (data: ProductFormValues) => {
+    // Find supplier if supplierId is provided
+    const selectedSupplier = data.supplierId ? 
+      suppliers?.find(s => s.id === data.supplierId) : undefined;
+    
     // Ensure all required fields are present
     const productToSave: Product = {
       id: productId || crypto.randomUUID(),
@@ -97,6 +106,8 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
       costPrice: data.costPrice,
       stock: data.stock,
       image: data.image,
+      supplierId: data.supplierId,
+      supplier: selectedSupplier,
       createdAt: product?.createdAt || new Date(),
       updatedAt: new Date(),
     };
@@ -125,7 +136,7 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
     form.setValue('image', imageUrl);
   };
 
-  if ((productId && loadingProduct) || loadingCategories) {
+  if ((productId && loadingProduct) || loadingCategories || loadingSuppliers) {
     return (
       <div className="flex justify-center p-12">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
@@ -137,9 +148,10 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="general">Informações Gerais</TabsTrigger>
             <TabsTrigger value="pricing">Preços e Estoque</TabsTrigger>
+            <TabsTrigger value="supplier">Fornecedor</TabsTrigger>
             <TabsTrigger value="media">Imagens</TabsTrigger>
           </TabsList>
           
@@ -266,6 +278,42 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
                 )}
               />
             </div>
+          </TabsContent>
+          
+          <TabsContent value="supplier" className="space-y-6 py-4">
+            <Card>
+              <CardContent className="p-6">
+                <FormField
+                  control={form.control}
+                  name="supplierId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Fornecedor</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        disabled={loadingSuppliers}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione um fornecedor" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="">Nenhum fornecedor</SelectItem>
+                          {suppliers?.map((supplier) => (
+                            <SelectItem key={supplier.id} value={supplier.id}>
+                              {supplier.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
           </TabsContent>
           
           <TabsContent value="media" className="space-y-6 py-4">
