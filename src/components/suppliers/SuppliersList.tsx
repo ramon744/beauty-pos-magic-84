@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useFetchSuppliers } from '@/hooks/use-suppliers';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -11,8 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Edit, Search } from 'lucide-react';
+import { Edit } from 'lucide-react';
 import { Supplier } from '@/types';
 
 interface SuppliersListProps {
@@ -21,13 +20,6 @@ interface SuppliersListProps {
 
 export default function SuppliersList({ onEditSupplier }: SuppliersListProps) {
   const { data: suppliers, isLoading } = useFetchSuppliers();
-  const [searchTerm, setSearchTerm] = useState('');
-
-  const filteredSuppliers = suppliers?.filter(supplier => 
-    supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    supplier.cnpj.includes(searchTerm) ||
-    supplier.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   if (isLoading) {
     return (
@@ -40,18 +32,6 @@ export default function SuppliersList({ onEditSupplier }: SuppliersListProps) {
   return (
     <Card>
       <CardContent className="p-6">
-        <div className="mb-4 flex flex-col sm:flex-row gap-2">
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar fornecedor..."
-              className="pl-8"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div>
-        
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -64,8 +44,8 @@ export default function SuppliersList({ onEditSupplier }: SuppliersListProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredSuppliers && filteredSuppliers.length > 0 ? (
-                filteredSuppliers.map((supplier) => (
+              {suppliers && suppliers.length > 0 ? (
+                suppliers.map((supplier) => (
                   <TableRow key={supplier.id}>
                     <TableCell className="font-medium">{supplier.name}</TableCell>
                     <TableCell className="hidden md:table-cell">{supplier.cnpj}</TableCell>
