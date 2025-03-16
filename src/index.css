@@ -101,6 +101,11 @@
   @apply bg-black/20 border-white/10;
 }
 
+/* Sidebar specific styles */
+.sidebar-collapsed .menu-text {
+  display: none !important;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
