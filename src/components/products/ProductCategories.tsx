@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useCategories, useFetchProducts, useSaveProduct } from '@/hooks/use-products';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -91,7 +90,6 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
   const [customTimeHours, setCustomTimeHours] = useState('23');
   const [customTimeMinutes, setCustomTimeMinutes] = useState('59');
   
-  // New state for category filter
   const [categoryFilter, setCategoryFilter] = useState<string>('');
 
   useEffect(() => {
@@ -110,7 +108,6 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.code.toLowerCase().includes(searchQuery.toLowerCase());
     
-    // Apply category filter
     const matchesCategory = 
       categoryFilter === '' || 
       product.category.id === categoryFilter;
@@ -512,7 +509,6 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
     }
   };
 
-  // New function to handle clearing all filters
   const handleClearFilters = () => {
     setSearchQuery('');
     setCategoryFilter('');
@@ -659,7 +655,6 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
           
           <TabsContent value="search" className="space-y-4 pt-4">
             <div className="flex flex-col space-y-4">
-              {/* Updated filter section with category filter */}
               <div className="flex flex-col md:flex-row gap-3">
                 <div className="flex items-center space-x-2 flex-1">
                   <Search className="h-4 w-4 text-muted-foreground" />
@@ -671,7 +666,6 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
                   />
                 </div>
                 
-                {/* Add category filter */}
                 <div className="flex items-center space-x-2">
                   <Filter className="h-4 w-4 text-muted-foreground" />
                   <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -688,7 +682,6 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
                     </SelectContent>
                   </Select>
                   
-                  {/* Add clear filters button */}
                   {(searchQuery || categoryFilter) && (
                     <Button 
                       variant="outline" 
