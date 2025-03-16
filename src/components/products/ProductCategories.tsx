@@ -89,6 +89,9 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
   const [customDate, setCustomDate] = useState<Date>(new Date());
   const [customTimeHours, setCustomTimeHours] = useState('23');
   const [customTimeMinutes, setCustomTimeMinutes] = useState('59');
+  
+  // New state for category filter
+  const [categoryFilter, setCategoryFilter] = useState<string>('');
 
   useEffect(() => {
     const storedAssignments = storageService.getItem<TempCategoryAssignment[]>(TEMP_CATEGORY_STORAGE_KEY) || [];
@@ -106,7 +109,12 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.code.toLowerCase().includes(searchQuery.toLowerCase());
     
-    return matchesSearch;
+    // Apply category filter
+    const matchesCategory = 
+      categoryFilter === '' || 
+      product.category.id === categoryFilter;
+    
+    return matchesSearch && matchesCategory;
   }) || [];
 
   const checkExpiredAssignments = async () => {
@@ -503,6 +511,12 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
     }
   };
 
+  // New function to handle clearing all filters
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setCategoryFilter('');
+  };
+
   return (
     <Card className={`h-full ${fullWidth ? 'max-w-none' : ''}`}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -644,14 +658,48 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
           
           <TabsContent value="search" className="space-y-4 pt-4">
             <div className="flex flex-col space-y-4">
-              <div className="flex items-center space-x-2">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar produtos por nome ou código..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1"
-                />
+              {/* Updated filter section with category filter */}
+              <div className="flex flex-col md:flex-row gap-3">
+                <div className="flex items-center space-x-2 flex-1">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar produtos por nome ou código..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
+                
+                {/* Add category filter */}
+                <div className="flex items-center space-x-2">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Filtrar por categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Todas as categorias</SelectItem>
+                      {categories?.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Add clear filters button */}
+                  {(searchQuery || categoryFilter) && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleClearFilters}
+                      className="h-10"
+                    >
+                      <X className="mr-1 h-3.5 w-3.5" />
+                      Limpar filtros
+                    </Button>
+                  )}
+                </div>
               </div>
               
               {selectedProducts.length > 0 && (
@@ -715,7 +763,7 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
                     {filteredProducts.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
-                          {searchQuery ? "Nenhum produto corresponde à busca" : "Nenhum produto encontrado"}
+                          {searchQuery || categoryFilter ? "Nenhum produto corresponde aos filtros" : "Nenhum produto encontrado"}
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -927,112 +975,4 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
                   onValueChange={setTempDuration}
                 >
                   <SelectTrigger id="temp-duration" className="w-full">
-                    <SelectValue placeholder="Selecione a duração" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="custom">Data e hora personalizada</SelectItem>
-                    <SelectItem value="1">1 dia</SelectItem>
-                    <SelectItem value="3">3 dias</SelectItem>
-                    <SelectItem value="7">7 dias</SelectItem>
-                    <SelectItem value="14">14 dias</SelectItem>
-                    <SelectItem value="30">30 dias</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {tempDuration === 'custom' && (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Data de término</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !customDate && "text-muted-foreground"
-                          )}
-                        >
-                          <Calendar className="mr-2 h-4 w-4" />
-                          {customDate ? format(customDate, "dd/MM/yyyy") : "Selecione uma data"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <CalendarComponent
-                          mode="single"
-                          selected={customDate}
-                          onSelect={(date) => date && setCustomDate(date)}
-                          initialFocus
-                          className={cn("p-3 pointer-events-auto")}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  
-                  <div className="flex space-x-2">
-                    <div className="space-y-2 flex-1">
-                      <Label htmlFor="hours">Hora</Label>
-                      <Select 
-                        value={customTimeHours} 
-                        onValueChange={setCustomTimeHours}
-                      >
-                        <SelectTrigger id="hours">
-                          <SelectValue placeholder="Hora" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.from({ length: 24 }, (_, i) => (
-                            <SelectItem key={i} value={i.toString().padStart(2, '0')}>
-                              {i.toString().padStart(2, '0')}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-2 flex-1">
-                      <Label htmlFor="minutes">Minuto</Label>
-                      <Select 
-                        value={customTimeMinutes} 
-                        onValueChange={setCustomTimeMinutes}
-                      >
-                        <SelectTrigger id="minutes">
-                          <SelectValue placeholder="Minuto" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 59].map((min) => (
-                            <SelectItem key={min} value={min.toString().padStart(2, '0')}>
-                              {min.toString().padStart(2, '0')}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              <p className="text-sm text-muted-foreground">
-                {selectedProducts.length} produto(s) selecionado(s) serão movidos temporariamente.
-              </p>
-            </div>
-            
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setShowTempCategoryDialog(false)}
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleAssignTempCategory}
-                disabled={!selectedTempCategory}
-              >
-                Aplicar Categoria Temporária
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </CardContent>
-    </Card>
-  );
-}
+                    <SelectValue placeholder="Se
