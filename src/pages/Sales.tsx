@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   ShoppingCart, 
@@ -52,30 +51,24 @@ const Sales = () => {
   });
   const searchInputRef = useRef<HTMLInputElement>(null);
   
-  // Manager auth dialog state
   const [isManagerAuthOpen, setIsManagerAuthOpen] = useState(false);
   const [productIdToDelete, setProductIdToDelete] = useState<string | null>(null);
   
-  // Fetch products from the database
   const { data: products = [] } = useFetchProducts();
 
-  // Save cart to local storage whenever it changes
   React.useEffect(() => {
     storageService.setItem(CART_STORAGE_KEY, cart);
   }, [cart]);
 
-  // Handle barcode scanning
   const handleBarcodeDetected = (barcode: string) => {
     toast({
       title: "Código de barras detectado",
       description: `Código: ${barcode}`,
     });
     
-    // Search for product with the scanned barcode (using code field for actual implementation)
     const product = products.find(p => p.code === barcode);
     
     if (product) {
-      // Automatically add the product to the cart with quantity 1
       const productToAdd = {
         id: product.id,
         name: product.name,
@@ -95,17 +88,14 @@ const Sales = () => {
     }
   };
 
-  // Use custom hook for barcode scanning
   const { startScanning, stopScanning, isScanning } = useBarcodeScan(handleBarcodeDetected);
 
-  // Effect to activate scanner on component mount if it was previously active
   useEffect(() => {
     if (isScanning) {
       startScanning();
     }
   }, []);
 
-  // Toggle barcode scanner
   const toggleScanner = () => {
     if (isScanning) {
       stopScanning();
@@ -121,7 +111,6 @@ const Sales = () => {
     }
   };
 
-  // Search products as user types
   useEffect(() => {
     if (searchQuery.trim()) {
       const results = products.filter(product => 
@@ -153,14 +142,12 @@ const Sales = () => {
     }
   }, [searchQuery, products, toast]);
 
-  // Add product to cart
   const addProductToCart = (product: Omit<CartItem, 'quantity' | 'subtotal'>, qty: number) => {
     if (!product || qty <= 0) return;
     
     const existingItem = cart.find(item => item.id === product.id);
     
     if (existingItem) {
-      // Update existing item
       setCart(cart.map(item => 
         item.id === product.id
           ? { 
@@ -176,7 +163,6 @@ const Sales = () => {
         description: `${product.name} (${qty}) adicionado ao carrinho`
       });
     } else {
-      // Add new item
       setCart([...cart, {
         ...product,
         quantity: qty,
@@ -190,10 +176,8 @@ const Sales = () => {
     }
   };
 
-  // Update cart item quantity
   const updateCartItemQuantity = (productId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
-      // If removing via quantity reduction, also require manager auth
       setProductIdToDelete(productId);
       setIsManagerAuthOpen(true);
       return;
@@ -210,19 +194,11 @@ const Sales = () => {
     ));
   };
 
-  // Initialize product removal process - opens manager auth dialog
   const initiateRemoveFromCart = (productId: string) => {
-    // Only employees need manager authorization
-    if (user?.role === "employee") {
-      setProductIdToDelete(productId);
-      setIsManagerAuthOpen(true);
-    } else {
-      // Managers and admins can delete without authorization
-      removeFromCart(productId);
-    }
+    setProductIdToDelete(productId);
+    setIsManagerAuthOpen(true);
   };
 
-  // Remove item from cart - called after auth or directly for managers/admins
   const removeFromCart = (productId: string) => {
     setCart(cart.filter(item => item.id !== productId));
     toast({
@@ -231,7 +207,6 @@ const Sales = () => {
     });
   };
 
-  // Handle manager auth confirmation
   const handleManagerAuthConfirm = () => {
     if (productIdToDelete) {
       removeFromCart(productIdToDelete);
@@ -239,10 +214,8 @@ const Sales = () => {
     }
   };
 
-  // Calculate total
   const cartTotal = cart.reduce((total, item) => total + item.subtotal, 0);
 
-  // Cart item columns for DataTable
   const cartColumns: ColumnDef<CartItem>[] = [
     {
       accessorKey: 'name',
@@ -307,7 +280,6 @@ const Sales = () => {
     },
   ];
 
-  // Simplified product columns - only showing name, price and add button
   const productColumns: ColumnDef<any>[] = [
     {
       accessorKey: 'name',
@@ -341,20 +313,13 @@ const Sales = () => {
     },
   ];
 
-  // Clear cart
   const clearCart = () => {
-    // For employees, require manager auth to clear cart
-    if (user?.role === "employee" && cart.length > 0) {
-      // Special case - we're using productIdToDelete as a flag to indicate clearing the cart
+    if (cart.length > 0) {
       setProductIdToDelete("clear-all");
       setIsManagerAuthOpen(true);
-    } else {
-      // Managers and admins can clear without authorization
-      doClearCart();
     }
   };
   
-  // Actually perform the cart clearing
   const doClearCart = () => {
     setCart([]);
     toast({
@@ -363,13 +328,11 @@ const Sales = () => {
     });
   };
 
-  // Finalize sale (placeholder)
   const finalizeSale = () => {
     toast({
       title: "Venda finalizada",
       description: `Total: R$ ${cartTotal.toFixed(2)}`
     });
-    // Here you would handle saving the sale to database
     doClearCart();
   };
 
@@ -393,9 +356,7 @@ const Sales = () => {
       </div>
 
       <div className="grid gap-6 md:grid-cols-5">
-        {/* Main content - product search and cart */}
         <div className={`space-y-6 ${isMobile ? 'col-span-5' : 'col-span-3'}`}>
-          {/* Product search */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center justify-between">
@@ -469,7 +430,6 @@ const Sales = () => {
             </CardContent>
           </Card>
 
-          {/* Cart items */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center">
@@ -494,9 +454,7 @@ const Sales = () => {
           </Card>
         </div>
 
-        {/* Side panel - checkout */}
         <div className={`space-y-6 ${isMobile ? 'col-span-5' : 'col-span-2'}`}>
-          {/* Checkout */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg">Resumo da Venda</CardTitle>
@@ -549,7 +507,6 @@ const Sales = () => {
         </div>
       </div>
 
-      {/* Manager Authentication Dialog */}
       <ManagerAuthDialog
         isOpen={isManagerAuthOpen}
         onClose={() => {
