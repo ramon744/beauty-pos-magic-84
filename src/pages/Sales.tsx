@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   ShoppingCart, 
@@ -23,6 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useBarcodeScan } from '@/hooks/use-barcode-scan';
 import { useFetchProducts } from '@/hooks/use-products';
 import { Product } from '@/types';
+import { ManagerAuthDialog } from '@/components/auth/ManagerAuthDialog';
 
 interface CartItem {
   id: string;
@@ -49,6 +51,10 @@ const Sales = () => {
     return savedCart || [];
   });
   const searchInputRef = useRef<HTMLInputElement>(null);
+  
+  // Manager auth dialog state
+  const [isManagerAuthOpen, setIsManagerAuthOpen] = useState(false);
+  const [productIdToDelete, setProductIdToDelete] = useState<string | null>(null);
   
   // Fetch products from the database
   const { data: products = [] } = useFetchProducts();
@@ -187,7 +193,9 @@ const Sales = () => {
   // Update cart item quantity
   const updateCartItemQuantity = (productId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
-      removeFromCart(productId);
+      // If removing via quantity reduction, also require manager auth
+      setProductIdToDelete(productId);
+      setIsManagerAuthOpen(true);
       return;
     }
 
@@ -202,13 +210,33 @@ const Sales = () => {
     ));
   };
 
-  // Remove item from cart
+  // Initialize product removal process - opens manager auth dialog
+  const initiateRemoveFromCart = (productId: string) => {
+    // Only employees need manager authorization
+    if (user?.role === "employee") {
+      setProductIdToDelete(productId);
+      setIsManagerAuthOpen(true);
+    } else {
+      // Managers and admins can delete without authorization
+      removeFromCart(productId);
+    }
+  };
+
+  // Remove item from cart - called after auth or directly for managers/admins
   const removeFromCart = (productId: string) => {
     setCart(cart.filter(item => item.id !== productId));
     toast({
       title: "Produto removido",
       description: "Item removido do carrinho"
     });
+  };
+
+  // Handle manager auth confirmation
+  const handleManagerAuthConfirm = () => {
+    if (productIdToDelete) {
+      removeFromCart(productIdToDelete);
+      setProductIdToDelete(null);
+    }
   };
 
   // Calculate total
@@ -269,7 +297,7 @@ const Sales = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => removeFromCart(row.original.id)}
+            onClick={() => initiateRemoveFromCart(row.original.id)}
             className="text-destructive hover:text-destructive/90"
           >
             <Trash2 className="h-4 w-4" />
@@ -315,6 +343,19 @@ const Sales = () => {
 
   // Clear cart
   const clearCart = () => {
+    // For employees, require manager auth to clear cart
+    if (user?.role === "employee" && cart.length > 0) {
+      // Special case - we're using productIdToDelete as a flag to indicate clearing the cart
+      setProductIdToDelete("clear-all");
+      setIsManagerAuthOpen(true);
+    } else {
+      // Managers and admins can clear without authorization
+      doClearCart();
+    }
+  };
+  
+  // Actually perform the cart clearing
+  const doClearCart = () => {
     setCart([]);
     toast({
       title: "Carrinho limpo",
@@ -329,7 +370,7 @@ const Sales = () => {
       description: `Total: R$ ${cartTotal.toFixed(2)}`
     });
     // Here you would handle saving the sale to database
-    clearCart();
+    doClearCart();
   };
 
   return (
@@ -507,6 +548,24 @@ const Sales = () => {
           </Card>
         </div>
       </div>
+
+      {/* Manager Authentication Dialog */}
+      <ManagerAuthDialog
+        isOpen={isManagerAuthOpen}
+        onClose={() => {
+          setIsManagerAuthOpen(false);
+          setProductIdToDelete(null);
+        }}
+        onConfirm={() => {
+          if (productIdToDelete === "clear-all") {
+            doClearCart();
+          } else {
+            handleManagerAuthConfirm();
+          }
+        }}
+        title="Autenticação Gerencial"
+        description="Esta operação requer autorização de um gerente ou administrador."
+      />
     </div>
   );
 };
