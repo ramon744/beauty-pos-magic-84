@@ -75,11 +75,12 @@ const Products = () => {
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="list">Lista de Produtos</TabsTrigger>
           <TabsTrigger value="form">
             {editProductId ? 'Editar Produto' : 'Novo Produto'}
           </TabsTrigger>
+          <TabsTrigger value="categories">Categorias</TabsTrigger>
           <TabsTrigger value="inventory">Controle de Estoque</TabsTrigger>
           <TabsTrigger value="expiration">Controle de Validade</TabsTrigger>
         </TabsList>
@@ -98,6 +99,11 @@ const Products = () => {
             productId={editProductId}
             onSubmitted={handleFormSubmitted}
           />
+        </TabsContent>
+        <TabsContent value="categories">
+          <div className="grid grid-cols-1 gap-6">
+            <ProductCategories fullWidth />
+          </div>
         </TabsContent>
         <TabsContent value="inventory">
           <InventoryControl />

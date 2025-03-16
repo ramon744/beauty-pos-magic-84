@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useCategories } from '@/hooks/use-products';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,7 +34,11 @@ import {
 const CATEGORIES_STORAGE_KEY = 'categories';
 const PRODUCTS_STORAGE_KEY = 'products';
 
-export function ProductCategories() {
+interface ProductCategoriesProps {
+  fullWidth?: boolean;
+}
+
+export function ProductCategories({ fullWidth = false }: ProductCategoriesProps) {
   const { toast } = useToast();
   const { data: categories, isLoading, refetch } = useCategories();
   const [newCategory, setNewCategory] = useState('');
@@ -220,7 +225,7 @@ export function ProductCategories() {
   ) || [];
 
   return (
-    <Card className="h-full">
+    <Card className={`h-full ${fullWidth ? 'max-w-none' : ''}`}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-md">Categorias</CardTitle>
         {!showAddForm && (
@@ -269,7 +274,7 @@ export function ProductCategories() {
             ))}
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className={`grid gap-2 ${fullWidth ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : ''}`}>
             {categories?.map((category) => (
               <div
                 key={category.id}
