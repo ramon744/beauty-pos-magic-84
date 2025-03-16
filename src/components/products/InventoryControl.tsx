@@ -7,11 +7,17 @@ import { Product } from '@/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, X, AlertTriangle, CheckCircle, PackageCheck, Plus, Minus } from 'lucide-react';
+import { 
+  Search, X, AlertTriangle, CheckCircle, PackageCheck, Plus, Minus, 
+  Scale, PackagePlus, PackageMinus, Save, ArrowUp, ArrowDown, RefreshCw
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
 const InventoryControl = () => {
   const { data: products, isLoading } = useFetchProducts();
@@ -19,6 +25,13 @@ const InventoryControl = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const { mutate: saveProduct } = useSaveProduct();
   const { toast } = useToast();
+
+  // New states for the stock control dialogs
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [adjustmentType, setAdjustmentType] = useState<'balance' | 'add' | 'remove' | null>(null);
+  const [newStockValue, setNewStockValue] = useState<number>(0);
+  const [adjustmentReason, setAdjustmentReason] = useState<string>('');
+  const [adjustmentQuantity, setAdjustmentQuantity] = useState<number>(0);
 
   // Filter products based on search and status filter
   const filteredProducts = products ? products.filter(product => {
@@ -53,6 +66,29 @@ const InventoryControl = () => {
     setSearchValue('');
   };
 
+  // Function to open the adjustment dialog
+  const openAdjustmentDialog = (product: Product, type: 'balance' | 'add' | 'remove') => {
+    setSelectedProduct(product);
+    setAdjustmentType(type);
+    
+    if (type === 'balance') {
+      setNewStockValue(product.stock);
+    } else {
+      setAdjustmentQuantity(1);
+    }
+    
+    setAdjustmentReason('');
+  };
+
+  // Function to close the adjustment dialog
+  const closeAdjustmentDialog = () => {
+    setSelectedProduct(null);
+    setAdjustmentType(null);
+    setNewStockValue(0);
+    setAdjustmentQuantity(0);
+    setAdjustmentReason('');
+  };
+
   // Function to handle stock adjustments
   const handleStockAdjustment = (product: Product, adjustment: number) => {
     const newStock = product.stock + adjustment;
@@ -79,6 +115,64 @@ const InventoryControl = () => {
           title: "Estoque atualizado",
           description: `Estoque do produto ${product.name} atualizado para ${newStock} unidades.`,
         });
+      },
+      onError: () => {
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Ocorreu um erro ao atualizar o estoque.",
+        });
+      }
+    });
+  };
+
+  // Function to handle the confirmation of the dialog
+  const handleConfirmAdjustment = () => {
+    if (!selectedProduct || adjustmentType === null) return;
+
+    let newStock: number;
+    let actionDescription: string;
+    
+    switch (adjustmentType) {
+      case 'balance':
+        newStock = newStockValue;
+        actionDescription = `balanço de estoque (${selectedProduct.stock} → ${newStock})`;
+        break;
+      case 'add':
+        newStock = selectedProduct.stock + adjustmentQuantity;
+        actionDescription = `entrada de ${adjustmentQuantity} unidades`;
+        break;
+      case 'remove':
+        newStock = selectedProduct.stock - adjustmentQuantity;
+        actionDescription = `retirada de ${adjustmentQuantity} unidades`;
+        break;
+      default:
+        return;
+    }
+
+    // Prevent negative stock for 'remove' type
+    if (newStock < 0) {
+      toast({
+        variant: "destructive",
+        title: "Operação inválida",
+        description: "O estoque não pode ficar negativo.",
+      });
+      return;
+    }
+
+    const updatedProduct = {
+      ...selectedProduct,
+      stock: newStock,
+      updatedAt: new Date()
+    };
+    
+    saveProduct(updatedProduct, {
+      onSuccess: () => {
+        toast({
+          title: "Estoque atualizado",
+          description: `${selectedProduct.name}: ${actionDescription} realizada com sucesso.${adjustmentReason ? ` Motivo: ${adjustmentReason}` : ''}`,
+        });
+        closeAdjustmentDialog();
       },
       onError: () => {
         toast({
@@ -176,33 +270,67 @@ const InventoryControl = () => {
             <Button 
               variant="outline" 
               size="icon"
-              onClick={() => handleStockAdjustment(product, -1)}
-              disabled={product.stock <= 0}
-              title="Reduzir estoque"
+              onClick={() => openAdjustmentDialog(product, 'remove')}
+              title="Retirar do estoque"
             >
-              <Minus className="h-4 w-4" />
+              <PackageMinus className="h-4 w-4" />
             </Button>
-            
-            <Input
-              type="number"
-              value={product.stock}
-              disabled
-              className="w-16 text-center"
-            />
+
+            <div className="w-16 text-center font-medium">
+              {product.stock}
+            </div>
             
             <Button 
               variant="outline" 
               size="icon"
-              onClick={() => handleStockAdjustment(product, 1)}
-              title="Aumentar estoque"
+              onClick={() => openAdjustmentDialog(product, 'add')}
+              title="Adicionar ao estoque"
             >
-              <Plus className="h-4 w-4" />
+              <PackagePlus className="h-4 w-4" />
+            </Button>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => openAdjustmentDialog(product, 'balance')}
+              title="Fazer balanço"
+              className="ml-2"
+            >
+              <Scale className="h-4 w-4" />
             </Button>
           </div>
         );
       },
     },
   ];
+
+  // Determine dialog title based on adjustment type
+  const getDialogTitle = () => {
+    if (!adjustmentType || !selectedProduct) return '';
+    
+    switch (adjustmentType) {
+      case 'balance':
+        return `Balanço de Estoque: ${selectedProduct.name}`;
+      case 'add':
+        return `Entrada de Estoque: ${selectedProduct.name}`;
+      case 'remove':
+        return `Retirada de Estoque: ${selectedProduct.name}`;
+    }
+  };
+
+  // Determine dialog icon based on adjustment type
+  const getDialogIcon = () => {
+    switch (adjustmentType) {
+      case 'balance':
+        return <Scale className="h-5 w-5 mr-2" />;
+      case 'add':
+        return <ArrowUp className="h-5 w-5 mr-2 text-green-600" />;
+      case 'remove':
+        return <ArrowDown className="h-5 w-5 mr-2 text-red-600" />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -312,6 +440,144 @@ const InventoryControl = () => {
           isLoading={isLoading}
         />
       </div>
+
+      {/* Stock Adjustment Dialog */}
+      <Dialog open={adjustmentType !== null} onOpenChange={(open) => !open && closeAdjustmentDialog()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              {getDialogIcon()}
+              {getDialogTitle()}
+            </DialogTitle>
+            <DialogDescription>
+              {adjustmentType === 'balance' 
+                ? 'Atualize o valor exato do estoque após contagem física.' 
+                : adjustmentType === 'add' 
+                  ? 'Adicione unidades ao estoque atual.' 
+                  : 'Retire unidades do estoque atual.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="flex items-center space-x-2">
+              <div className="font-medium min-w-[120px]">Estoque atual:</div>
+              <div className="font-bold">{selectedProduct?.stock || 0} unidades</div>
+            </div>
+
+            {adjustmentType === 'balance' ? (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="new-stock" className="text-right col-span-1">
+                  Novo estoque:
+                </Label>
+                <div className="col-span-3">
+                  <Input
+                    id="new-stock"
+                    type="number"
+                    min="0"
+                    value={newStockValue}
+                    onChange={(e) => setNewStockValue(Number(e.target.value))}
+                    className={cn(
+                      newStockValue < (selectedProduct?.stock || 0) ? "border-red-300" : 
+                      newStockValue > (selectedProduct?.stock || 0) ? "border-green-300" : ""
+                    )}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="adjust-quantity" className="text-right col-span-1">
+                  Quantidade:
+                </Label>
+                <div className="col-span-3">
+                  <Input
+                    id="adjust-quantity"
+                    type="number"
+                    min="1"
+                    value={adjustmentQuantity}
+                    onChange={(e) => setAdjustmentQuantity(Number(e.target.value))}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="adjustment-reason" className="text-right col-span-1">
+                Motivo:
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="adjustment-reason"
+                  placeholder="Informe o motivo do ajuste (opcional)"
+                  value={adjustmentReason}
+                  onChange={(e) => setAdjustmentReason(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {adjustmentType === 'balance' && (
+              <div className="flex items-center space-x-2 mt-4">
+                <div className="font-medium min-w-[120px]">Novo total:</div>
+                <div className={cn(
+                  "font-bold",
+                  newStockValue < (selectedProduct?.stock || 0) ? "text-red-600" : 
+                  newStockValue > (selectedProduct?.stock || 0) ? "text-green-600" : ""
+                )}>
+                  {newStockValue} unidades
+                  {selectedProduct && (
+                    <span className="ml-2 text-sm font-normal">
+                      ({newStockValue > selectedProduct.stock 
+                        ? `+${newStockValue - selectedProduct.stock}` 
+                        : newStockValue < selectedProduct.stock 
+                          ? `-${selectedProduct.stock - newStockValue}` 
+                          : 'sem alteração'})
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {adjustmentType !== 'balance' && (
+              <div className="flex items-center space-x-2 mt-4">
+                <div className="font-medium min-w-[120px]">Novo total:</div>
+                <div className={cn(
+                  "font-bold",
+                  adjustmentType === 'remove' ? "text-red-600" : "text-green-600"
+                )}>
+                  {selectedProduct && (
+                    adjustmentType === 'add' 
+                      ? selectedProduct.stock + adjustmentQuantity
+                      : selectedProduct.stock - adjustmentQuantity
+                  )} unidades
+                  <span className="ml-2 text-sm font-normal">
+                    ({adjustmentType === 'add' ? '+' : '-'}{adjustmentQuantity})
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="sm:justify-between">
+            <Button variant="outline" onClick={closeAdjustmentDialog}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleConfirmAdjustment}
+              disabled={
+                (adjustmentType === 'balance' && selectedProduct?.stock === newStockValue) ||
+                (adjustmentType !== 'balance' && adjustmentQuantity <= 0) ||
+                (adjustmentType === 'remove' && selectedProduct && (selectedProduct.stock - adjustmentQuantity < 0))
+              }
+              className={cn(
+                adjustmentType === 'remove' ? "bg-red-600 hover:bg-red-700" : 
+                adjustmentType === 'add' ? "bg-green-600 hover:bg-green-700" : ""
+              )}
+            >
+              <Save className="mr-2 h-4 w-4" />
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
