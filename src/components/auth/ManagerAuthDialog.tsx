@@ -20,6 +20,7 @@ interface ManagerAuthDialogProps {
   onConfirm: () => void;
   title?: string;
   description?: string;
+  customContent?: React.ReactNode;
 }
 
 export const ManagerAuthDialog = ({
@@ -28,6 +29,7 @@ export const ManagerAuthDialog = ({
   onConfirm,
   title = "Autenticação Gerencial",
   description = "Esta operação requer autorização de um gerente ou administrador.",
+  customContent = null,
 }: ManagerAuthDialogProps) => {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -81,37 +83,57 @@ export const ManagerAuthDialog = ({
           </DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <div className="relative">
-                <LockKeyhole className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="managerPassword"
-                  type="password"
-                  placeholder="Senha gerencial"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-9"
-                  autoComplete="off"
-                />
+        
+        {customContent ? (
+          <>
+            {customContent}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClose}
+                disabled={isSubmitting}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" form="discount-form" disabled={isSubmitting}>
+                Continuar
+              </Button>
+            </DialogFooter>
+          </>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <div className="relative">
+                  <LockKeyhole className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="managerPassword"
+                    type="password"
+                    placeholder="Senha gerencial"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-9"
+                    autoComplete="off"
+                  />
+                </div>
               </div>
             </div>
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              disabled={isSubmitting}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={!password || isSubmitting}>
-              {isSubmitting ? "Verificando..." : "Autorizar"}
-            </Button>
-          </DialogFooter>
-        </form>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClose}
+                disabled={isSubmitting}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={!password || isSubmitting}>
+                {isSubmitting ? "Verificando..." : "Autorizar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );

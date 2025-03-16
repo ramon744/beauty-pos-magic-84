@@ -9,7 +9,8 @@ import {
   Receipt, 
   Barcode,
   Camera,
-  X
+  X,
+  Percent
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +25,10 @@ import { useBarcodeScan } from '@/hooks/use-barcode-scan';
 import { useFetchProducts } from '@/hooks/use-products';
 import { Product } from '@/types';
 import { ManagerAuthDialog } from '@/components/auth/ManagerAuthDialog';
+import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
 
 interface CartItem {
   id: string;
@@ -37,6 +42,15 @@ interface CartItem {
 }
 
 const CART_STORAGE_KEY = 'makeup-pos-cart';
+
+const discountFormSchema = z.object({
+  discountType: z.enum(['percentage', 'fixed']),
+  discountValue: z.coerce.number()
+    .min(0, 'O valor do desconto deve ser maior que zero')
+    .max(100, { message: 'O percentual de desconto não pode ser maior que 100%' })
+});
+
+type DiscountFormValues = z.infer<typeof discountFormSchema>;
 
 const Sales = () => {
   const isMobile = useIsMobile();
@@ -53,8 +67,18 @@ const Sales = () => {
   
   const [isManagerAuthOpen, setIsManagerAuthOpen] = useState(false);
   const [productIdToDelete, setProductIdToDelete] = useState<string | null>(null);
+  const [manualDiscount, setManualDiscount] = useState<{type: 'percentage' | 'fixed', value: number} | null>(null);
+  const [isDiscountDialogOpen, setIsDiscountDialogOpen] = useState(false);
   
   const { data: products = [] } = useFetchProducts();
+
+  const discountForm = useForm<DiscountFormValues>({
+    resolver: zodResolver(discountFormSchema),
+    defaultValues: {
+      discountType: 'percentage',
+      discountValue: 0
+    }
+  });
 
   React.useEffect(() => {
     storageService.setItem(CART_STORAGE_KEY, cart);
@@ -208,13 +232,37 @@ const Sales = () => {
   };
 
   const handleManagerAuthConfirm = () => {
-    if (productIdToDelete) {
+    if (productIdToDelete === "discount") {
+      const { discountType, discountValue } = discountForm.getValues();
+      setManualDiscount({
+        type: discountType,
+        value: discountValue
+      });
+      
+      toast({
+        title: "Desconto aplicado",
+        description: discountType === 'percentage' 
+          ? `Desconto de ${discountValue}% aplicado`
+          : `Desconto de R$ ${discountValue.toFixed(2)} aplicado`
+      });
+    } else if (productIdToDelete === "clear-all") {
+      doClearCart();
+    } else if (productIdToDelete) {
       removeFromCart(productIdToDelete);
-      setProductIdToDelete(null);
     }
+    
+    setProductIdToDelete(null);
   };
 
-  const cartTotal = cart.reduce((total, item) => total + item.subtotal, 0);
+  const cartSubtotal = cart.reduce((total, item) => total + item.subtotal, 0);
+  
+  const discountAmount = manualDiscount 
+    ? manualDiscount.type === 'percentage' 
+      ? (cartSubtotal * manualDiscount.value / 100) 
+      : Math.min(manualDiscount.value, cartSubtotal)
+    : 0;
+  
+  const cartTotal = cartSubtotal - discountAmount;
 
   const cartColumns: ColumnDef<CartItem>[] = [
     {
@@ -322,6 +370,7 @@ const Sales = () => {
   
   const doClearCart = () => {
     setCart([]);
+    setManualDiscount(null);
     toast({
       title: "Carrinho limpo",
       description: "Todos os itens foram removidos"
@@ -334,6 +383,28 @@ const Sales = () => {
       description: `Total: R$ ${cartTotal.toFixed(2)}`
     });
     doClearCart();
+  };
+
+  const handleAddDiscount = () => {
+    discountForm.reset({
+      discountType: 'percentage',
+      discountValue: 0
+    });
+    setIsDiscountDialogOpen(true);
+  };
+
+  const handleSubmitDiscount = (values: DiscountFormValues) => {
+    setIsDiscountDialogOpen(false);
+    setProductIdToDelete("discount");
+    setIsManagerAuthOpen(true);
+  };
+
+  const removeDiscount = () => {
+    setManualDiscount(null);
+    toast({
+      title: "Desconto removido",
+      description: "Desconto manual removido da venda"
+    });
   };
 
   return (
@@ -466,7 +537,30 @@ const Sales = () => {
                   <span>{cart.reduce((total, item) => total + item.quantity, 0)}</span>
                 </div>
                 
-                <div className="flex justify-between text-lg font-bold">
+                <div className="flex justify-between">
+                  <span className="font-medium">Subtotal:</span>
+                  <span>R$ {cartSubtotal.toFixed(2)}</span>
+                </div>
+                
+                {manualDiscount && (
+                  <div className="flex justify-between text-destructive">
+                    <span className="font-medium flex items-center">
+                      <Percent className="mr-1 h-4 w-4" />
+                      Desconto {manualDiscount.type === 'percentage' ? `(${manualDiscount.value}%)` : ''}:
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6 ml-1 text-destructive"
+                        onClick={removeDiscount}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </span>
+                    <span>- R$ {discountAmount.toFixed(2)}</span>
+                  </div>
+                )}
+                
+                <div className="flex justify-between text-lg font-bold pt-2 border-t">
                   <span>Total:</span>
                   <span>R$ {cartTotal.toFixed(2)}</span>
                 </div>
@@ -488,9 +582,10 @@ const Sales = () => {
                   variant="outline" 
                   className="flex-1"
                   disabled={cart.length === 0}
+                  onClick={handleAddDiscount}
                 >
-                  <Receipt className="mr-1 h-4 w-4" />
-                  Salvar
+                  <Percent className="mr-1 h-4 w-4" />
+                  Desconto
                 </Button>
                 <Button 
                   variant="outline" 
@@ -513,15 +608,83 @@ const Sales = () => {
           setIsManagerAuthOpen(false);
           setProductIdToDelete(null);
         }}
-        onConfirm={() => {
-          if (productIdToDelete === "clear-all") {
-            doClearCart();
-          } else {
-            handleManagerAuthConfirm();
-          }
-        }}
+        onConfirm={handleManagerAuthConfirm}
         title="Autenticação Gerencial"
         description="Esta operação requer autorização de um gerente ou administrador."
+      />
+
+      <ManagerAuthDialog
+        isOpen={isDiscountDialogOpen}
+        onClose={() => setIsDiscountDialogOpen(false)}
+        onConfirm={discountForm.handleSubmit(handleSubmitDiscount)}
+        title="Adicionar Desconto"
+        description="Configure o tipo e valor do desconto a ser aplicado."
+        customContent={
+          <Form {...discountForm}>
+            <form onSubmit={discountForm.handleSubmit(handleSubmitDiscount)} className="space-y-4 py-4">
+              <FormField
+                control={discountForm.control}
+                name="discountType"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormLabel>Tipo de Desconto</FormLabel>
+                    <div className="flex gap-4">
+                      <FormControl>
+                        <div className="flex items-center">
+                          <input 
+                            type="radio" 
+                            id="percentage" 
+                            value="percentage"
+                            checked={field.value === 'percentage'}
+                            onChange={() => field.onChange('percentage')}
+                            className="mr-2" 
+                          />
+                          <label htmlFor="percentage">Percentual (%)</label>
+                        </div>
+                      </FormControl>
+                      <FormControl>
+                        <div className="flex items-center">
+                          <input 
+                            type="radio" 
+                            id="fixed" 
+                            value="fixed"
+                            checked={field.value === 'fixed'}
+                            onChange={() => field.onChange('fixed')}
+                            className="mr-2" 
+                          />
+                          <label htmlFor="fixed">Valor Fixo (R$)</label>
+                        </div>
+                      </FormControl>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={discountForm.control}
+                name="discountValue"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {discountForm.watch('discountType') === 'percentage' 
+                        ? 'Percentual de Desconto (%)' 
+                        : 'Valor do Desconto (R$)'}
+                    </FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        min="0" 
+                        max={discountForm.watch('discountType') === 'percentage' ? "100" : undefined}
+                        step="0.01"
+                        {...field}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </form>
+          </Form>
+        }
       />
     </div>
   );
