@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { useCategories, useFetchProducts, useSaveProduct } from '@/hooks/use-products';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Save, X, Edit, Trash, Search, Clock, ArrowRight, Filter } from 'lucide-react';
+import { Plus, Save, X, Edit, Trash, Search, Clock, ArrowRight, Filter, RotateCcw, Calendar } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Category, Product } from '@/types';
 import { storageService } from '@/services/storage-service';
@@ -41,8 +40,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { formatCurrency } from '@/lib/formatters';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
-// Storage key for categories
 const CATEGORIES_STORAGE_KEY = 'categories';
 const PRODUCTS_STORAGE_KEY = 'products';
 const TEMP_CATEGORY_STORAGE_KEY = 'temp-category-assignments';
@@ -67,37 +73,33 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   
-  // State for category deletion dialog
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [selectedTargetCategory, setSelectedTargetCategory] = useState('');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
-  // State for product search and selection
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<string>('manage');
   
-  // State for temporary category assignment
   const [showTempCategoryDialog, setShowTempCategoryDialog] = useState(false);
   const [selectedTempCategory, setSelectedTempCategory] = useState('');
-  const [tempDuration, setTempDuration] = useState('7'); // Default 7 days
+  const [tempDuration, setTempDuration] = useState('custom');
   const [temporaryAssignments, setTemporaryAssignments] = useState<TempCategoryAssignment[]>([]);
+  
+  const [customDate, setCustomDate] = useState<Date>(new Date());
+  const [customTimeHours, setCustomTimeHours] = useState('23');
+  const [customTimeMinutes, setCustomTimeMinutes] = useState('59');
 
-  // Load temporary assignments from storage on component mount
   useEffect(() => {
     const storedAssignments = storageService.getItem<TempCategoryAssignment[]>(TEMP_CATEGORY_STORAGE_KEY) || [];
     setTemporaryAssignments(storedAssignments);
     
-    // Check if any temporary assignments have expired
     checkExpiredAssignments();
     
-    // Set up interval to check for expired assignments
-    const interval = setInterval(checkExpiredAssignments, 60000); // Check every minute
-    
+    const interval = setInterval(checkExpiredAssignments, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // Filter products based on search query
   const filteredProducts = products?.filter(product => {
     const matchesSearch = 
       searchQuery === '' || 
@@ -106,8 +108,7 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
     
     return matchesSearch;
   }) || [];
-  
-  // Check for any expired temporary category assignments
+
   const checkExpiredAssignments = async () => {
     const storedAssignments = storageService.getItem<TempCategoryAssignment[]>(TEMP_CATEGORY_STORAGE_KEY) || [];
     const now = new Date();
@@ -116,45 +117,37 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
     );
     
     if (expiredAssignments.length > 0) {
-      // Revert each expired assignment
       for (const assignment of expiredAssignments) {
         await revertTemporaryAssignment(assignment);
       }
       
-      // Update stored assignments (remove expired ones)
       const validAssignments = storedAssignments.filter(
         assignment => new Date(assignment.expireAt) > now
       );
       storageService.setItem(TEMP_CATEGORY_STORAGE_KEY, validAssignments);
       setTemporaryAssignments(validAssignments);
       
-      // Notify user
       toast({
         title: "Categorias temporárias atualizadas",
         description: `${expiredAssignments.length} produto(s) retornaram para suas categorias originais.`,
       });
       
-      // Refresh data
       refetch();
     }
   };
-  
-  // Revert a single temporary assignment
+
   const revertTemporaryAssignment = async (assignment: TempCategoryAssignment) => {
     try {
-      // Get current products
       const allProducts = storageService.getItem<Product[]>(PRODUCTS_STORAGE_KEY) || [];
       const product = allProducts.find(p => p.id === assignment.productId);
       
       if (!product) return;
       
-      // Get original category
       const allCategories = storageService.getItem<Category[]>(CATEGORIES_STORAGE_KEY) || [];
       const originalCategory = allCategories.find(c => c.id === assignment.originalCategoryId);
       
       if (!originalCategory) return;
       
-      // Update product with original category
       await saveProduct({
         ...product,
         category: originalCategory
@@ -168,16 +161,13 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
     if (!newCategory.trim()) return;
     
     try {
-      // Get current categories
       const currentCategories = storageService.getItem<Category[]>(CATEGORIES_STORAGE_KEY) || [];
       
-      // Create new category with unique ID
       const newCategoryObj: Category = {
         id: crypto.randomUUID(),
         name: newCategory.trim()
       };
       
-      // Add to storage
       storageService.setItem(CATEGORIES_STORAGE_KEY, [...currentCategories, newCategoryObj]);
       
       toast({
@@ -185,11 +175,9 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
         description: `A categoria "${newCategory}" foi adicionada com sucesso.`,
       });
       
-      // Reset form
       setNewCategory('');
       setShowAddForm(false);
       
-      // Refresh data
       refetch();
     } catch (error) {
       console.error("Erro ao adicionar categoria:", error);
@@ -205,15 +193,12 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
     if (!editingCategory || !editingCategory.name.trim()) return;
     
     try {
-      // Get current categories
       const currentCategories = storageService.getItem<Category[]>(CATEGORIES_STORAGE_KEY) || [];
       
-      // Find and update the category
       const updatedCategories = currentCategories.map(cat => 
         cat.id === editingCategory.id ? { ...cat, name: editingCategory.name.trim() } : cat
       );
       
-      // Save to storage
       storageService.setItem(CATEGORIES_STORAGE_KEY, updatedCategories);
       
       toast({
@@ -221,10 +206,8 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
         description: `A categoria foi atualizada com sucesso.`,
       });
       
-      // Reset editing state
       setEditingCategory(null);
       
-      // Refresh data
       refetch();
     } catch (error) {
       console.error("Erro ao atualizar categoria:", error);
@@ -237,33 +220,26 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
   };
 
   const handleInitiateDelete = (category: Category) => {
-    // Get current products
     const products = storageService.getItem<Product[]>(PRODUCTS_STORAGE_KEY) || [];
     
-    // Check if any products use this category
     const productsWithCategory = products.filter(product => product.category.id === category.id);
     
     if (productsWithCategory.length > 0) {
-      // Open dialog to select a new category
       setCategoryToDelete(category);
       setSelectedTargetCategory('');
       setShowDeleteDialog(true);
     } else {
-      // No products with this category, proceed with deletion
       handleConfirmDelete(category);
     }
   };
 
   const handleConfirmDelete = (category: Category, targetCategoryId?: string) => {
     try {
-      // Get current categories and products
       const currentCategories = storageService.getItem<Category[]>(CATEGORIES_STORAGE_KEY) || [];
       const products = storageService.getItem<Product[]>(PRODUCTS_STORAGE_KEY) || [];
       
-      // Filter out the deleted category
       const updatedCategories = currentCategories.filter(cat => cat.id !== category.id);
       
-      // Update products if target category is provided
       if (targetCategoryId) {
         const targetCategory = currentCategories.find(cat => cat.id === targetCategoryId);
         
@@ -279,7 +255,6 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
             return product;
           });
           
-          // Save updated products
           storageService.setItem(PRODUCTS_STORAGE_KEY, updatedProducts);
           
           toast({
@@ -289,10 +264,8 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
         }
       }
       
-      // Save updated categories
       storageService.setItem(CATEGORIES_STORAGE_KEY, updatedCategories);
       
-      // Update product statistics
       updateProductStatistics();
       
       toast({
@@ -300,10 +273,8 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
         description: `A categoria "${category.name}" foi excluída com sucesso.`,
       });
       
-      // Refresh data
       refetch();
       
-      // Reset state
       setCategoryToDelete(null);
       setSelectedTargetCategory('');
       setShowDeleteDialog(false);
@@ -316,13 +287,11 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
       });
     }
   };
-  
+
   const updateProductStatistics = () => {
-    // Get the products and categories
     const products = storageService.getItem<any[]>('products') || [];
     const categories = storageService.getItem<Category[]>(CATEGORIES_STORAGE_KEY) || [];
     
-    // Calculate statistics
     const statistics = {
       totalProducts: products.length,
       stockValue: products.reduce((total, product) => total + (product.costPrice * product.stock), 0),
@@ -330,15 +299,13 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
       categories: categories.length,
     };
     
-    // Update statistics in storage
     storageService.setItem('products-statistics', statistics);
   };
-  
+
   const availableCategoriesForMigration = categories?.filter(
     category => category.id !== categoryToDelete?.id
   ) || [];
-  
-  // Handle selecting all products
+
   const handleSelectAllProducts = () => {
     if (selectedProducts.length === filteredProducts.length) {
       setSelectedProducts([]);
@@ -346,8 +313,7 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
       setSelectedProducts(filteredProducts.map(product => product.id));
     }
   };
-  
-  // Handle selecting a single product
+
   const handleSelectProduct = (productId: string) => {
     if (selectedProducts.includes(productId)) {
       setSelectedProducts(selectedProducts.filter(id => id !== productId));
@@ -355,8 +321,7 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
       setSelectedProducts([...selectedProducts, productId]);
     }
   };
-  
-  // Move selected products to a category
+
   const handleMoveToCategory = async (categoryId: string) => {
     if (selectedProducts.length === 0) {
       toast({
@@ -368,7 +333,6 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
     }
     
     try {
-      // Get current products and the target category
       const allProducts = storageService.getItem<Product[]>(PRODUCTS_STORAGE_KEY) || [];
       const allCategories = storageService.getItem<Category[]>(CATEGORIES_STORAGE_KEY) || [];
       const targetCategory = allCategories.find(cat => cat.id === categoryId);
@@ -377,7 +341,6 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
         throw new Error("Categoria não encontrada");
       }
       
-      // Update each selected product
       for (const productId of selectedProducts) {
         const product = allProducts.find(p => p.id === productId);
         if (product) {
@@ -394,9 +357,7 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
         description: `${selectedProducts.length} produto(s) movidos para a categoria "${targetCategory.name}".`,
       });
       
-      // Clear selection
       setSelectedProducts([]);
-      
     } catch (error) {
       console.error("Erro ao mover produtos:", error);
       toast({
@@ -406,8 +367,7 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
       });
     }
   };
-  
-  // Open dialog to assign temporary category
+
   const handleOpenTempCategoryDialog = () => {
     if (selectedProducts.length === 0) {
       toast({
@@ -419,16 +379,27 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
     }
     
     setSelectedTempCategory('');
-    setTempDuration('7');
+    setTempDuration('custom');
     setShowTempCategoryDialog(true);
   };
-  
-  // Assign temporary category to selected products
+
+  const calculateExpirationDate = (): Date => {
+    if (tempDuration === 'custom') {
+      const expirationDate = new Date(customDate);
+      expirationDate.setHours(parseInt(customTimeHours));
+      expirationDate.setMinutes(parseInt(customTimeMinutes));
+      return expirationDate;
+    } else {
+      const expireAt = new Date();
+      expireAt.setDate(expireAt.getDate() + parseInt(tempDuration));
+      return expireAt;
+    }
+  };
+
   const handleAssignTempCategory = async () => {
     if (!selectedTempCategory || selectedProducts.length === 0) return;
     
     try {
-      // Get current products and the target category
       const allProducts = storageService.getItem<Product[]>(PRODUCTS_STORAGE_KEY) || [];
       const allCategories = storageService.getItem<Category[]>(CATEGORIES_STORAGE_KEY) || [];
       const targetCategory = allCategories.find(cat => cat.id === selectedTempCategory);
@@ -437,19 +408,14 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
         throw new Error("Categoria não encontrada");
       }
       
-      // Calculate expiration date
-      const expireAt = new Date();
-      expireAt.setDate(expireAt.getDate() + parseInt(tempDuration));
+      const expireAt = calculateExpirationDate();
       
-      // Get current temporary assignments
       const currentAssignments = storageService.getItem<TempCategoryAssignment[]>(TEMP_CATEGORY_STORAGE_KEY) || [];
       const newAssignments: TempCategoryAssignment[] = [];
       
-      // Update each selected product
       for (const productId of selectedProducts) {
         const product = allProducts.find(p => p.id === productId);
         if (product) {
-          // Save original category info
           const assignment: TempCategoryAssignment = {
             productId: product.id,
             originalCategoryId: product.category.id,
@@ -457,10 +423,8 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
             expireAt
           };
           
-          // Add to assignments list
           newAssignments.push(assignment);
           
-          // Update product with temporary category
           await saveProduct({
             ...product,
             category: targetCategory,
@@ -469,25 +433,23 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
         }
       }
       
-      // Remove any existing assignments for these products
       const filteredAssignments = currentAssignments.filter(
         a => !selectedProducts.includes(a.productId)
       );
       
-      // Save updated assignments
       const updatedAssignments = [...filteredAssignments, ...newAssignments];
       storageService.setItem(TEMP_CATEGORY_STORAGE_KEY, updatedAssignments);
       setTemporaryAssignments(updatedAssignments);
       
+      const formattedDate = format(expireAt, "dd/MM/yyyy 'às' HH:mm");
+      
       toast({
         title: "Categoria temporária atribuída",
-        description: `${selectedProducts.length} produto(s) movidos temporariamente para "${targetCategory.name}" por ${tempDuration} dias.`,
+        description: `${selectedProducts.length} produto(s) movidos temporariamente para "${targetCategory.name}" até ${formattedDate}.`,
       });
       
-      // Clear selection and close dialog
       setSelectedProducts([]);
       setShowTempCategoryDialog(false);
-      
     } catch (error) {
       console.error("Erro ao atribuir categoria temporária:", error);
       toast({
@@ -497,23 +459,48 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
       });
     }
   };
-  
-  // Get active temporary assignments for display
+
   const getActiveTemporaryAssignments = () => {
     const now = new Date();
     return temporaryAssignments.filter(
       assignment => new Date(assignment.expireAt) > now
     );
   };
-  
-  // Get product by ID (for displaying product info in temporary assignments)
+
   const getProductById = (productId: string) => {
     return products?.find(p => p.id === productId);
   };
-  
-  // Get category by ID
+
   const getCategoryById = (categoryId: string) => {
     return categories?.find(c => c.id === categoryId);
+  };
+
+  const handleManualRevert = async (assignment: TempCategoryAssignment) => {
+    try {
+      await revertTemporaryAssignment(assignment);
+      
+      const storedAssignments = storageService.getItem<TempCategoryAssignment[]>(TEMP_CATEGORY_STORAGE_KEY) || [];
+      const updatedAssignments = storedAssignments.filter(
+        a => a.productId !== assignment.productId
+      );
+      
+      storageService.setItem(TEMP_CATEGORY_STORAGE_KEY, updatedAssignments);
+      setTemporaryAssignments(updatedAssignments);
+      
+      toast({
+        title: "Categoria revertida",
+        description: "O produto retornou para sua categoria original.",
+      });
+      
+      refetch();
+    } catch (error) {
+      console.error("Erro ao reverter categoria temporária:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Não foi possível reverter a categoria. Tente novamente.",
+      });
+    }
   };
 
   return (
@@ -794,6 +781,7 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
                         <TableHead>Categoria Original</TableHead>
                         <TableHead>Categoria Temporária</TableHead>
                         <TableHead>Retorna em</TableHead>
+                        <TableHead>Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -808,7 +796,17 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
                             <TableCell>{originalCategory?.name || "Categoria não encontrada"}</TableCell>
                             <TableCell>{tempCategory?.name || "Categoria não encontrada"}</TableCell>
                             <TableCell>
-                              {new Date(assignment.expireAt).toLocaleDateString('pt-BR')}
+                              {new Date(assignment.expireAt).toLocaleString('pt-BR')}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleManualRevert(assignment)}
+                              >
+                                <RotateCcw className="mr-2 h-3.5 w-3.5" />
+                                Reverter
+                              </Button>
                             </TableCell>
                           </TableRow>
                         );
@@ -923,7 +921,7 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="temp-duration">Duração (dias)</Label>
+                <Label htmlFor="temp-duration">Duração</Label>
                 <Select
                   value={tempDuration}
                   onValueChange={setTempDuration}
@@ -932,6 +930,7 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
                     <SelectValue placeholder="Selecione a duração" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="custom">Data e hora personalizada</SelectItem>
                     <SelectItem value="1">1 dia</SelectItem>
                     <SelectItem value="3">3 dias</SelectItem>
                     <SelectItem value="7">7 dias</SelectItem>
@@ -940,6 +939,77 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
                   </SelectContent>
                 </Select>
               </div>
+              
+              {tempDuration === 'custom' && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Data de término</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !customDate && "text-muted-foreground"
+                          )}
+                        >
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {customDate ? format(customDate, "dd/MM/yyyy") : "Selecione uma data"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <CalendarComponent
+                          mode="single"
+                          selected={customDate}
+                          onSelect={(date) => date && setCustomDate(date)}
+                          initialFocus
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  
+                  <div className="flex space-x-2">
+                    <div className="space-y-2 flex-1">
+                      <Label htmlFor="hours">Hora</Label>
+                      <Select 
+                        value={customTimeHours} 
+                        onValueChange={setCustomTimeHours}
+                      >
+                        <SelectTrigger id="hours">
+                          <SelectValue placeholder="Hora" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 24 }, (_, i) => (
+                            <SelectItem key={i} value={i.toString().padStart(2, '0')}>
+                              {i.toString().padStart(2, '0')}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2 flex-1">
+                      <Label htmlFor="minutes">Minuto</Label>
+                      <Select 
+                        value={customTimeMinutes} 
+                        onValueChange={setCustomTimeMinutes}
+                      >
+                        <SelectTrigger id="minutes">
+                          <SelectValue placeholder="Minuto" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 59].map((min) => (
+                            <SelectItem key={min} value={min.toString().padStart(2, '0')}>
+                              {min.toString().padStart(2, '0')}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               <p className="text-sm text-muted-foreground">
                 {selectedProducts.length} produto(s) selecionado(s) serão movidos temporariamente.
