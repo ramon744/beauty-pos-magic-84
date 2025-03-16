@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogTrigger, AlertDialogContent,
 import { formatCurrency } from '@/lib/formatters';
 import { Input } from '@/components/ui/input';
 import { Search, X } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface ProductsListProps {
   onEditProduct: (productId: string) => void;
@@ -82,6 +83,31 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
       cell: ({ row }) => (
         <Badge variant="outline">{row.original.category.name}</Badge>
       ),
+    },
+    {
+      accessorKey: "expirationDate",
+      header: "Data de Validade",
+      cell: ({ row }) => {
+        const expirationDate = row.original.expirationDate;
+        if (!expirationDate) return <span className="text-muted-foreground">Não definida</span>;
+        
+        const today = new Date();
+        const expDate = new Date(expirationDate);
+        const daysUntilExpiration = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        
+        let badgeVariant = "outline";
+        if (daysUntilExpiration <= 0) {
+          badgeVariant = "destructive";
+        } else if (daysUntilExpiration <= 30) {
+          badgeVariant = "warning";
+        }
+        
+        return (
+          <Badge variant={badgeVariant as any}>
+            {format(expDate, "dd/MM/yyyy")}
+          </Badge>
+        );
+      },
     },
     {
       accessorKey: "stock",

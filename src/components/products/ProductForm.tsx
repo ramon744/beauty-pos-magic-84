@@ -29,7 +29,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { ImageUpload } from '@/components/products/ImageUpload';
 import { Product, Supplier } from '@/types';
-import { Search, X } from 'lucide-react';
+import { Search, X, CalendarIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { 
   Command,
@@ -39,6 +39,10 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 // Define the form schema
 const productFormSchema = z.object({
@@ -51,6 +55,7 @@ const productFormSchema = z.object({
   stock: z.coerce.number().int().nonnegative({ message: 'Estoque não pode ser negativo' }),
   image: z.string().optional(),
   supplierIds: z.array(z.string()).optional(),
+  expirationDate: z.date().optional(), // Added expiration date field
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -84,6 +89,7 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
       stock: 0,
       image: '',
       supplierIds: [],
+      expirationDate: undefined,
     },
   });
 
@@ -107,6 +113,7 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
         stock: product.stock,
         image: product.image,
         supplierIds: product.supplierIds || [],
+        expirationDate: product.expirationDate,
       });
     }
   }, [product, productId, form, suppliers]);
@@ -129,6 +136,7 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
       image: data.image,
       supplierIds: supplierIds.length > 0 ? supplierIds : undefined,
       suppliers: productSuppliers,
+      expirationDate: data.expirationDate, // Added expiration date
       createdAt: product?.createdAt || new Date(),
       updatedAt: new Date(),
     };
@@ -199,9 +207,10 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="general">Informações Gerais</TabsTrigger>
             <TabsTrigger value="pricing">Preços e Estoque</TabsTrigger>
+            <TabsTrigger value="dates">Datas</TabsTrigger>
             <TabsTrigger value="supplier">Fornecedores</TabsTrigger>
             <TabsTrigger value="media">Imagens</TabsTrigger>
           </TabsList>
@@ -329,6 +338,53 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
                 )}
               />
             </div>
+          </TabsContent>
+          
+          {/* New tab for dates */}
+          <TabsContent value="dates" className="space-y-6 py-4">
+            <Card>
+              <CardContent className="p-6">
+                <FormField
+                  control={form.control}
+                  name="expirationDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Data de Validade</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "dd/MM/yyyy")
+                              ) : (
+                                <span>Selecione a data de validade</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
           </TabsContent>
           
           <TabsContent value="supplier" className="space-y-6 py-4">

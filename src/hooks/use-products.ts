@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Product, Category } from '@/types';
 import { storageService } from '@/services/storage-service';
@@ -26,6 +27,13 @@ const initialCategories: Category[] = [
   { id: '5', name: 'Acessórios' },
 ];
 
+// Get date in the future (for sample expiration dates)
+const getFutureDate = (daysToAdd: number) => {
+  const date = new Date();
+  date.setDate(date.getDate() + daysToAdd);
+  return date;
+};
+
 // Initial mock data for products
 const initialProducts: Product[] = [
   {
@@ -39,6 +47,7 @@ const initialProducts: Product[] = [
     stock: 45,
     image: 'https://images.unsplash.com/photo-1559599101-f09722fb4948?ixlib=rb-1.2.1&auto=format&fit=crop&w=1050&q=80',
     supplierIds: ['1'],
+    expirationDate: getFutureDate(180), // 6 months expiration
     createdAt: new Date(2023, 1, 15),
     updatedAt: new Date(2023, 3, 10),
   },
@@ -53,6 +62,7 @@ const initialProducts: Product[] = [
     stock: 38,
     image: 'https://images.unsplash.com/photo-1598454444427-8babb28c1776?ixlib=rb-1.2.1&auto=format&fit=crop&w=1050&q=80',
     supplierIds: ['1'],
+    expirationDate: getFutureDate(90), // 3 months expiration
     createdAt: new Date(2023, 1, 15),
     updatedAt: new Date(2023, 3, 10),
   },
@@ -67,6 +77,7 @@ const initialProducts: Product[] = [
     stock: 15,
     image: 'https://images.unsplash.com/photo-1609097164673-7e236f3e1f3b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1050&q=80',
     supplierIds: ['2'],
+    expirationDate: getFutureDate(365), // 1 year expiration
     createdAt: new Date(2022, 11, 5),
     updatedAt: new Date(2023, 3, 1),
   },
@@ -81,6 +92,7 @@ const initialProducts: Product[] = [
     stock: 22,
     image: 'https://images.unsplash.com/photo-1574180566232-aaad1b5b8450?ixlib=rb-1.2.1&auto=format&fit=crop&w=1050&q=80',
     supplierIds: ['3'],
+    expirationDate: getFutureDate(30), // 1 month expiration (soon to expire)
     createdAt: new Date(2022, 10, 12),
     updatedAt: new Date(2023, 2, 20),
   },
@@ -94,6 +106,7 @@ const initialProducts: Product[] = [
     costPrice: 45.00,
     stock: 8,
     image: 'https://images.unsplash.com/photo-1590159763121-7c9fd312071f?ixlib=rb-1.2.1&auto=format&fit=crop&w=1050&q=80',
+    // No expiration date for non-perishable items
     createdAt: new Date(2022, 9, 30),
     updatedAt: new Date(2023, 1, 15),
   },
@@ -108,6 +121,7 @@ const initialProducts: Product[] = [
     stock: 0,
     image: 'https://images.unsplash.com/photo-1617897903246-719242758050?ixlib=rb-1.2.1&auto=format&fit=crop&w=1050&q=80',
     supplierIds: ['2'],
+    expirationDate: getFutureDate(-15), // Expired product for demo
     createdAt: new Date(2022, 8, 25),
     updatedAt: new Date(2022, 12, 10),
   },
