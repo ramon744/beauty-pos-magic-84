@@ -43,7 +43,7 @@ const Orders = () => {
       </div>
 
       {orderNeededCount > 0 && (
-        <Alert variant="warning" className="bg-amber-50 border-amber-200 text-amber-800">
+        <Alert className="bg-amber-50 border-amber-200 text-amber-800">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
             <span className="font-medium">Atenção:</span> {orderNeededCount} produto(s) precisam ser reabastecidos.
