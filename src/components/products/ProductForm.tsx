@@ -300,7 +300,9 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">Nenhum fornecedor</SelectItem>
+                          {/* Fix: The empty SelectItem was causing the error */}
+                          {/* Change from value="" to value="none" */}
+                          <SelectItem value="none">Nenhum fornecedor</SelectItem>
                           {suppliers?.map((supplier) => (
                             <SelectItem key={supplier.id} value={supplier.id}>
                               {supplier.name}
