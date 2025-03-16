@@ -6,8 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Save, X, Edit, Trash } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { Badge } from '@/components/ui/badge';
 import { Category } from '@/types';
+import { storageService } from '@/services/storage-service';
+
+// Storage key for categories
+const CATEGORIES_STORAGE_KEY = 'categories';
 
 export function ProductCategories() {
   const { toast } = useToast();
@@ -19,38 +22,122 @@ export function ProductCategories() {
   const handleAddCategory = () => {
     if (!newCategory.trim()) return;
     
-    // In a real app, we would call an API to add the category
-    toast({
-      title: "Categoria adicionada",
-      description: `A categoria "${newCategory}" foi adicionada com sucesso.`,
-    });
-    
-    setNewCategory('');
-    setShowAddForm(false);
-    refetch();
+    try {
+      // Get current categories
+      const currentCategories = storageService.getItem<Category[]>(CATEGORIES_STORAGE_KEY) || [];
+      
+      // Create new category with unique ID
+      const newCategoryObj: Category = {
+        id: crypto.randomUUID(),
+        name: newCategory.trim()
+      };
+      
+      // Add to storage
+      storageService.setItem(CATEGORIES_STORAGE_KEY, [...currentCategories, newCategoryObj]);
+      
+      toast({
+        title: "Categoria adicionada",
+        description: `A categoria "${newCategory}" foi adicionada com sucesso.`,
+      });
+      
+      // Reset form
+      setNewCategory('');
+      setShowAddForm(false);
+      
+      // Refresh data
+      refetch();
+    } catch (error) {
+      console.error("Erro ao adicionar categoria:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Não foi possível adicionar a categoria. Tente novamente.",
+      });
+    }
   };
 
   const handleUpdateCategory = () => {
     if (!editingCategory || !editingCategory.name.trim()) return;
     
-    // In a real app, we would call an API to update the category
-    toast({
-      title: "Categoria atualizada",
-      description: `A categoria foi atualizada com sucesso.`,
-    });
-    
-    setEditingCategory(null);
-    refetch();
+    try {
+      // Get current categories
+      const currentCategories = storageService.getItem<Category[]>(CATEGORIES_STORAGE_KEY) || [];
+      
+      // Find and update the category
+      const updatedCategories = currentCategories.map(cat => 
+        cat.id === editingCategory.id ? { ...cat, name: editingCategory.name.trim() } : cat
+      );
+      
+      // Save to storage
+      storageService.setItem(CATEGORIES_STORAGE_KEY, updatedCategories);
+      
+      toast({
+        title: "Categoria atualizada",
+        description: `A categoria foi atualizada com sucesso.`,
+      });
+      
+      // Reset editing state
+      setEditingCategory(null);
+      
+      // Refresh data
+      refetch();
+    } catch (error) {
+      console.error("Erro ao atualizar categoria:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Não foi possível atualizar a categoria. Tente novamente.",
+      });
+    }
   };
 
   const handleDeleteCategory = (category: Category) => {
-    // In a real app, we would call an API to delete the category
-    toast({
-      title: "Categoria excluída",
-      description: `A categoria "${category.name}" foi excluída com sucesso.`,
-    });
+    try {
+      // Get current categories
+      const currentCategories = storageService.getItem<Category[]>(CATEGORIES_STORAGE_KEY) || [];
+      
+      // Filter out the deleted category
+      const updatedCategories = currentCategories.filter(cat => cat.id !== category.id);
+      
+      // Save to storage
+      storageService.setItem(CATEGORIES_STORAGE_KEY, updatedCategories);
+      
+      // Also need to update product statistics
+      updateProductStatistics();
+      
+      toast({
+        title: "Categoria excluída",
+        description: `A categoria "${category.name}" foi excluída com sucesso.`,
+      });
+      
+      // Refresh data
+      refetch();
+    } catch (error) {
+      console.error("Erro ao excluir categoria:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Não foi possível excluir a categoria. Tente novamente.",
+      });
+    }
+  };
+  
+  // Helper function to update product statistics after operations
+  const updateProductStatistics = () => {
+    // Get the products and categories
+    const products = storageService.getItem<any[]>('products') || [];
+    const categories = storageService.getItem<Category[]>(CATEGORIES_STORAGE_KEY) || [];
     
-    refetch();
+    // Calculate statistics
+    const statistics = {
+      totalProducts: products.length,
+      stockValue: products.reduce((total, product) => total + (product.costPrice * product.stock), 0),
+      outOfStock: products.filter(product => product.stock === 0).length,
+      categories: categories.length,
+    };
+    
+    // Update statistics in storage
+    storageService.setItem('products-statistics', statistics);
   };
 
   return (
