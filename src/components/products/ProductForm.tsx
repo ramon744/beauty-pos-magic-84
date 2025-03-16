@@ -41,7 +41,7 @@ import {
 } from '@/components/ui/command';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
+import { format, parse, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 // Define the form schema
@@ -56,6 +56,7 @@ const productFormSchema = z.object({
   image: z.string().optional(),
   supplierIds: z.array(z.string()).optional(),
   expirationDate: z.date().optional(), // Added expiration date field
+  expirationDateInput: z.string().optional(), // For manual input
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -75,6 +76,7 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
   // State for selected suppliers
   const [selectedSuppliers, setSelectedSuppliers] = useState<Supplier[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [dateInputMode, setDateInputMode] = useState<'calendar' | 'manual'>('calendar');
 
   // Initialize the form
   const form = useForm<ProductFormValues>({
@@ -90,6 +92,7 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
       image: '',
       supplierIds: [],
       expirationDate: undefined,
+      expirationDateInput: '',
     },
   });
 
@@ -114,9 +117,36 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
         image: product.image,
         supplierIds: product.supplierIds || [],
         expirationDate: product.expirationDate,
+        expirationDateInput: product.expirationDate ? format(product.expirationDate, 'dd/MM/yyyy') : '',
       });
     }
   }, [product, productId, form, suppliers]);
+
+  // Handle manual date input
+  const handleDateInput = (value: string) => {
+    form.setValue('expirationDateInput', value);
+    
+    try {
+      // Parse the manual input date
+      const parsedDate = parse(value, 'dd/MM/yyyy', new Date());
+      
+      if (isValid(parsedDate)) {
+        form.setValue('expirationDate', parsedDate);
+      }
+    } catch (error) {
+      // Invalid date format, don't update the date
+    }
+  };
+
+  // Update the input field when calendar date changes
+  const handleCalendarDateChange = (date: Date | undefined) => {
+    form.setValue('expirationDate', date);
+    if (date) {
+      form.setValue('expirationDateInput', format(date, 'dd/MM/yyyy'));
+    } else {
+      form.setValue('expirationDateInput', '');
+    }
+  };
 
   const onSubmit = (data: ProductFormValues) => {
     // Get all selected suppliers
@@ -340,49 +370,92 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
             </div>
           </TabsContent>
           
-          {/* New tab for dates */}
+          {/* Date tab with improved expiration date input */}
           <TabsContent value="dates" className="space-y-6 py-4">
             <Card>
               <CardContent className="p-6">
-                <FormField
-                  control={form.control}
-                  name="expirationDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Data de Validade</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
+                <div className="space-y-4">
+                  <div>
+                    <FormLabel className="text-base">Data de Validade</FormLabel>
+                    <div className="flex space-x-2 mt-2">
+                      <Button 
+                        type="button" 
+                        variant={dateInputMode === 'calendar' ? 'default' : 'outline'} 
+                        size="sm"
+                        onClick={() => setDateInputMode('calendar')}
+                      >
+                        Calendário
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant={dateInputMode === 'manual' ? 'default' : 'outline'} 
+                        size="sm"
+                        onClick={() => setDateInputMode('manual')}
+                      >
+                        Digitação Manual
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {dateInputMode === 'calendar' ? (
+                    <FormField
+                      control={form.control}
+                      name="expirationDate"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full pl-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  {field.value ? (
+                                    format(field.value, "dd/MM/yyyy")
+                                  ) : (
+                                    <span>Selecione a data de validade</span>
+                                  )}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={(date) => handleCalendarDateChange(date)}
+                                initialFocus
+                                className={cn("p-3 pointer-events-auto")}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ) : (
+                    <FormField
+                      control={form.control}
+                      name="expirationDateInput"
+                      render={({ field }) => (
+                        <FormItem>
                           <FormControl>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "dd/MM/yyyy")
-                              ) : (
-                                <span>Selecione a data de validade</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
+                            <Input
+                              placeholder="DD/MM/AAAA"
+                              {...field}
+                              onChange={(e) => handleDateInput(e.target.value)}
+                            />
                           </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            initialFocus
-                            className={cn("p-3 pointer-events-auto")}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
+                          <FormMessage />
+                          <p className="text-sm text-muted-foreground">Digite a data no formato DD/MM/AAAA</p>
+                        </FormItem>
+                      )}
+                    />
                   )}
-                />
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
