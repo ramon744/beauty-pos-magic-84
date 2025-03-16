@@ -224,6 +224,20 @@ export function useCategories() {
   });
 }
 
+// Helper function to normalize product data before saving
+const normalizeProductData = (product: Product): Product => {
+  return {
+    ...product,
+    // Ensure minimumStock is saved correctly (convert 0 to undefined if needed)
+    minimumStock: product.minimumStock === 0 ? undefined : product.minimumStock,
+    // Ensure expirationDate is handled properly (null becomes undefined for storage)
+    expirationDate: product.expirationDate === null ? undefined : product.expirationDate,
+    // Handle potential Date serialization issues by ensuring dates are proper Date objects
+    createdAt: new Date(product.createdAt),
+    updatedAt: new Date()
+  };
+};
+
 // Hook for saving a product (create or update)
 export function useSaveProduct() {
   const queryClient = useQueryClient();
@@ -239,22 +253,15 @@ export function useSaveProduct() {
       // Find if the product already exists
       const index = products.findIndex(p => p.id === product.id);
       
+      // Normalize product data before saving
+      const normalizedProduct = normalizeProductData(product);
+      
       // Update or add the product
       if (index >= 0) {
-        products[index] = {
-          ...product,
-          // Ensure expirationDate is handled properly
-          expirationDate: product.expirationDate === null ? undefined : product.expirationDate,
-          updatedAt: new Date(),
-        };
+        products[index] = normalizedProduct;
       } else {
-        products.push({
-          ...product,
-          // Ensure expirationDate is handled properly
-          expirationDate: product.expirationDate === null ? undefined : product.expirationDate,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
+        normalizedProduct.createdAt = new Date();  // Only set createdAt for new products
+        products.push(normalizedProduct);
       }
       
       // Save the updated products back to localStorage

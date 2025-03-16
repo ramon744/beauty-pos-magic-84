@@ -116,8 +116,8 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
         minimumStock: product.minimumStock || 0,
         image: product.image,
         supplierIds: product.supplierIds || [],
-        expirationDate: product.expirationDate || null,
-        expirationDateInput: product.expirationDate ? format(product.expirationDate, 'dd/MM/yyyy') : '',
+        expirationDate: product.expirationDate ? new Date(product.expirationDate) : null,
+        expirationDateInput: product.expirationDate ? format(new Date(product.expirationDate), 'dd/MM/yyyy') : '',
       });
     }
   }, [product, productId, form, suppliers]);
@@ -179,12 +179,12 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
       salePrice: data.salePrice,
       costPrice: data.costPrice,
       stock: data.stock,
-      minimumStock: data.minimumStock || 0,
+      minimumStock: data.minimumStock,
       image: data.image,
       supplierIds: supplierIds.length > 0 ? supplierIds : undefined,
       suppliers: productSuppliers,
-      expirationDate: data.expirationDate || undefined,
-      createdAt: product?.createdAt || new Date(),
+      expirationDate: data.expirationDate,
+      createdAt: product?.createdAt ? new Date(product.createdAt) : new Date(),
       updatedAt: new Date(),
     };
     
