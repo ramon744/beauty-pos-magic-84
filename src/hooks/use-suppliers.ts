@@ -1,9 +1,13 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Supplier } from '@/types';
+import { storageService } from '@/services/storage-service';
 
-// Mock data for development
-const mockSuppliers: Supplier[] = [
+// Storage key for suppliers
+const SUPPLIERS_STORAGE_KEY = 'suppliers';
+
+// Initial mock data for development
+const initialSuppliers: Supplier[] = [
   {
     id: '1',
     name: 'Distribuidora de Cosméticos ABC',
@@ -39,13 +43,27 @@ const mockSuppliers: Supplier[] = [
   },
 ];
 
+// Initialize suppliers in localStorage if not already set
+const initializeSuppliers = () => {
+  const storedSuppliers = storageService.getItem<Supplier[]>(SUPPLIERS_STORAGE_KEY);
+  if (!storedSuppliers) {
+    storageService.setItem(SUPPLIERS_STORAGE_KEY, initialSuppliers);
+    return initialSuppliers;
+  }
+  return storedSuppliers;
+};
+
+// Get all suppliers from localStorage
+const getSuppliers = (): Supplier[] => {
+  return storageService.getItem<Supplier[]>(SUPPLIERS_STORAGE_KEY) || initializeSuppliers();
+};
+
 // Hook for fetching all suppliers
 export function useFetchSuppliers() {
   return useQuery({
     queryKey: ['suppliers'],
     queryFn: async () => {
-      // In a real app, we would fetch from an API
-      return mockSuppliers;
+      return getSuppliers();
     },
   });
 }
@@ -58,9 +76,10 @@ export function useFetchSupplier(id: string) {
       // Skip the request if id is empty
       if (!id) return null;
       
-      // In a real app, we would fetch from an API
-      const supplier = mockSuppliers.find(s => s.id === id);
-      if (!supplier) throw new Error('Supplier not found');
+      // Get supplier from localStorage
+      const suppliers = getSuppliers();
+      const supplier = suppliers.find(s => s.id === id);
+      if (!supplier) throw new Error('Fornecedor não encontrado');
       
       return supplier;
     },
@@ -74,13 +93,59 @@ export function useSaveSupplier() {
   
   return useMutation({
     mutationFn: async (supplier: Supplier) => {
-      // In a real app, we would call an API
-      console.log('Saving supplier:', supplier);
+      // Get current suppliers from localStorage
+      const suppliers = getSuppliers();
+      
+      // Check if supplier already exists (update) or is new (create)
+      const existingIndex = suppliers.findIndex(s => s.id === supplier.id);
+      
+      if (existingIndex >= 0) {
+        // Update existing supplier
+        suppliers[existingIndex] = supplier;
+      } else {
+        // Add new supplier
+        suppliers.push(supplier);
+      }
+      
+      // Save updated suppliers to localStorage
+      storageService.setItem(SUPPLIERS_STORAGE_KEY, suppliers);
       
       // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       return supplier;
+    },
+    onSuccess: () => {
+      // Invalidate queries to refetch the data
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+    },
+  });
+}
+
+// Hook for deleting a supplier
+export function useDeleteSupplier() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (supplierId: string) => {
+      // Get current suppliers from localStorage
+      const suppliers = getSuppliers();
+      
+      // Filter out the supplier to delete
+      const updatedSuppliers = suppliers.filter(s => s.id !== supplierId);
+      
+      // Check if supplier was found and removed
+      if (suppliers.length === updatedSuppliers.length) {
+        throw new Error('Fornecedor não encontrado');
+      }
+      
+      // Save updated suppliers to localStorage
+      storageService.setItem(SUPPLIERS_STORAGE_KEY, updatedSuppliers);
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      return supplierId;
     },
     onSuccess: () => {
       // Invalidate queries to refetch the data

@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlusCircle } from 'lucide-react';
 import SuppliersList from '@/components/suppliers/SuppliersList';
 import SupplierForm from '@/components/suppliers/SupplierForm';
+import { Toaster } from '@/components/ui/toaster';
 
 const Suppliers = () => {
   const [activeTab, setActiveTab] = useState('list');
@@ -52,6 +53,8 @@ const Suppliers = () => {
           />
         </TabsContent>
       </Tabs>
+      
+      <Toaster />
     </div>
   );
 };
