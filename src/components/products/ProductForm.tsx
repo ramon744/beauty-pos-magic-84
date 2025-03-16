@@ -98,6 +98,15 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
     },
   });
 
+  const handleBarcodeDetected = (barcode: string) => {
+    form.setValue('code', barcode);
+    setIsBarcodeDialogOpen(false);
+    toast({
+      title: 'Código de barras detectado',
+      description: `O código ${barcode} foi adicionado ao produto`,
+    });
+  };
+
   const { startScanning, stopScanning, isScanning } = useBarcodeScan(handleBarcodeDetected);
 
   const openBarcodeScanner = () => {
@@ -264,15 +273,6 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
     const minStock = form.watch('minimumStock');
     
     return minStock !== undefined && minStock > 0 && minStock < stock;
-  };
-
-  const handleBarcodeDetected = (barcode: string) => {
-    form.setValue('code', barcode);
-    setIsBarcodeDialogOpen(false);
-    toast({
-      title: 'Código de barras detectado',
-      description: `O código ${barcode} foi adicionado ao produto`,
-    });
   };
 
   if ((productId && loadingProduct) || loadingCategories || loadingSuppliers) {
