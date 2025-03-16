@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useCategories } from '@/hooks/use-products';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -193,7 +192,6 @@ export function ProductCategories() {
     }
   };
   
-  // Helper function to update product statistics after operations
   const updateProductStatistics = () => {
     // Get the products and categories
     const products = storageService.getItem<any[]>('products') || [];
@@ -211,7 +209,6 @@ export function ProductCategories() {
     storageService.setItem('products-statistics', statistics);
   };
   
-  // Get categories available for migration (excluding the one being deleted)
   const availableCategoriesForMigration = categories?.filter(
     category => category.id !== categoryToDelete?.id
   ) || [];
@@ -303,8 +300,8 @@ export function ProductCategories() {
                   </div>
                 ) : (
                   <>
-                    <span>{category.name}</span>
-                    <div className="flex space-x-1">
+                    <span className="truncate max-w-[70%]">{category.name}</span>
+                    <div className="flex shrink-0 space-x-1">
                       <Button
                         onClick={() => setEditingCategory(category)}
                         variant="ghost"
@@ -335,7 +332,6 @@ export function ProductCategories() {
           </div>
         )}
         
-        {/* Category deletion dialog */}
         <Dialog open={showDeleteDialog} onOpenChange={(open) => {
           if (!open) {
             setShowDeleteDialog(false);
