@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Customer } from '@/types';
@@ -33,7 +32,6 @@ import { useCustomers } from '@/hooks/use-customers';
 import PageTransition from '@/components/ui/PageTransition';
 import { Textarea } from '@/components/ui/textarea';
 
-// Form validation schema
 const customerFormSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
@@ -45,7 +43,6 @@ const customerFormSchema = z.object({
   addressComplement: z.string().optional().or(z.literal(''))
 });
 
-// Form types
 type CustomerFormValues = z.infer<typeof customerFormSchema>;
 
 const Customers = () => {
@@ -56,7 +53,6 @@ const Customers = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isSearchingCEP, setIsSearchingCEP] = useState(false);
 
-  // Form for adding new customers
   const addForm = useForm<CustomerFormValues>({
     resolver: zodResolver(customerFormSchema),
     defaultValues: {
@@ -71,7 +67,6 @@ const Customers = () => {
     },
   });
 
-  // Form for editing customers
   const editForm = useForm<CustomerFormValues>({
     resolver: zodResolver(customerFormSchema),
     defaultValues: {
@@ -86,7 +81,6 @@ const Customers = () => {
     },
   });
 
-  // Handle CEP search for add form
   const handleCEPSearchAdd = async () => {
     const cep = addForm.getValues('cep');
     if (!cep || cep.length !== 8) {
@@ -102,7 +96,6 @@ const Customers = () => {
     try {
       const addressData = await searchAddressByCEP(cep);
       if (addressData) {
-        // Only fill the street address, not number or complement
         const streetAddress = `${addressData.logradouro}, ${addressData.bairro}, ${addressData.localidade} - ${addressData.uf}`;
         addForm.setValue('address', streetAddress);
         toast({
@@ -121,7 +114,6 @@ const Customers = () => {
     }
   };
 
-  // Handle CEP search for edit form
   const handleCEPSearchEdit = async () => {
     const cep = editForm.getValues('cep');
     if (!cep || cep.length !== 8) {
@@ -137,7 +129,6 @@ const Customers = () => {
     try {
       const addressData = await searchAddressByCEP(cep);
       if (addressData) {
-        // Only fill the street address, not number or complement
         const streetAddress = `${addressData.logradouro}, ${addressData.bairro}, ${addressData.localidade} - ${addressData.uf}`;
         editForm.setValue('address', streetAddress);
         toast({
@@ -156,7 +147,6 @@ const Customers = () => {
     }
   };
 
-  // Handle submitting new customer form
   const onAddSubmit = async (data: CustomerFormValues) => {
     try {
       await addCustomer({
@@ -186,7 +176,6 @@ const Customers = () => {
     }
   };
 
-  // Open edit dialog with customer data
   const handleEdit = (customer: Customer) => {
     setSelectedCustomer(customer);
     editForm.setValue('name', customer.name);
@@ -200,7 +189,6 @@ const Customers = () => {
     setIsEditDialogOpen(true);
   };
 
-  // Handle submitting edit customer form
   const onEditSubmit = async (data: CustomerFormValues) => {
     if (!selectedCustomer) return;
     
@@ -232,7 +220,6 @@ const Customers = () => {
     }
   };
 
-  // Handle deleting a customer
   const handleDelete = async (customer: Customer) => {
     if (confirm(`Tem certeza que deseja excluir o cliente "${customer.name}"?`)) {
       try {
@@ -251,7 +238,6 @@ const Customers = () => {
     }
   };
 
-  // Table columns definition
   const columns: ColumnDef<Customer>[] = [
     {
       accessorKey: 'name',
@@ -277,14 +263,14 @@ const Customers = () => {
         let fullAddress = customer.address || '';
         
         if (customer.addressNumber) {
-          fullAddress += `, ${customer.addressNumber}`;
+          fullAddress += customer.address ? `, ${customer.addressNumber}` : customer.addressNumber;
         }
         
         if (customer.addressComplement) {
-          fullAddress += ` - ${customer.addressComplement}`;
+          fullAddress += fullAddress ? ` - ${customer.addressComplement}` : customer.addressComplement;
         }
         
-        return fullAddress;
+        return <span>{fullAddress}</span>;
       },
     },
     {
@@ -348,7 +334,6 @@ const Customers = () => {
           </TabsContent>
         </Tabs>
 
-        {/* Add Customer Dialog */}
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -488,7 +473,6 @@ const Customers = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Edit Customer Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
