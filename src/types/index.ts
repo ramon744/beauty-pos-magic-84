@@ -1,4 +1,3 @@
-
 // User roles
 export type UserRole = 'admin' | 'manager' | 'employee';
 
@@ -9,6 +8,7 @@ export interface User {
   email: string;
   role: UserRole;
   createdAt: Date;
+  password?: string; // Add optional password field
 }
 
 // Authentication state

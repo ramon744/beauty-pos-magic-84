@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -120,16 +119,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Email já está em uso');
     }
     
-    const newUser: User & { password: string } = {
+    const newUser = {
       id: Date.now().toString(),
       ...userData,
       createdAt: new Date(),
     };
     
-    // Store password separately to mimic real authentication
-    const { password, ...userWithoutPassword } = newUser;
+    setUsers(prevUsers => [...prevUsers, newUser]);
     
-    setUsers(prevUsers => [...prevUsers, { ...userWithoutPassword, password }]);
+    // Return user without password
+    const { password, ...userWithoutPassword } = newUser;
     return userWithoutPassword;
   };
 
@@ -144,11 +143,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (u.id === id) {
         // If this is the currently logged in user, update the auth state too
         if (user && user.id === id) {
-          const updatedUser = { ...u, ...userData };
-          setUser(updatedUser);
-          localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(updatedUser));
+          const updatedUser = { 
+            ...u,
+            ...userData,
+            password: u.password // Preserve existing password
+          };
+          
+          // Strip password from user state
+          const { password, ...userWithoutPassword } = updatedUser;
+          setUser(userWithoutPassword);
+          localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(userWithoutPassword));
+          return updatedUser;
         }
-        return { ...u, ...userData };
+        return { ...u, ...userData, password: u.password }; // Preserve existing password
       }
       return u;
     });
@@ -160,7 +167,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Usuário não encontrado');
     }
     
-    return updatedUser;
+    // Return user without password
+    const { password, ...userWithoutPassword } = updatedUser;
+    return userWithoutPassword;
   };
 
   // Remove a user

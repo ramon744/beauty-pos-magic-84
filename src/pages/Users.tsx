@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Users as UsersIcon, UserPlus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,10 +19,13 @@ const userFormSchema = z.object({
   name: z.string().min(3, 'Nome precisa ter pelo menos 3 caracteres'),
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'Senha precisa ter pelo menos 6 caracteres'),
-  role: z.enum(['admin', 'manager', 'employee']),
+  role: z.enum(['admin', 'manager', 'employee'] as const),
 });
 
+const userEditFormSchema = userFormSchema.omit({ password: true });
+
 type UserFormValues = z.infer<typeof userFormSchema>;
+type UserEditFormValues = z.infer<typeof userEditFormSchema>;
 
 const Users = () => {
   const { toast } = useToast();
@@ -42,8 +44,8 @@ const Users = () => {
     },
   });
 
-  const editForm = useForm<Omit<UserFormValues, 'password'>>({
-    resolver: zodResolver(userFormSchema.omit({ password: true })),
+  const editForm = useForm<UserEditFormValues>({
+    resolver: zodResolver(userEditFormSchema),
     defaultValues: {
       name: '',
       email: '',
@@ -63,7 +65,7 @@ const Users = () => {
     } catch (error) {
       toast({
         title: 'Erro',
-        description: 'Não foi possível adicionar o usuário',
+        description: error instanceof Error ? error.message : 'Não foi possível adicionar o usuário',
         variant: 'destructive',
       });
     }
@@ -77,7 +79,7 @@ const Users = () => {
     setIsEditDialogOpen(true);
   };
 
-  const handleEditUser = async (data: Omit<UserFormValues, 'password'>) => {
+  const handleEditUser = async (data: UserEditFormValues) => {
     if (!selectedUser) return;
     
     try {
@@ -91,7 +93,7 @@ const Users = () => {
     } catch (error) {
       toast({
         title: 'Erro',
-        description: 'Não foi possível atualizar o usuário',
+        description: error instanceof Error ? error.message : 'Não foi possível atualizar o usuário',
         variant: 'destructive',
       });
     }
@@ -173,7 +175,7 @@ const Users = () => {
                   size="icon"
                   className="text-destructive hover:text-destructive/90"
                   onClick={() => handleRemoveUser(user.id)}
-                  disabled={user.id === '1'} // Don't allow removing the main admin
+                  disabled={user.id === '1'}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

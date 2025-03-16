@@ -19,7 +19,7 @@ export function UserRoleSelect({ value, onValueChange, disabled }: UserRoleSelec
   return (
     <Select
       value={value}
-      onValueChange={onValueChange as (value: string) => void}
+      onValueChange={(value: string) => onValueChange(value as UserRole)}
       disabled={disabled}
     >
       <SelectTrigger className="w-full">
