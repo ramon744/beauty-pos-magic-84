@@ -147,19 +147,29 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
       const allProducts = storageService.getItem<Product[]>(PRODUCTS_STORAGE_KEY) || [];
       const product = allProducts.find(p => p.id === assignment.productId);
       
-      if (!product) return;
+      if (!product) {
+        console.error(`Product not found: ${assignment.productId}`);
+        return;
+      }
       
       const allCategories = storageService.getItem<Category[]>(CATEGORIES_STORAGE_KEY) || [];
       const originalCategory = allCategories.find(c => c.id === assignment.originalCategoryId);
       
-      if (!originalCategory) return;
+      if (!originalCategory) {
+        console.error(`Original category not found: ${assignment.originalCategoryId}`);
+        return;
+      }
       
       await saveProduct({
         ...product,
-        category: originalCategory
+        category: originalCategory,
+        updatedAt: new Date()
       });
+      
+      console.log(`Product ${product.name} reverted from ${product.category.name} to ${originalCategory.name}`);
     } catch (error) {
       console.error("Erro ao reverter categoria temporária:", error);
+      throw error;
     }
   };
 
@@ -527,8 +537,30 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
         return;
       }
       
+      let revertedCount = 0;
+      
       for (const assignment of activeAssignments) {
-        await revertTemporaryAssignment(assignment);
+        try {
+          const allProducts = storageService.getItem<Product[]>(PRODUCTS_STORAGE_KEY) || [];
+          const product = allProducts.find(p => p.id === assignment.productId);
+          
+          if (!product) continue;
+          
+          const allCategories = storageService.getItem<Category[]>(CATEGORIES_STORAGE_KEY) || [];
+          const originalCategory = allCategories.find(c => c.id === assignment.originalCategoryId);
+          
+          if (!originalCategory) continue;
+          
+          await saveProduct({
+            ...product,
+            category: originalCategory,
+            updatedAt: new Date()
+          });
+          
+          revertedCount++;
+        } catch (error) {
+          console.error(`Error reverting product ${assignment.productId}:`, error);
+        }
       }
       
       storageService.setItem(TEMP_CATEGORY_STORAGE_KEY, []);
@@ -536,7 +568,7 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
       
       toast({
         title: "Categorias revertidas",
-        description: `${activeAssignments.length} produto(s) retornaram para suas categorias originais.`,
+        description: `${revertedCount} produto(s) retornaram para suas categorias originais.`,
       });
       
       refetch();
