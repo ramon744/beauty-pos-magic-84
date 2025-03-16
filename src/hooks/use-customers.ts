@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Customer } from '@/types';
 import { storageKeys } from '@/contexts/AuthContext';
@@ -8,8 +9,10 @@ interface CustomerInput {
   email: string;
   phone: string;
   cpf: string;
-  address?: string; // Added address field
-  cep?: string; // Added CEP field
+  address?: string;
+  addressNumber?: string; // Added house/building number
+  addressComplement?: string; // Added address complement
+  cep?: string;
 }
 
 // CPF validation function

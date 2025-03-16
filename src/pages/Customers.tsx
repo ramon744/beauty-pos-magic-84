@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Customer } from '@/types';
@@ -40,6 +41,8 @@ const customerFormSchema = z.object({
   cpf: z.string().min(11, 'CPF precisa ter pelo menos 11 caracteres').max(14),
   cep: z.string().optional().or(z.literal('')),
   address: z.string().optional().or(z.literal('')),
+  addressNumber: z.string().optional().or(z.literal('')),
+  addressComplement: z.string().optional().or(z.literal(''))
 });
 
 // Form types
@@ -63,6 +66,8 @@ const Customers = () => {
       cpf: '',
       cep: '',
       address: '',
+      addressNumber: '',
+      addressComplement: '',
     },
   });
 
@@ -76,6 +81,8 @@ const Customers = () => {
       cpf: '',
       cep: '',
       address: '',
+      addressNumber: '',
+      addressComplement: '',
     },
   });
 
@@ -95,8 +102,9 @@ const Customers = () => {
     try {
       const addressData = await searchAddressByCEP(cep);
       if (addressData) {
-        const formattedAddress = `${addressData.logradouro}, ${addressData.bairro}, ${addressData.localidade} - ${addressData.uf}`;
-        addForm.setValue('address', formattedAddress);
+        // Only fill the street address, not number or complement
+        const streetAddress = `${addressData.logradouro}, ${addressData.bairro}, ${addressData.localidade} - ${addressData.uf}`;
+        addForm.setValue('address', streetAddress);
         toast({
           title: 'Endereço encontrado',
           description: 'Endereço preenchido com sucesso.',
@@ -129,8 +137,9 @@ const Customers = () => {
     try {
       const addressData = await searchAddressByCEP(cep);
       if (addressData) {
-        const formattedAddress = `${addressData.logradouro}, ${addressData.bairro}, ${addressData.localidade} - ${addressData.uf}`;
-        editForm.setValue('address', formattedAddress);
+        // Only fill the street address, not number or complement
+        const streetAddress = `${addressData.logradouro}, ${addressData.bairro}, ${addressData.localidade} - ${addressData.uf}`;
+        editForm.setValue('address', streetAddress);
         toast({
           title: 'Endereço encontrado',
           description: 'Endereço preenchido com sucesso.',
@@ -156,6 +165,9 @@ const Customers = () => {
         phone: data.phone || '',
         cpf: data.cpf,
         address: data.address,
+        addressNumber: data.addressNumber,
+        addressComplement: data.addressComplement,
+        cep: data.cep,
       });
       
       toast({
@@ -182,6 +194,9 @@ const Customers = () => {
     editForm.setValue('phone', customer.phone || '');
     editForm.setValue('cpf', customer.cpf);
     editForm.setValue('address', customer.address || '');
+    editForm.setValue('addressNumber', customer.addressNumber || '');
+    editForm.setValue('addressComplement', customer.addressComplement || '');
+    editForm.setValue('cep', customer.cep || '');
     setIsEditDialogOpen(true);
   };
 
@@ -196,6 +211,9 @@ const Customers = () => {
         phone: data.phone || '',
         cpf: data.cpf,
         address: data.address,
+        addressNumber: data.addressNumber,
+        addressComplement: data.addressComplement,
+        cep: data.cep,
       });
       
       toast({
@@ -254,6 +272,20 @@ const Customers = () => {
     {
       accessorKey: 'address',
       header: 'Endereço',
+      cell: ({ row }) => {
+        const customer = row.original;
+        let fullAddress = customer.address || '';
+        
+        if (customer.addressNumber) {
+          fullAddress += `, ${customer.addressNumber}`;
+        }
+        
+        if (customer.addressComplement) {
+          fullAddress += ` - ${customer.addressComplement}`;
+        }
+        
+        return fullAddress;
+      },
     },
     {
       accessorKey: 'createdAt',
@@ -420,6 +452,34 @@ const Customers = () => {
                     </FormItem>
                   )}
                 />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={addForm.control}
+                    name="addressNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Número</FormLabel>
+                        <FormControl>
+                          <Input placeholder="123" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={addForm.control}
+                    name="addressComplement"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Complemento</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Apto 101, Bloco B" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <DialogFooter>
                   <Button type="submit">Adicionar Cliente</Button>
                 </DialogFooter>
@@ -532,6 +592,34 @@ const Customers = () => {
                     </FormItem>
                   )}
                 />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="addressNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Número</FormLabel>
+                        <FormControl>
+                          <Input placeholder="123" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="addressComplement"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Complemento</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Apto 101, Bloco B" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <DialogFooter>
                   <Button type="submit">Salvar Alterações</Button>
                 </DialogFooter>

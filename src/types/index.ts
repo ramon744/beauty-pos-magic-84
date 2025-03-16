@@ -1,3 +1,4 @@
+
 // User roles
 export type UserRole = 'admin' | 'manager' | 'employee';
 
@@ -61,8 +62,10 @@ export interface Customer {
   phone: string;
   email: string;
   cpf: string;
-  address?: string; // Added address field
-  cep?: string; // Added CEP field
+  address?: string; // Street address
+  addressNumber?: string; // Added house/building number
+  addressComplement?: string; // Added address complement
+  cep?: string; // CEP/Postal code
   createdAt: Date;
   updatedAt: Date;
 }
