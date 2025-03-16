@@ -94,14 +94,29 @@ export interface Sale {
   createdAt: Date;
 }
 
+// Promotion type
+export type PromotionType = 
+  | 'discount_percentage' 
+  | 'discount_value' 
+  | 'buy_x_get_y' 
+  | 'fixed_price'
+  | 'bundle';
+
 // Promotion interface
 export interface Promotion {
   id: string;
   name: string;
-  productId: string;
-  product?: Product;
-  discountPercent: number;
-  discountPrice?: number;
+  type: PromotionType;
+  description: string;
+  discountPercent?: number;
+  discountValue?: number;
+  fixedPrice?: number;
+  buyQuantity?: number;
+  getQuantity?: number;
+  bundleProducts?: string[];
+  bundlePrice?: number;
+  productId?: string;
+  categoryId?: string;
   startDate: Date;
   endDate: Date;
   isActive: boolean;

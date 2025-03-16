@@ -13,6 +13,7 @@ import Products from "./pages/Products";
 import Suppliers from "./pages/Suppliers";
 import Users from "./pages/Users";
 import Customers from "./pages/Customers";
+import Promotions from "./pages/Promotions";
 import MainLayout from "./components/layout/MainLayout";
 
 const queryClient = new QueryClient();
@@ -35,7 +36,7 @@ const App = () => (
               <Route path="/suppliers" element={<Suppliers />} />
               <Route path="/users" element={<Users />} />
               <Route path="/customers" element={<Customers />} />
-              <Route path="/promotions" element={<div className="p-4">Página de Promoções - Em desenvolvimento</div>} />
+              <Route path="/promotions" element={<Promotions />} />
               <Route path="/reports" element={<div className="p-4">Página de Relatórios - Em desenvolvimento</div>} />
               <Route path="/history" element={<div className="p-4">Página de Histórico - Em desenvolvimento</div>} />
             </Route>
