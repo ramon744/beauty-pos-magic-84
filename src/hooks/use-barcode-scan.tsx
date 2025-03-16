@@ -1,5 +1,8 @@
 
 import { useEffect, useRef, useState } from 'react';
+import { storageService } from '@/services/storage-service';
+
+const SCANNER_ACTIVE_KEY = 'makeup-pos-scanner-active';
 
 type BarcodeScanCallback = (barcode: string) => void;
 
@@ -8,7 +11,11 @@ export function useBarcodeScan(onBarcodeDetected: BarcodeScanCallback) {
   const lastKeyTime = useRef<number>(0);
   const timeoutRef = useRef<number | null>(null);
   const isActive = useRef<boolean>(false);
-  const [scannerActive, setScannerActive] = useState(false);
+  // Initialize the state from storage or default to false
+  const [scannerActive, setScannerActive] = useState(() => {
+    const savedState = storageService.getItem<boolean>(SCANNER_ACTIVE_KEY);
+    return savedState || false;
+  });
 
   // Clear the buffer if there's a pause in typing
   const resetBuffer = () => {
@@ -60,6 +67,8 @@ export function useBarcodeScan(onBarcodeDetected: BarcodeScanCallback) {
   const startScanning = () => {
     isActive.current = true;
     setScannerActive(true);
+    // Save the state to storage
+    storageService.setItem(SCANNER_ACTIVE_KEY, true);
   };
 
   const stopScanning = () => {
@@ -69,11 +78,18 @@ export function useBarcodeScan(onBarcodeDetected: BarcodeScanCallback) {
     if (timeoutRef.current) {
       window.clearTimeout(timeoutRef.current);
     }
+    // Save the state to storage
+    storageService.setItem(SCANNER_ACTIVE_KEY, false);
   };
 
   // Set up and clean up event listeners
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
+    
+    // If scanner should be active based on saved state, activate it
+    if (scannerActive) {
+      isActive.current = true;
+    }
     
     return () => {
       document.removeEventListener('keydown', handleKeyDown);

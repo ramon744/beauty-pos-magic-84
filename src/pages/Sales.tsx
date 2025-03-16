@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   ShoppingCart, 
@@ -94,14 +93,12 @@ const Sales = () => {
   // Use custom hook for barcode scanning
   const { startScanning, stopScanning, isScanning } = useBarcodeScan(handleBarcodeDetected);
 
-  // Effect to maintain scanner state when component re-renders
+  // Effect to activate scanner on component mount if it was previously active
   useEffect(() => {
-    // If the scanner was active before and we haven't explicitly stopped it,
-    // ensure it's still active after re-render
     if (isScanning) {
       startScanning();
     }
-  }, [isScanning, startScanning]);
+  }, []);
 
   // Toggle barcode scanner
   const toggleScanner = () => {
