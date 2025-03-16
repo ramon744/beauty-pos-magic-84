@@ -23,7 +23,10 @@ const userFormSchema = z.object({
   role: z.enum(['admin', 'manager', 'employee'] as const),
 });
 
-const userEditFormSchema = userFormSchema.omit({ password: true });
+// Edit form schema with optional password
+const userEditFormSchema = userFormSchema.extend({
+  password: z.string().min(6, 'Senha precisa ter pelo menos 6 caracteres').optional(),
+});
 
 type UserFormValues = z.infer<typeof userFormSchema>;
 type UserEditFormValues = z.infer<typeof userEditFormSchema>;
@@ -50,6 +53,7 @@ const Users = () => {
     defaultValues: {
       name: '',
       email: '',
+      password: '',
       role: 'employee',
     },
   });
@@ -84,6 +88,7 @@ const Users = () => {
     editForm.setValue('name', user.name);
     editForm.setValue('email', user.email);
     editForm.setValue('role', user.role);
+    editForm.setValue('password', ''); // Reset password field
     setIsEditDialogOpen(true);
   };
 
@@ -91,12 +96,24 @@ const Users = () => {
     if (!selectedUser) return;
     
     try {
-      // Now we're explicitly passing values with the correct type
-      await updateUser(selectedUser.id, {
+      // Create update object - only include password if it was provided
+      const updateData: { 
+        name: string; 
+        email: string; 
+        role: UserRole;
+        password?: string;
+      } = {
         name: data.name,
         email: data.email,
         role: data.role
-      });
+      };
+      
+      // Only include password if it's not empty
+      if (data.password && data.password.trim() !== '') {
+        updateData.password = data.password;
+      }
+      
+      await updateUser(selectedUser.id, updateData);
       
       toast({
         title: 'Usuário atualizado',
@@ -323,6 +340,19 @@ const Users = () => {
                     <FormLabel>Email</FormLabel>
                     <FormControl>
                       <Input type="email" placeholder="email@exemplo.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nova Senha (opcional)</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="Deixe em branco para manter a senha atual" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

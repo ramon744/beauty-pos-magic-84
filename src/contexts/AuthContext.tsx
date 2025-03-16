@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -50,7 +51,7 @@ interface AuthContextType {
   logout: () => void;
   hasPermission: (requiredRoles: UserRole[]) => boolean;
   addUser: (userData: { name: string; email: string; password: string; role: UserRole }) => Promise<User>;
-  updateUser: (id: string, userData: { name: string; email: string; role: UserRole }) => Promise<User>;
+  updateUser: (id: string, userData: { name: string; email: string; role: UserRole; password?: string }) => Promise<User>;
   removeUser: (id: string) => Promise<boolean>;
 }
 
@@ -133,7 +134,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Update an existing user
-  const updateUser = async (id: string, userData: { name: string; email: string; role: UserRole }): Promise<User> => {
+  const updateUser = async (id: string, userData: { 
+    name: string; 
+    email: string; 
+    role: UserRole;
+    password?: string 
+  }): Promise<User> => {
     // Check if email already exists and belongs to a different user
     if (users.some(u => u.email === userData.email && u.id !== id)) {
       throw new Error('Email já está em uso');
@@ -141,21 +147,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     const updatedUsers = users.map(u => {
       if (u.id === id) {
+        // Create updated user object
+        const updatedUser = { 
+          ...u,
+          name: userData.name,
+          email: userData.email,
+          role: userData.role
+        };
+        
+        // Update password only if it was provided
+        if (userData.password) {
+          updatedUser.password = userData.password;
+        }
+        
         // If this is the currently logged in user, update the auth state too
         if (user && user.id === id) {
-          const updatedUser = { 
-            ...u,
-            ...userData,
-            password: u.password // Preserve existing password
-          };
-          
           // Strip password from user state
           const { password, ...userWithoutPassword } = updatedUser;
           setUser(userWithoutPassword);
           localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(userWithoutPassword));
-          return updatedUser;
         }
-        return { ...u, ...userData, password: u.password }; // Preserve existing password
+        
+        return updatedUser;
       }
       return u;
     });
