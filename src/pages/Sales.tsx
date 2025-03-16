@@ -48,7 +48,6 @@ const Sales = () => {
     const savedCart = storageService.getItem<CartItem[]>(CART_STORAGE_KEY);
     return savedCart || [];
   });
-  const [scanQuantity, setScanQuantity] = useState(1);
   const searchInputRef = useRef<HTMLInputElement>(null);
   
   // Fetch products from the database
@@ -70,7 +69,7 @@ const Sales = () => {
     const product = products.find(p => p.code === barcode);
     
     if (product) {
-      // Automatically add the product to the cart
+      // Automatically add the product to the cart with quantity 1
       const productToAdd = {
         id: product.id,
         name: product.name,
@@ -80,7 +79,7 @@ const Sales = () => {
         category: product.category.name
       };
       
-      addProductToCart(productToAdd, scanQuantity);
+      addProductToCart(productToAdd, 1);
     } else {
       toast({
         title: "Produto não encontrado",
@@ -405,28 +404,6 @@ const Sales = () => {
                       <p className="text-sm text-muted-foreground">
                         Posicione o código de barras na frente da câmera
                       </p>
-                    </div>
-                    <div className="flex items-center gap-2 mt-2 md:mt-0">
-                      <span className="text-sm whitespace-nowrap">Quantidade:</span>
-                      <div className="flex items-center border rounded-md">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8"
-                          onClick={() => setScanQuantity(prev => Math.max(1, prev - 1))}
-                        >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        <span className="w-8 text-center">{scanQuantity}</span>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8"
-                          onClick={() => setScanQuantity(prev => prev + 1)}
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
                     </div>
                   </div>
                 </div>
