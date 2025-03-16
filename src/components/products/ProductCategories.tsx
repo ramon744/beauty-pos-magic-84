@@ -3,7 +3,7 @@ import { useCategories, useFetchProducts, useSaveProduct } from '@/hooks/use-pro
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Save, X, Edit, Trash, Search, Clock, ArrowRight, Filter, RotateCcw, Calendar } from 'lucide-react';
+import { Plus, Save, X, Edit, Trash, Search, Clock, ArrowRight, Filter, RotateCcw, Calendar, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Category, Product } from '@/types';
 import { storageService } from '@/services/storage-service';
@@ -514,6 +514,42 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
     setCategoryFilter('');
   };
 
+  const handleRevertAllTemporaryAssignments = async () => {
+    try {
+      const activeAssignments = getActiveTemporaryAssignments();
+      
+      if (activeAssignments.length === 0) {
+        toast({
+          variant: "destructive",
+          title: "Nenhuma atribuição temporária",
+          description: "Não há atribuições temporárias ativas para reverter.",
+        });
+        return;
+      }
+      
+      for (const assignment of activeAssignments) {
+        await revertTemporaryAssignment(assignment);
+      }
+      
+      storageService.setItem(TEMP_CATEGORY_STORAGE_KEY, []);
+      setTemporaryAssignments([]);
+      
+      toast({
+        title: "Categorias revertidas",
+        description: `${activeAssignments.length} produto(s) retornaram para suas categorias originais.`,
+      });
+      
+      refetch();
+    } catch (error) {
+      console.error("Erro ao reverter todas as categorias temporárias:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Não foi possível reverter as categorias. Tente novamente.",
+      });
+    }
+  };
+
   return (
     <Card className={`h-full ${fullWidth ? 'max-w-none' : ''}`}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -800,14 +836,26 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-medium">Categorias Temporárias Ativas</h3>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={checkExpiredAssignments}
-                >
-                  <ArrowRight className="mr-2 h-3.5 w-3.5" />
-                  Verificar Atualizações
-                </Button>
+                <div className="flex items-center space-x-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={checkExpiredAssignments}
+                  >
+                    <ArrowRight className="mr-2 h-3.5 w-3.5" />
+                    Verificar Atualizações
+                  </Button>
+                  
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={handleRevertAllTemporaryAssignments}
+                    className="bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100 hover:text-amber-900"
+                  >
+                    <RefreshCw className="mr-2 h-3.5 w-3.5" />
+                    Reverter Todas
+                  </Button>
+                </div>
               </div>
               
               {getActiveTemporaryAssignments().length === 0 ? (
