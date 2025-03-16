@@ -30,9 +30,9 @@ export default function SuppliersList({ onEditSupplier }: SuppliersListProps) {
   }
 
   return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="rounded-md border">
+    <Card className="mb-6">
+      <CardContent className="p-4 md:p-6 overflow-auto">
+        <div className="overflow-x-auto rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>

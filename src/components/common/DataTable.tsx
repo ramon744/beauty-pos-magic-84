@@ -54,8 +54,8 @@ export function DataTable<TData, TValue>({
   });
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-md border shadow-sm overflow-hidden bg-white">
+    <div className="space-y-4 mb-6">
+      <div className="overflow-x-auto rounded-md border shadow-sm bg-white">
         <Table>
           <TableHeader className="bg-gray-50">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -109,11 +109,11 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
       
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2">
+        <div className="text-sm text-muted-foreground">
           {table.getFilteredRowModel().rows.length} registro(s) no total
         </div>
-        <div className="space-x-2">
+        <div className="flex space-x-2">
           <Button
             variant="outline"
             size="sm"
