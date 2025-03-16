@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -29,7 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { ImageUpload } from '@/components/products/ImageUpload';
 import { Product, Supplier } from '@/types';
-import { Search, X, CalendarIcon, AlertCircle } from 'lucide-react';
+import { Search, X, CalendarIcon, AlertCircle, ScanBarcode } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { 
   Command,
@@ -44,6 +43,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { format, parse, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useBarcodeScan } from '@/hooks/use-barcode-scan';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 const productFormSchema = z.object({
   name: z.string().min(3, { message: 'Nome deve ter pelo menos 3 caracteres' }),
@@ -77,6 +78,7 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
   const [selectedSuppliers, setSelectedSuppliers] = useState<Supplier[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [dateInputMode, setDateInputMode] = useState<'calendar' | 'manual'>('calendar');
+  const [isBarcodeDialogOpen, setIsBarcodeDialogOpen] = useState(false);
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -95,6 +97,18 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
       expirationDateInput: '',
     },
   });
+
+  const { startScanning, stopScanning, isScanning } = useBarcodeScan(handleBarcodeDetected);
+
+  const openBarcodeScanner = () => {
+    setIsBarcodeDialogOpen(true);
+    startScanning();
+  };
+
+  const closeBarcodeScanner = () => {
+    setIsBarcodeDialogOpen(false);
+    stopScanning();
+  };
 
   useEffect(() => {
     if (product && productId) {
@@ -121,6 +135,12 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
       });
     }
   }, [product, productId, form, suppliers]);
+
+  useEffect(() => {
+    return () => {
+      stopScanning();
+    };
+  }, []);
 
   const handleDateInput = (value: string) => {
     const digitsOnly = value.replace(/\D/g, '');
@@ -151,7 +171,6 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
         console.error("Error parsing date:", error);
       }
     } else {
-      // Clear the date field if input is not complete
       form.setValue('expirationDate', null);
     }
   };
@@ -247,6 +266,15 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
     return minStock !== undefined && minStock > 0 && minStock < stock;
   };
 
+  const handleBarcodeDetected = (barcode: string) => {
+    form.setValue('code', barcode);
+    setIsBarcodeDialogOpen(false);
+    toast({
+      title: 'Código de barras detectado',
+      description: `O código ${barcode} foi adicionado ao produto`,
+    });
+  };
+
   if ((productId && loadingProduct) || loadingCategories || loadingSuppliers) {
     return (
       <div className="flex justify-center p-12">
@@ -289,9 +317,19 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Código</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Digite o código do produto" {...field} />
-                    </FormControl>
+                    <div className="flex gap-2">
+                      <FormControl>
+                        <Input placeholder="Digite ou escaneie o código do produto" {...field} />
+                      </FormControl>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={openBarcodeScanner}
+                        className="flex-shrink-0"
+                      >
+                        <ScanBarcode className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -618,6 +656,38 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
           </Button>
         </div>
       </form>
+
+      <Dialog open={isBarcodeDialogOpen} onOpenChange={setIsBarcodeDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Escanear Código de Barras</DialogTitle>
+            <DialogDescription>
+              {isScanning ? 'Escaneie o código de barras do produto com um leitor.' : 'Inicie o escaneamento.'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex flex-col items-center justify-center py-8">
+            <ScanBarcode className="h-24 w-24 text-muted-foreground animate-pulse" />
+            <p className="mt-4 text-center text-sm">
+              {isScanning 
+                ? "Aguardando leitura... Aponte o leitor para o código de barras." 
+                : "Clique em Iniciar para ativar o leitor de código de barras."}
+            </p>
+          </div>
+          
+          <div className="flex justify-between">
+            <Button type="button" variant="outline" onClick={closeBarcodeScanner}>
+              Cancelar
+            </Button>
+            <Button 
+              type="button"
+              onClick={isScanning ? stopScanning : startScanning}
+            >
+              {isScanning ? 'Parar' : 'Iniciar'} Leitura
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Form>
   );
 }
