@@ -1,9 +1,17 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Product, Category } from '@/types';
+import { storageService } from '@/services/storage-service';
 
-// Mock data for development
-const mockCategories: Category[] = [
+// Storage keys
+const STORAGE_KEYS = {
+  PRODUCTS: 'products',
+  CATEGORIES: 'categories',
+  STATISTICS: 'products-statistics',
+};
+
+// Initial mock data for categories
+const initialCategories: Category[] = [
   { id: '1', name: 'Shampoos' },
   { id: '2', name: 'Condicionadores' },
   { id: '3', name: 'Coloração' },
@@ -11,13 +19,14 @@ const mockCategories: Category[] = [
   { id: '5', name: 'Acessórios' },
 ];
 
-const mockProducts: Product[] = [
+// Initial mock data for products
+const initialProducts: Product[] = [
   {
     id: '1',
     name: 'Shampoo Hidratante',
     description: 'Shampoo para hidratação profunda',
     code: 'SH001',
-    category: mockCategories[0],
+    category: initialCategories[0],
     salePrice: 29.90,
     costPrice: 15.50,
     stock: 45,
@@ -31,7 +40,7 @@ const mockProducts: Product[] = [
     name: 'Condicionador Reparador',
     description: 'Condicionador para cabelos danificados',
     code: 'CO001',
-    category: mockCategories[1],
+    category: initialCategories[1],
     salePrice: 34.90,
     costPrice: 17.80,
     stock: 38,
@@ -45,7 +54,7 @@ const mockProducts: Product[] = [
     name: 'Coloração Permanent Blonde',
     description: 'Coloração permanente tons de loiro',
     code: 'TIN001',
-    category: mockCategories[2],
+    category: initialCategories[2],
     salePrice: 45.90,
     costPrice: 25.30,
     stock: 15,
@@ -59,7 +68,7 @@ const mockProducts: Product[] = [
     name: 'Máscara de Tratamento Intensivo',
     description: 'Máscara para tratamento intensivo de cabelos',
     code: 'MSK001',
-    category: mockCategories[3],
+    category: initialCategories[3],
     salePrice: 59.90,
     costPrice: 28.75,
     stock: 22,
@@ -73,7 +82,7 @@ const mockProducts: Product[] = [
     name: 'Escova de Cabelo Profissional',
     description: 'Escova para finalização e styling',
     code: 'ACC001',
-    category: mockCategories[4],
+    category: initialCategories[4],
     salePrice: 89.90,
     costPrice: 45.00,
     stock: 8,
@@ -86,7 +95,7 @@ const mockProducts: Product[] = [
     name: 'Óleo de Argan',
     description: 'Óleo finalizador para cabelos secos',
     code: 'TRT001',
-    category: mockCategories[3],
+    category: initialCategories[3],
     salePrice: 49.90,
     costPrice: 24.95,
     stock: 0,
@@ -97,21 +106,49 @@ const mockProducts: Product[] = [
   },
 ];
 
-// Statistics mock
-const mockStatistics = {
-  totalProducts: mockProducts.length,
-  stockValue: mockProducts.reduce((total, product) => total + (product.costPrice * product.stock), 0),
-  outOfStock: mockProducts.filter(product => product.stock === 0).length,
-  categories: mockCategories.length,
+// Initialize data in localStorage if it doesn't exist
+const initializeData = () => {
+  const existingProducts = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS);
+  const existingCategories = storageService.getItem<Category[]>(STORAGE_KEYS.CATEGORIES);
+  
+  if (!existingProducts) {
+    storageService.setItem(STORAGE_KEYS.PRODUCTS, initialProducts);
+  }
+  
+  if (!existingCategories) {
+    storageService.setItem(STORAGE_KEYS.CATEGORIES, initialCategories);
+  }
+  
+  // Calculate and update statistics
+  updateStatistics();
 };
+
+// Helper function to calculate statistics
+const updateStatistics = () => {
+  const products = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
+  const categories = storageService.getItem<Category[]>(STORAGE_KEYS.CATEGORIES) || [];
+  
+  const statistics = {
+    totalProducts: products.length,
+    stockValue: products.reduce((total, product) => total + (product.costPrice * product.stock), 0),
+    outOfStock: products.filter(product => product.stock === 0).length,
+    categories: categories.length,
+  };
+  
+  storageService.setItem(STORAGE_KEYS.STATISTICS, statistics);
+  return statistics;
+};
+
+// Initialize data
+initializeData();
 
 // Hook for fetching all products
 export function useFetchProducts() {
   return useQuery({
     queryKey: ['products'],
     queryFn: async () => {
-      // In a real app, we would fetch from an API
-      return mockProducts;
+      // Fetch from localStorage
+      return storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
     },
   });
 }
@@ -124,8 +161,9 @@ export function useFetchProduct(id: string) {
       // Skip the request if id is empty
       if (!id) return null;
       
-      // In a real app, we would fetch from an API
-      const product = mockProducts.find(p => p.id === id);
+      // Fetch from localStorage
+      const products = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
+      const product = products.find(p => p.id === id);
       if (!product) throw new Error('Product not found');
       
       return product;
@@ -139,8 +177,8 @@ export function useCategories() {
   return useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
-      // In a real app, we would fetch from an API
-      return mockCategories;
+      // Fetch from localStorage
+      return storageService.getItem<Category[]>(STORAGE_KEYS.CATEGORIES) || [];
     },
   });
 }
@@ -151,8 +189,34 @@ export function useSaveProduct() {
   
   return useMutation({
     mutationFn: async (product: Product) => {
-      // In a real app, we would call an API
+      // Log the product being saved for debugging
       console.log('Saving product:', product);
+      
+      // Get the current products from localStorage
+      const products = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
+      
+      // Find if the product already exists
+      const index = products.findIndex(p => p.id === product.id);
+      
+      // Update or add the product
+      if (index >= 0) {
+        products[index] = {
+          ...product,
+          updatedAt: new Date(),
+        };
+      } else {
+        products.push({
+          ...product,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+      
+      // Save the updated products back to localStorage
+      storageService.setItem(STORAGE_KEYS.PRODUCTS, products);
+      
+      // Update statistics
+      updateStatistics();
       
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -172,12 +236,47 @@ export function useStatistics() {
   return useQuery({
     queryKey: ['statistics'],
     queryFn: async () => {
-      // In a real app, we would fetch from an API
+      // If statistics don't exist, calculate them
+      const stats = storageService.getItem(STORAGE_KEYS.STATISTICS);
+      if (!stats) {
+        return updateStatistics();
+      }
       
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      return mockStatistics;
+      return stats;
+    },
+  });
+}
+
+// Hook for deleting a product
+export function useDeleteProduct() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (productId: string) => {
+      // Get the current products from localStorage
+      const products = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
+      
+      // Filter out the product to delete
+      const updatedProducts = products.filter(p => p.id !== productId);
+      
+      // Save the updated products back to localStorage
+      storageService.setItem(STORAGE_KEYS.PRODUCTS, updatedProducts);
+      
+      // Update statistics
+      updateStatistics();
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      return productId;
+    },
+    onSuccess: () => {
+      // Invalidate queries to refetch the data
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['statistics'] });
     },
   });
 }

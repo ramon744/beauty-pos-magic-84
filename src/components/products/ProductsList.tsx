@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { DataTable } from '@/components/common/DataTable';
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2, BarChart2, Eye, Package } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { useFetchProducts } from '@/hooks/use-products';
+import { useFetchProducts, useDeleteProduct } from '@/hooks/use-products';
 import { Product } from '@/types';
 import { ColumnDef } from '@tanstack/react-table';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, 
@@ -19,31 +18,32 @@ interface ProductsListProps {
 
 export default function ProductsList({ onEditProduct }: ProductsListProps) {
   const { toast } = useToast();
-  const { data: products, isLoading, error, refetch } = useFetchProducts();
+  const { data: products, isLoading, error } = useFetchProducts();
+  const { mutate: deleteProduct, isPending: isDeleting } = useDeleteProduct();
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
   
   const handleDeleteProduct = async () => {
     if (!productToDelete) return;
     
-    try {
-      // In a real app, we would call an API to delete the product
-      // For now, we'll just show a success toast
-      toast({
-        title: "Produto excluído",
-        description: "O produto foi excluído com sucesso.",
-      });
-      
-      // Refetch products to update the list
-      await refetch();
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Erro ao excluir produto",
-        description: "Ocorreu um erro ao tentar excluir o produto.",
-      });
-    }
-    
-    setProductToDelete(null);
+    deleteProduct(productToDelete, {
+      onSuccess: () => {
+        toast({
+          title: "Produto excluído",
+          description: "O produto foi excluído com sucesso.",
+        });
+        
+        setProductToDelete(null);
+      },
+      onError: (error) => {
+        toast({
+          variant: "destructive",
+          title: "Erro ao excluir produto",
+          description: "Ocorreu um erro ao tentar excluir o produto.",
+        });
+        
+        setProductToDelete(null);
+      }
+    });
   };
 
   const columns: ColumnDef<Product>[] = [
@@ -122,6 +122,7 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
                 size="icon"
                 onClick={() => setProductToDelete(row.original.id)}
                 title="Excluir"
+                disabled={isDeleting}
               >
                 <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
@@ -136,8 +137,12 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteProduct} className="bg-destructive text-destructive-foreground">
-                  Excluir
+                <AlertDialogAction 
+                  onClick={handleDeleteProduct} 
+                  className="bg-destructive text-destructive-foreground"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? 'Excluindo...' : 'Excluir'}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -163,6 +168,7 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
           data={products || []}
           searchColumn="name"
           searchPlaceholder="Buscar produtos..."
+          isLoading={isLoading}
         />
       </div>
     </div>
