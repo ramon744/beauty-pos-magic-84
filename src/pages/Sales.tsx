@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   ShoppingCart, 
@@ -21,31 +22,19 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { storageService } from '@/services/storage-service';
 import { useToast } from '@/hooks/use-toast';
 import { useBarcodeScan } from '@/hooks/use-barcode-scan';
+import { useFetchProducts } from '@/hooks/use-products';
+import { Product } from '@/types';
 
-interface Product {
+interface CartItem {
   id: string;
   name: string;
   description: string;
   price: number;
   stock: number;
   category: string;
-}
-
-interface CartItem extends Product {
   quantity: number;
   subtotal: number;
 }
-
-// Mock products for demonstration
-const mockProducts: Product[] = [
-  { id: '1', name: 'Batom Matte Vermelho', description: 'Batom de longa duração', price: 29.90, stock: 15, category: 'Lábios' },
-  { id: '2', name: 'Base Líquida Natural', description: 'Base para todos os tipos de pele', price: 89.90, stock: 8, category: 'Rosto' },
-  { id: '3', name: 'Máscara de Cílios Volume', description: 'Máscara para volume', price: 59.90, stock: 12, category: 'Olhos' },
-  { id: '4', name: 'Pó Compacto Translúcido', description: 'Pó para fixação', price: 49.90, stock: 10, category: 'Rosto' },
-  { id: '5', name: 'Delineador Líquido Preto', description: 'Delineador à prova d\'água', price: 39.90, stock: 20, category: 'Olhos' },
-  { id: '6', name: 'Blush Rosado', description: 'Blush em pó', price: 45.90, stock: 7, category: 'Rosto' },
-  { id: '7', name: 'Paleta de Sombras', description: 'Paleta com 12 cores', price: 120.00, stock: 5, category: 'Olhos' },
-];
 
 const CART_STORAGE_KEY = 'makeup-pos-cart';
 
@@ -63,6 +52,9 @@ const Sales = () => {
   const [isScannerActive, setIsScannerActive] = useState(false);
   const [scanQuantity, setScanQuantity] = useState(1);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  
+  // Fetch products from the database
+  const { data: products = [] } = useFetchProducts();
 
   // Save cart to local storage whenever it changes
   React.useEffect(() => {
@@ -76,10 +68,21 @@ const Sales = () => {
       description: `Código: ${barcode}`,
     });
     
-    // Search for product with the scanned barcode (using ID for demo)
-    const product = mockProducts.find(p => p.id === barcode);
+    // Search for product with the scanned barcode (using code field for actual implementation)
+    const product = products.find(p => p.code === barcode);
+    
     if (product) {
-      addProductToCart(product, scanQuantity);
+      // Automatically add the product to the cart
+      const productToAdd = {
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        price: product.salePrice,
+        stock: product.stock,
+        category: product.category.name
+      };
+      
+      addProductToCart(productToAdd, scanQuantity);
     } else {
       toast({
         title: "Produto não encontrado",
@@ -113,12 +116,20 @@ const Sales = () => {
   // Search products as user types
   useEffect(() => {
     if (searchQuery.trim()) {
-      const results = mockProducts.filter(product => 
+      const results = products.filter(product => 
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.id.includes(searchQuery)
+        product.code.includes(searchQuery)
       );
       
-      setSearchResults(results);
+      setSearchResults(results.map(p => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        price: p.salePrice,
+        stock: p.stock,
+        category: p.category.name
+      })));
+      
       setHasSearched(true);
       
       if (results.length === 0 && searchQuery.trim().length > 2) {
@@ -132,10 +143,10 @@ const Sales = () => {
       setSearchResults([]);
       setHasSearched(false);
     }
-  }, [searchQuery, toast]);
+  }, [searchQuery, products, toast]);
 
   // Add product to cart
-  const addProductToCart = (product: Product, qty: number) => {
+  const addProductToCart = (product: Omit<CartItem, 'quantity' | 'subtotal'>, qty: number) => {
     if (!product || qty <= 0) return;
     
     const existingItem = cart.find(item => item.id === product.id);
@@ -267,7 +278,7 @@ const Sales = () => {
   ];
 
   // Simplified product columns - only showing name, price and add button
-  const productColumns: ColumnDef<Product>[] = [
+  const productColumns: ColumnDef<any>[] = [
     {
       accessorKey: 'name',
       header: 'Produto',
