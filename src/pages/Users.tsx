@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Users as UsersIcon, UserPlus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -55,7 +56,14 @@ const Users = () => {
 
   const handleAddUser = async (data: UserFormValues) => {
     try {
-      await addUser(data);
+      // Now we're explicitly passing values with the correct type
+      await addUser({
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        role: data.role
+      });
+      
       toast({
         title: 'Usuário adicionado',
         description: `${data.name} foi adicionado com sucesso`,
@@ -83,7 +91,13 @@ const Users = () => {
     if (!selectedUser) return;
     
     try {
-      await updateUser(selectedUser.id, data);
+      // Now we're explicitly passing values with the correct type
+      await updateUser(selectedUser.id, {
+        name: data.name,
+        email: data.email,
+        role: data.role
+      });
+      
       toast({
         title: 'Usuário atualizado',
         description: `${data.name} foi atualizado com sucesso`,
