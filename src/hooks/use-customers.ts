@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Customer } from '@/types';
 import { storageKeys } from '@/contexts/AuthContext';
@@ -10,6 +9,7 @@ interface CustomerInput {
   phone: string;
   cpf: string;
   address?: string; // Added address field
+  cep?: string; // Added CEP field
 }
 
 // CPF validation function
@@ -46,6 +46,31 @@ const validateCPF = (cpf: string): boolean => {
   
   // Check second verification digit
   return parseInt(cleanCPF.charAt(10)) === secondDigit;
+};
+
+// CEP search function
+const searchAddressByCEP = async (cep: string): Promise<{
+  logradouro: string;
+  bairro: string;
+  localidade: string;
+  uf: string;
+  erro?: boolean;
+} | null> => {
+  if (!cep || cep.length !== 8) return null;
+  
+  try {
+    const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const data = await response.json();
+    
+    if (data.erro) {
+      throw new Error('CEP não encontrado');
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Erro ao buscar CEP:', error);
+    throw new Error('Falha ao buscar endereço pelo CEP');
+  }
 };
 
 export const useCustomers = () => {
@@ -154,6 +179,7 @@ export const useCustomers = () => {
     customers,
     addCustomer,
     updateCustomer,
-    removeCustomer
+    removeCustomer,
+    searchAddressByCEP
   };
 };

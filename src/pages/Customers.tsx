@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Customer } from '@/types';
@@ -28,7 +27,7 @@ import { useForm } from 'react-hook-form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Edit, Trash2, UserPlus } from 'lucide-react';
+import { Edit, Trash2, UserPlus, Search } from 'lucide-react';
 import { useCustomers } from '@/hooks/use-customers';
 import PageTransition from '@/components/ui/PageTransition';
 import { Textarea } from '@/components/ui/textarea';
@@ -39,6 +38,7 @@ const customerFormSchema = z.object({
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),
   cpf: z.string().min(11, 'CPF precisa ter pelo menos 11 caracteres').max(14),
+  cep: z.string().optional().or(z.literal('')),
   address: z.string().optional().or(z.literal('')),
 });
 
@@ -47,10 +47,11 @@ type CustomerFormValues = z.infer<typeof customerFormSchema>;
 
 const Customers = () => {
   const { toast } = useToast();
-  const { customers, addCustomer, updateCustomer, removeCustomer } = useCustomers();
+  const { customers, addCustomer, updateCustomer, removeCustomer, searchAddressByCEP } = useCustomers();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [isSearchingCEP, setIsSearchingCEP] = useState(false);
 
   // Form for adding new customers
   const addForm = useForm<CustomerFormValues>({
@@ -60,6 +61,7 @@ const Customers = () => {
       email: '',
       phone: '',
       cpf: '',
+      cep: '',
       address: '',
     },
   });
@@ -72,9 +74,78 @@ const Customers = () => {
       email: '',
       phone: '',
       cpf: '',
+      cep: '',
       address: '',
     },
   });
+
+  // Handle CEP search for add form
+  const handleCEPSearchAdd = async () => {
+    const cep = addForm.getValues('cep');
+    if (!cep || cep.length !== 8) {
+      toast({
+        title: 'CEP inválido',
+        description: 'Por favor, digite um CEP válido com 8 dígitos.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSearchingCEP(true);
+    try {
+      const addressData = await searchAddressByCEP(cep);
+      if (addressData) {
+        const formattedAddress = `${addressData.logradouro}, ${addressData.bairro}, ${addressData.localidade} - ${addressData.uf}`;
+        addForm.setValue('address', formattedAddress);
+        toast({
+          title: 'Endereço encontrado',
+          description: 'Endereço preenchido com sucesso.',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: error instanceof Error ? error.message : 'Erro ao buscar endereço',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSearchingCEP(false);
+    }
+  };
+
+  // Handle CEP search for edit form
+  const handleCEPSearchEdit = async () => {
+    const cep = editForm.getValues('cep');
+    if (!cep || cep.length !== 8) {
+      toast({
+        title: 'CEP inválido',
+        description: 'Por favor, digite um CEP válido com 8 dígitos.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSearchingCEP(true);
+    try {
+      const addressData = await searchAddressByCEP(cep);
+      if (addressData) {
+        const formattedAddress = `${addressData.logradouro}, ${addressData.bairro}, ${addressData.localidade} - ${addressData.uf}`;
+        editForm.setValue('address', formattedAddress);
+        toast({
+          title: 'Endereço encontrado',
+          description: 'Endereço preenchido com sucesso.',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: error instanceof Error ? error.message : 'Erro ao buscar endereço',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSearchingCEP(false);
+    }
+  };
 
   // Handle submitting new customer form
   const onAddSubmit = async (data: CustomerFormValues) => {
@@ -310,6 +381,30 @@ const Customers = () => {
                 />
                 <FormField
                   control={addForm.control}
+                  name="cep"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>CEP</FormLabel>
+                      <div className="flex gap-2">
+                        <FormControl>
+                          <Input placeholder="00000000" maxLength={8} {...field} />
+                        </FormControl>
+                        <Button 
+                          type="button" 
+                          onClick={handleCEPSearchAdd}
+                          disabled={isSearchingCEP}
+                          variant="outline"
+                        >
+                          <Search className="h-4 w-4 mr-2" />
+                          Buscar
+                        </Button>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={addForm.control}
                   name="address"
                   render={({ field }) => (
                     <FormItem>
@@ -392,6 +487,30 @@ const Customers = () => {
                       <FormControl>
                         <Input placeholder="000.000.000-00" {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editForm.control}
+                  name="cep"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>CEP</FormLabel>
+                      <div className="flex gap-2">
+                        <FormControl>
+                          <Input placeholder="00000000" maxLength={8} {...field} />
+                        </FormControl>
+                        <Button 
+                          type="button" 
+                          onClick={handleCEPSearchEdit}
+                          disabled={isSearchingCEP}
+                          variant="outline"
+                        >
+                          <Search className="h-4 w-4 mr-2" />
+                          Buscar
+                        </Button>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}

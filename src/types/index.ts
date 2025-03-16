@@ -62,6 +62,7 @@ export interface Customer {
   email: string;
   cpf: string;
   address?: string; // Added address field
+  cep?: string; // Added CEP field
   createdAt: Date;
   updatedAt: Date;
 }
