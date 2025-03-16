@@ -619,9 +619,10 @@ const Sales = () => {
         onConfirm={discountForm.handleSubmit(handleSubmitDiscount)}
         title="Adicionar Desconto"
         description="Configure o tipo e valor do desconto a ser aplicado."
+        customFormId="discount-form"
         customContent={
           <Form {...discountForm}>
-            <form onSubmit={discountForm.handleSubmit(handleSubmitDiscount)} className="space-y-4 py-4">
+            <form id="discount-form" onSubmit={discountForm.handleSubmit(handleSubmitDiscount)} className="space-y-4 py-4">
               <FormField
                 control={discountForm.control}
                 name="discountType"

@@ -21,6 +21,7 @@ interface ManagerAuthDialogProps {
   title?: string;
   description?: string;
   customContent?: React.ReactNode;
+  customFormId?: string;
 }
 
 export const ManagerAuthDialog = ({
@@ -30,6 +31,7 @@ export const ManagerAuthDialog = ({
   title = "Autenticação Gerencial",
   description = "Esta operação requer autorização de um gerente ou administrador.",
   customContent = null,
+  customFormId = "discount-form",
 }: ManagerAuthDialogProps) => {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -96,7 +98,7 @@ export const ManagerAuthDialog = ({
               >
                 Cancelar
               </Button>
-              <Button type="submit" form="discount-form" disabled={isSubmitting}>
+              <Button type="submit" form={customFormId} disabled={isSubmitting}>
                 Continuar
               </Button>
             </DialogFooter>
