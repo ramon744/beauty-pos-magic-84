@@ -3,6 +3,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Product, Category } from '@/types';
 import { storageService } from '@/services/storage-service';
 
+// Define the Statistics interface
+interface ProductStatistics {
+  totalProducts: number;
+  stockValue: number;
+  outOfStock: number;
+  categories: number;
+}
+
 // Storage keys
 const STORAGE_KEYS = {
   PRODUCTS: 'products',
@@ -128,7 +136,7 @@ const updateStatistics = () => {
   const products = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
   const categories = storageService.getItem<Category[]>(STORAGE_KEYS.CATEGORIES) || [];
   
-  const statistics = {
+  const statistics: ProductStatistics = {
     totalProducts: products.length,
     stockValue: products.reduce((total, product) => total + (product.costPrice * product.stock), 0),
     outOfStock: products.filter(product => product.stock === 0).length,
@@ -237,7 +245,7 @@ export function useStatistics() {
     queryKey: ['statistics'],
     queryFn: async () => {
       // If statistics don't exist, calculate them
-      const stats = storageService.getItem(STORAGE_KEYS.STATISTICS);
+      const stats = storageService.getItem<ProductStatistics>(STORAGE_KEYS.STATISTICS);
       if (!stats) {
         return updateStatistics();
       }

@@ -6,8 +6,16 @@ import { PackageSearch, DollarSign, AlertCircle, Package } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import { Skeleton } from '@/components/ui/skeleton';
 
+// Define a type for our statistics
+interface ProductStatistics {
+  totalProducts: number;
+  stockValue: number;
+  outOfStock: number;
+  categories: number;
+}
+
 export function ProductStats() {
-  const { data: stats, isLoading } = useStatistics();
+  const { data: stats, isLoading } = useStatistics() as { data: ProductStatistics | undefined, isLoading: boolean };
 
   if (isLoading) {
     return (
