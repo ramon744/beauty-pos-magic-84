@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Sales from "./pages/Sales";
 import Products from "./pages/Products";
 import Suppliers from "./pages/Suppliers";
+import Users from "./pages/Users";
 import MainLayout from "./components/layout/MainLayout";
 
 const queryClient = new QueryClient();
@@ -31,11 +32,11 @@ const App = () => (
               <Route path="/sales" element={<Sales />} />
               <Route path="/products" element={<Products />} />
               <Route path="/suppliers" element={<Suppliers />} />
+              <Route path="/users" element={<Users />} />
               <Route path="/customers" element={<div className="p-4">Página de Clientes - Em desenvolvimento</div>} />
               <Route path="/promotions" element={<div className="p-4">Página de Promoções - Em desenvolvimento</div>} />
               <Route path="/reports" element={<div className="p-4">Página de Relatórios - Em desenvolvimento</div>} />
               <Route path="/history" element={<div className="p-4">Página de Histórico - Em desenvolvimento</div>} />
-              <Route path="/users" element={<div className="p-4">Página de Usuários - Em desenvolvimento</div>} />
             </Route>
             
             {/* Catch-all route */}

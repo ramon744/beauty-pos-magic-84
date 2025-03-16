@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { User, UserRole } from '@/types';
 
 // Mock users for the demo - will be replaced with DB integration in the future
-const MOCK_USERS = [
+const INITIAL_USERS = [
   {
     id: '1',
     name: 'Admin User',
@@ -35,6 +35,7 @@ const MOCK_USERS = [
 // Local storage keys - centralizing for future DB migration
 const STORAGE_KEYS = {
   AUTH: 'beautyPosAuth',
+  USERS: 'beautyPosUsers',
   PRODUCTS: 'beautyPosProducts',
   CUSTOMERS: 'beautyPosCustomers',
   SALES: 'beautyPosSales',
@@ -43,19 +44,48 @@ const STORAGE_KEYS = {
 
 interface AuthContextType {
   user: User | null;
+  users: User[];
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   hasPermission: (requiredRoles: UserRole[]) => boolean;
+  addUser: (userData: { name: string; email: string; password: string; role: UserRole }) => Promise<User>;
+  updateUser: (id: string, userData: { name: string; email: string; role: UserRole }) => Promise<User>;
+  removeUser: (id: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+
+  // Load users from localStorage or initialize with defaults
+  useEffect(() => {
+    const savedUsers = localStorage.getItem(STORAGE_KEYS.USERS);
+    if (savedUsers) {
+      try {
+        const parsedUsers = JSON.parse(savedUsers);
+        // Convert string dates back to Date objects
+        const usersWithDates = parsedUsers.map((u: any) => ({
+          ...u,
+          createdAt: new Date(u.createdAt)
+        }));
+        setUsers(usersWithDates);
+      } catch (error) {
+        console.error('Failed to parse stored users', error);
+        setUsers(INITIAL_USERS);
+        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(INITIAL_USERS));
+      }
+    } else {
+      // Initialize with default users
+      setUsers(INITIAL_USERS);
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(INITIAL_USERS));
+    }
+  }, []);
 
   // Check for saved auth on mount
   useEffect(() => {
@@ -63,6 +93,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (savedAuth) {
       try {
         const parsedAuth = JSON.parse(savedAuth);
+        // Convert createdAt string back to Date object
+        if (parsedAuth && typeof parsedAuth.createdAt === 'string') {
+          parsedAuth.createdAt = new Date(parsedAuth.createdAt);
+        }
         setUser(parsedAuth);
       } catch (error) {
         console.error('Failed to parse stored auth', error);
@@ -71,6 +105,74 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setIsLoading(false);
   }, []);
+
+  // Save users to localStorage whenever they change
+  useEffect(() => {
+    if (users.length > 0) {
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+    }
+  }, [users]);
+
+  // Add a new user
+  const addUser = async (userData: { name: string; email: string; password: string; role: UserRole }): Promise<User> => {
+    // Check if email already exists
+    if (users.some(u => u.email === userData.email)) {
+      throw new Error('Email já está em uso');
+    }
+    
+    const newUser: User & { password: string } = {
+      id: Date.now().toString(),
+      ...userData,
+      createdAt: new Date(),
+    };
+    
+    // Store password separately to mimic real authentication
+    const { password, ...userWithoutPassword } = newUser;
+    
+    setUsers(prevUsers => [...prevUsers, { ...userWithoutPassword, password }]);
+    return userWithoutPassword;
+  };
+
+  // Update an existing user
+  const updateUser = async (id: string, userData: { name: string; email: string; role: UserRole }): Promise<User> => {
+    // Check if email already exists and belongs to a different user
+    if (users.some(u => u.email === userData.email && u.id !== id)) {
+      throw new Error('Email já está em uso');
+    }
+    
+    const updatedUsers = users.map(u => {
+      if (u.id === id) {
+        // If this is the currently logged in user, update the auth state too
+        if (user && user.id === id) {
+          const updatedUser = { ...u, ...userData };
+          setUser(updatedUser);
+          localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(updatedUser));
+        }
+        return { ...u, ...userData };
+      }
+      return u;
+    });
+    
+    setUsers(updatedUsers);
+    const updatedUser = updatedUsers.find(u => u.id === id);
+    
+    if (!updatedUser) {
+      throw new Error('Usuário não encontrado');
+    }
+    
+    return updatedUser;
+  };
+
+  // Remove a user
+  const removeUser = async (id: string): Promise<boolean> => {
+    // Don't allow removing the currently logged in user
+    if (user && user.id === id) {
+      throw new Error('Não é possível remover o usuário logado');
+    }
+    
+    setUsers(prevUsers => prevUsers.filter(u => u.id !== id));
+    return true;
+  };
 
   // Database integration future-proofing:
   // This function can be modified to call an API endpoint in the future
@@ -82,7 +184,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await new Promise(resolve => setTimeout(resolve, 800));
       
       // This will be replaced with actual API call in the future
-      const foundUser = MOCK_USERS.find(
+      const foundUser = users.find(
         u => u.email === email && u.password === password
       );
       
@@ -124,11 +226,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         user,
+        users,
         isAuthenticated: !!user,
         isLoading,
         login,
         logout,
         hasPermission,
+        addUser,
+        updateUser,
+        removeUser,
       }}
     >
       {children}
