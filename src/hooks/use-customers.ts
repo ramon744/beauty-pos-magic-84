@@ -9,7 +9,44 @@ interface CustomerInput {
   email: string;
   phone: string;
   cpf: string;
+  address?: string; // Added address field
 }
+
+// CPF validation function
+const validateCPF = (cpf: string): boolean => {
+  // Remove any non-numeric characters
+  const cleanCPF = cpf.replace(/[^\d]/g, '');
+  
+  // Check if it has 11 digits
+  if (cleanCPF.length !== 11) return false;
+  
+  // Check if all digits are the same
+  if (/^(\d)\1+$/.test(cleanCPF)) return false;
+  
+  // Calculate first verification digit
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    sum += parseInt(cleanCPF.charAt(i)) * (10 - i);
+  }
+  
+  let remainder = sum % 11;
+  const firstDigit = remainder < 2 ? 0 : 11 - remainder;
+  
+  // Check first verification digit
+  if (parseInt(cleanCPF.charAt(9)) !== firstDigit) return false;
+  
+  // Calculate second verification digit
+  sum = 0;
+  for (let i = 0; i < 10; i++) {
+    sum += parseInt(cleanCPF.charAt(i)) * (11 - i);
+  }
+  
+  remainder = sum % 11;
+  const secondDigit = remainder < 2 ? 0 : 11 - remainder;
+  
+  // Check second verification digit
+  return parseInt(cleanCPF.charAt(10)) === secondDigit;
+};
 
 export const useCustomers = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -43,8 +80,13 @@ export const useCustomers = () => {
 
   // Add a new customer
   const addCustomer = async (customerData: CustomerInput): Promise<Customer> => {
+    // Validate CPF
+    if (!validateCPF(customerData.cpf)) {
+      throw new Error('CPF inválido');
+    }
+    
     // Check if email or CPF already exists
-    if (customers.some(c => c.email === customerData.email)) {
+    if (customerData.email && customers.some(c => c.email === customerData.email)) {
       throw new Error('Email já está em uso');
     }
     
@@ -66,8 +108,13 @@ export const useCustomers = () => {
 
   // Update an existing customer
   const updateCustomer = async (id: string, customerData: CustomerInput): Promise<Customer> => {
+    // Validate CPF
+    if (!validateCPF(customerData.cpf)) {
+      throw new Error('CPF inválido');
+    }
+    
     // Check if email already exists and belongs to a different customer
-    if (customers.some(c => c.email === customerData.email && c.id !== id)) {
+    if (customerData.email && customers.some(c => c.email === customerData.email && c.id !== id)) {
       throw new Error('Email já está em uso');
     }
     

@@ -61,6 +61,7 @@ export interface Customer {
   phone: string;
   email: string;
   cpf: string;
+  address?: string; // Added address field
   createdAt: Date;
   updatedAt: Date;
 }

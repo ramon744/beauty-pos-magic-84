@@ -26,19 +26,20 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { storageKeys } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Edit, Trash2, UserPlus } from 'lucide-react';
 import { useCustomers } from '@/hooks/use-customers';
 import PageTransition from '@/components/ui/PageTransition';
+import { Textarea } from '@/components/ui/textarea';
 
 // Form validation schema
 const customerFormSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
-  email: z.string().email('Email inválido'),
-  phone: z.string().min(1, 'Telefone é obrigatório'),
+  email: z.string().email('Email inválido').optional().or(z.literal('')),
+  phone: z.string().optional().or(z.literal('')),
   cpf: z.string().min(11, 'CPF precisa ter pelo menos 11 caracteres').max(14),
+  address: z.string().optional().or(z.literal('')),
 });
 
 // Form types
@@ -59,6 +60,7 @@ const Customers = () => {
       email: '',
       phone: '',
       cpf: '',
+      address: '',
     },
   });
 
@@ -70,6 +72,7 @@ const Customers = () => {
       email: '',
       phone: '',
       cpf: '',
+      address: '',
     },
   });
 
@@ -78,9 +81,10 @@ const Customers = () => {
     try {
       await addCustomer({
         name: data.name,
-        email: data.email,
-        phone: data.phone,
+        email: data.email || '',
+        phone: data.phone || '',
         cpf: data.cpf,
+        address: data.address,
       });
       
       toast({
@@ -103,9 +107,10 @@ const Customers = () => {
   const handleEdit = (customer: Customer) => {
     setSelectedCustomer(customer);
     editForm.setValue('name', customer.name);
-    editForm.setValue('email', customer.email);
-    editForm.setValue('phone', customer.phone);
+    editForm.setValue('email', customer.email || '');
+    editForm.setValue('phone', customer.phone || '');
     editForm.setValue('cpf', customer.cpf);
+    editForm.setValue('address', customer.address || '');
     setIsEditDialogOpen(true);
   };
 
@@ -116,9 +121,10 @@ const Customers = () => {
     try {
       await updateCustomer(selectedCustomer.id, {
         name: data.name,
-        email: data.email,
-        phone: data.phone,
+        email: data.email || '',
+        phone: data.phone || '',
         cpf: data.cpf,
+        address: data.address,
       });
       
       toast({
@@ -173,6 +179,10 @@ const Customers = () => {
     {
       accessorKey: 'cpf',
       header: 'CPF',
+    },
+    {
+      accessorKey: 'address',
+      header: 'Endereço',
     },
     {
       accessorKey: 'createdAt',
@@ -251,7 +261,7 @@ const Customers = () => {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nome</FormLabel>
+                      <FormLabel>Nome *</FormLabel>
                       <FormControl>
                         <Input placeholder="Nome completo" {...field} />
                       </FormControl>
@@ -290,9 +300,26 @@ const Customers = () => {
                   name="cpf"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>CPF</FormLabel>
+                      <FormLabel>CPF *</FormLabel>
                       <FormControl>
                         <Input placeholder="000.000.000-00" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={addForm.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Endereço</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Endereço completo" 
+                          className="resize-none" 
+                          {...field} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -322,7 +349,7 @@ const Customers = () => {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nome</FormLabel>
+                      <FormLabel>Nome *</FormLabel>
                       <FormControl>
                         <Input placeholder="Nome completo" {...field} />
                       </FormControl>
@@ -361,9 +388,26 @@ const Customers = () => {
                   name="cpf"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>CPF</FormLabel>
+                      <FormLabel>CPF *</FormLabel>
                       <FormControl>
                         <Input placeholder="000.000.000-00" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editForm.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Endereço</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Endereço completo" 
+                          className="resize-none" 
+                          {...field} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
