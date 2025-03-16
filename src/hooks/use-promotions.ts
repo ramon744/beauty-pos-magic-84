@@ -76,19 +76,6 @@ const initialPromotions: Promotion[] = [
     createdBy: '1', // Admin
     createdAt: new Date(2023, 5, 10), // June 10th
   },
-  {
-    id: '5',
-    name: 'Produtos de Tratamento com Desconto',
-    type: 'discount_percentage',
-    description: 'Desconto de 15% em produtos selecionados de tratamento',
-    discountPercent: 15,
-    productIds: ['3', '5', '6'], // Multiple products
-    startDate: new Date(2023, 6, 1), // July 1st
-    endDate: new Date(2023, 9, 30), // October 30th
-    isActive: true,
-    createdBy: '1', // Admin
-    createdAt: new Date(2023, 5, 25), // June 25th
-  },
 ];
 
 // Initialize data in localStorage if it doesn't exist
