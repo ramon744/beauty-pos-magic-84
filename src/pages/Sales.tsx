@@ -86,6 +86,8 @@ const Sales = () => {
   const [selectedPromotionId, setSelectedPromotionId] = useState<string | null>(null);
   const [discountToDelete, setDiscountToDelete] = useState<'manual' | 'promotion' | null>(null);
   
+  const [managerAuthCallback, setManagerAuthCallback] = useState<() => void>(() => () => {});
+
   const { data: products = [] } = useFetchProducts();
   const { data: promotions = [] } = useFetchPromotions();
 
@@ -338,6 +340,17 @@ const Sales = () => {
     }
     
     setProductIdToDelete(null);
+  };
+
+  const requestManagerAuth = (callback: () => void) => {
+    const executeAfterAuth = () => {
+      callback();
+      setIsManagerAuthOpen(false);
+    };
+    
+    setManagerAuthCallback(() => executeAfterAuth);
+    
+    setIsManagerAuthOpen(true);
   };
 
   const cartSubtotal = cart.reduce((total, item) => total + item.subtotal, 0);
@@ -878,6 +891,7 @@ const Sales = () => {
         onRemoveManualDiscount={removeDiscount}
         onRemovePromotion={removePromotion}
         onDeleteDiscount={handleDeleteDiscount}
+        onRequestAuth={requestManagerAuth}
       />
 
       <PromotionSelectionDialog

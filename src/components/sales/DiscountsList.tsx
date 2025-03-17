@@ -24,6 +24,7 @@ interface DiscountsListProps {
   onRemoveManualDiscount: () => void;
   onRemovePromotion: () => void;
   onDeleteDiscount: (discountType: 'manual' | 'promotion') => void;
+  onRequestAuth: (action: () => void) => void;
 }
 
 export const DiscountsList = ({
@@ -35,6 +36,7 @@ export const DiscountsList = ({
   onRemoveManualDiscount,
   onRemovePromotion,
   onDeleteDiscount,
+  onRequestAuth,
 }: DiscountsListProps) => {
   const { toast } = useToast();
 
@@ -44,6 +46,22 @@ export const DiscountsList = ({
     : null;
 
   const hasDiscounts = manualDiscount || appliedPromotion;
+
+  const handleRemoveManualDiscount = () => {
+    onRequestAuth(() => onRemoveManualDiscount());
+  };
+
+  const handleRemovePromotion = () => {
+    onRequestAuth(() => onRemovePromotion());
+  };
+
+  const handleDeleteAll = () => {
+    if (manualDiscount) {
+      onRequestAuth(() => onDeleteDiscount('manual'));
+    } else if (appliedPromotion) {
+      onRequestAuth(() => onDeleteDiscount('promotion'));
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -83,7 +101,7 @@ export const DiscountsList = ({
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-muted-foreground"
-                      onClick={onRemoveManualDiscount}
+                      onClick={handleRemoveManualDiscount}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -108,7 +126,7 @@ export const DiscountsList = ({
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-muted-foreground"
-                      onClick={onRemovePromotion}
+                      onClick={handleRemovePromotion}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -124,13 +142,7 @@ export const DiscountsList = ({
             <Button
               variant="destructive"
               className="sm:mr-auto"
-              onClick={() => {
-                if (manualDiscount) {
-                  onDeleteDiscount('manual');
-                } else if (appliedPromotion) {
-                  onDeleteDiscount('promotion');
-                }
-              }}
+              onClick={handleDeleteAll}
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Excluir Todos
