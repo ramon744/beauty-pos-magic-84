@@ -17,6 +17,7 @@ import { CartSection } from '@/components/sales/CartSection';
 import { SaleSummary } from '@/components/sales/SaleSummary';
 import { DiscountForm, discountFormSchema, DiscountFormValues } from '@/components/sales/DiscountForm';
 import { useProducts } from '@/hooks/use-products';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from '@mui/material';
 
 const Sales = () => {
   const isMobile = useIsMobile();
@@ -24,7 +25,6 @@ const Sales = () => {
   const { toast } = useToast();
   const { data: products = [] } = useProducts();
   
-  // Cart state and hooks
   const { 
     cart, 
     cartSubtotal, 
@@ -35,7 +35,6 @@ const Sales = () => {
     setCart 
   } = useCart();
   
-  // Product search hooks
   const { 
     searchQuery, 
     setSearchQuery, 
@@ -45,7 +44,6 @@ const Sales = () => {
     toggleScanner 
   } = useProductSearch(addProductToCart);
 
-  // Discounts hooks
   const { 
     manualDiscount, 
     appliedPromotion,
@@ -63,7 +61,6 @@ const Sales = () => {
     resetDiscounts,
   } = useDiscounts(cart, cartSubtotal);
 
-  // Dialog states
   const [isManagerAuthOpen, setIsManagerAuthOpen] = useState(false);
   const [productIdToDelete, setProductIdToDelete] = useState<string | null>(null);
   const [isDiscountDialogOpen, setIsDiscountDialogOpen] = useState(false);
@@ -72,7 +69,6 @@ const Sales = () => {
   const [discountToDelete, setDiscountToDelete] = useState<'manual' | 'promotion' | null>(null);
   const [managerAuthCallback, setManagerAuthCallback] = useState<() => void>(() => () => {});
 
-  // Discount form
   const discountForm = useForm<DiscountFormValues>({
     resolver: zodResolver(discountFormSchema),
     defaultValues: {
@@ -81,7 +77,6 @@ const Sales = () => {
     }
   });
 
-  // Auth and confirmation functions
   const handleManagerAuthConfirm = () => {
     if (managerAuthCallback) {
       managerAuthCallback();
@@ -119,7 +114,6 @@ const Sales = () => {
     setIsManagerAuthOpen(true);
   };
 
-  // Cart related functions
   const initiateRemoveFromCart = (productId: string) => {
     setProductIdToDelete(productId);
     setIsManagerAuthOpen(true);
@@ -153,7 +147,6 @@ const Sales = () => {
     doFinalizeSale();
   };
 
-  // Discount related functions
   const handleAddDiscount = () => {
     discountForm.reset({
       discountType: 'percentage',
@@ -164,8 +157,19 @@ const Sales = () => {
 
   const handleSubmitDiscount = (values: DiscountFormValues) => {
     setIsDiscountDialogOpen(false);
-    setProductIdToDelete("discount");
-    setIsManagerAuthOpen(true);
+    
+    if (user?.role === 'admin' || user?.role === 'manager') {
+      applyManualDiscount({
+        type: values.discountType,
+        value: values.discountValue
+      });
+    } else {
+      setProductIdToDelete("discount");
+      
+      discountForm.reset(values);
+      
+      setIsManagerAuthOpen(true);
+    }
   };
 
   const handleOpenPromotions = () => {
@@ -249,7 +253,6 @@ const Sales = () => {
         </div>
       </div>
 
-      {/* Dialogs */}
       <ManagerAuthDialog
         isOpen={isManagerAuthOpen}
         onClose={() => {
@@ -262,20 +265,40 @@ const Sales = () => {
         description="Esta operação requer autorização de um gerente ou administrador."
       />
 
-      <ManagerAuthDialog
-        isOpen={isDiscountDialogOpen}
-        onClose={() => setIsDiscountDialogOpen(false)}
-        onConfirm={discountForm.handleSubmit(handleSubmitDiscount)}
-        title="Adicionar Desconto"
-        description="Configure o tipo e valor do desconto a ser aplicado."
-        customFormId="discount-form"
-        customContent={
+      <Dialog 
+        open={isDiscountDialogOpen} 
+        onOpenChange={(open) => {
+          if (!open) setIsDiscountDialogOpen(false);
+        }}
+      >
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Adicionar Desconto</DialogTitle>
+            <DialogDescription>
+              Configure o tipo e valor do desconto a ser aplicado.
+            </DialogDescription>
+          </DialogHeader>
           <DiscountForm 
             form={discountForm} 
             onSubmit={handleSubmitDiscount} 
           />
-        }
-      />
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setIsDiscountDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              type="submit" 
+              form="discount-form"
+            >
+              Aplicar Desconto
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <DiscountsList 
         isOpen={isDiscountsListOpen}

@@ -5,14 +5,14 @@ import { Input } from '@/components/ui/input';
 import { UseFormReturn } from 'react-hook-form';
 import { z } from 'zod';
 
-const discountFormSchema = z.object({
+export const discountFormSchema = z.object({
   discountType: z.enum(['percentage', 'fixed']),
   discountValue: z.coerce.number()
-    .min(0, 'O valor do desconto deve ser maior que zero')
+    .min(0.01, 'O valor do desconto deve ser maior que zero')
     .max(100, { message: 'O percentual de desconto não pode ser maior que 100%' })
 });
 
-type DiscountFormValues = z.infer<typeof discountFormSchema>;
+export type DiscountFormValues = z.infer<typeof discountFormSchema>;
 
 interface DiscountFormProps {
   form: UseFormReturn<DiscountFormValues>;
@@ -74,10 +74,15 @@ export const DiscountForm: React.FC<DiscountFormProps> = ({ form, onSubmit }) =>
               <FormControl>
                 <Input 
                   type="number" 
-                  min="0" 
+                  min="0.01" 
                   max={form.watch('discountType') === 'percentage' ? "100" : undefined}
                   step="0.01"
                   {...field}
+                  onChange={(e) => {
+                    // Convert empty string to 0
+                    const value = e.target.value === '' ? '0' : e.target.value;
+                    field.onChange(parseFloat(value));
+                  }}
                 />
               </FormControl>
             </FormItem>
@@ -87,6 +92,3 @@ export const DiscountForm: React.FC<DiscountFormProps> = ({ form, onSubmit }) =>
     </Form>
   );
 };
-
-export { discountFormSchema };
-export type { DiscountFormValues };
