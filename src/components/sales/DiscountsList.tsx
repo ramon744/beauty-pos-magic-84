@@ -48,18 +48,34 @@ export const DiscountsList = ({
   const hasDiscounts = Boolean(manualDiscount || appliedPromotion);
 
   const handleRemoveManualDiscount = () => {
-    onRequestAuth(() => onRemoveManualDiscount());
+    onRemoveManualDiscount();
+    toast({
+      title: "Desconto removido",
+      description: "Desconto manual removido da venda"
+    });
   };
 
   const handleRemovePromotion = () => {
-    onRequestAuth(() => onRemovePromotion());
+    onRemovePromotion();
+    toast({
+      title: "Promoção removida",
+      description: "Promoção automática removida da venda"
+    });
   };
 
   const handleDeleteAll = () => {
     if (manualDiscount) {
-      onRequestAuth(() => onDeleteDiscount('manual'));
+      onDeleteDiscount('manual');
+      toast({
+        title: "Desconto excluído",
+        description: "Desconto manual excluído da venda"
+      });
     } else if (appliedPromotion) {
-      onRequestAuth(() => onDeleteDiscount('promotion'));
+      onDeleteDiscount('promotion');
+      toast({
+        title: "Promoção excluída",
+        description: "Promoção automática excluída da venda"
+      });
     }
   };
 

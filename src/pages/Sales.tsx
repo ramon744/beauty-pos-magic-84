@@ -102,6 +102,7 @@ const Sales = () => {
     }
     
     setProductIdToDelete(null);
+    setIsManagerAuthOpen(false);
   };
 
   const requestManagerAuth = (callback: () => void) => {
