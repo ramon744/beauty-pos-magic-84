@@ -14,18 +14,24 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { 
   ShoppingCart, ShoppingBag, Calendar, User, CreditCard, 
-  Percent, Gift, DollarSign 
+  Percent, Gift, DollarSign, Tag 
 } from 'lucide-react';
 import { Sale, CartItem, Customer, User as UserType, PaymentMethod, MixedPayment } from '@/types';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/formatters';
+import { useFetchProducts } from '@/hooks/use-products';
+import { useFetchPromotions } from '@/hooks/use-promotions';
 
 export const SalesHistoryList = () => {
   const [sales, setSales] = useState<Sale[]>([]);
   const [filteredSales, setFilteredSales] = useState<Sale[]>([]);
   const [timeFilter, setTimeFilter] = useState<'today' | 'week' | 'month' | 'all'>('all');
+  
+  // Fetch products and promotions
+  const { data: products = [] } = useFetchProducts();
+  const { data: promotions = [] } = useFetchPromotions();
 
   useEffect(() => {
     const loadSales = () => {
@@ -89,7 +95,21 @@ export const SalesHistoryList = () => {
   };
 
   const isMixedPayment = (paymentDetails: any): paymentDetails is MixedPayment => {
-    return paymentDetails && 'payments' in paymentDetails;
+    return paymentDetails && typeof paymentDetails === 'object' && 'payments' in paymentDetails;
+  };
+
+  const getProductName = (productId: string): string => {
+    const product = products.find(p => p.id === productId);
+    return product ? product.name : 'Produto não disponível';
+  };
+
+  const getPromotionDetails = (sale: Sale) => {
+    if (!sale.appliedPromotionId) return null;
+    
+    const promotion = promotions.find(p => p.id === sale.appliedPromotionId);
+    if (!promotion) return null;
+    
+    return promotion;
   };
 
   return (
@@ -112,7 +132,7 @@ export const SalesHistoryList = () => {
       ) : (
         <Accordion type="multiple" className="space-y-4">
           {filteredSales.map((sale) => (
-            <AccordionItem key={sale.id} value={sale.id} className="border rounded-lg overflow-hidden">
+            <AccordionItem key={sale.id} value={sale.id || ''} className="border rounded-lg overflow-hidden">
               <Card>
                 <CardHeader className="pb-0">
                   <AccordionTrigger className="flex justify-between w-full pt-0 pb-1">
@@ -176,7 +196,10 @@ export const SalesHistoryList = () => {
                           <TableBody>
                             {sale.items?.map((item, index) => item && (
                               <TableRow key={index}>
-                                <TableCell>{item.product?.name || 'Produto não disponível'}</TableCell>
+                                <TableCell>
+                                  {item.product?.name || 
+                                   (item.product?.id ? getProductName(item.product.id) : 'Produto não disponível')}
+                                </TableCell>
                                 <TableCell className="text-right">{item.quantity || 0}</TableCell>
                                 <TableCell className="text-right">{formatCurrency(item.price || 0)}</TableCell>
                                 <TableCell className="text-right">
@@ -190,6 +213,29 @@ export const SalesHistoryList = () => {
                           </TableBody>
                         </Table>
                       </div>
+                      
+                      {/* Applied Promotion Info */}
+                      {sale.appliedPromotionId && (
+                        <div className="border-b pb-4">
+                          <h4 className="font-semibold mb-2 flex items-center">
+                            <Tag className="h-4 w-4 mr-2" />
+                            Promoção Aplicada
+                          </h4>
+                          <div className="bg-muted p-3 rounded-md">
+                            {getPromotionDetails(sale) ? (
+                              <div className="text-sm">
+                                <div><span className="font-medium">Nome:</span> {getPromotionDetails(sale)?.name}</div>
+                                <div><span className="font-medium">Descrição:</span> {getPromotionDetails(sale)?.description}</div>
+                                <div><span className="font-medium">Desconto aplicado:</span> {formatCurrency(sale.promotionDiscountAmount || 0)}</div>
+                              </div>
+                            ) : (
+                              <div className="text-sm text-muted-foreground">
+                                Promoção aplicada (detalhes não disponíveis)
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                       
                       {/* Payment Information */}
                       <div className="border-b pb-4">
@@ -261,6 +307,14 @@ export const SalesHistoryList = () => {
                                 </div>
                               )}
                               
+                              {/* Manual discount authorization */}
+                              {sale.discount > 0 && sale.discountAuthorizedBy && (
+                                <div className="flex justify-between text-amber-600 text-xs italic">
+                                  <span>Desconto autorizado por:</span>
+                                  <span>{sale.discountAuthorizedBy.name || 'Não informado'}</span>
+                                </div>
+                              )}
+                              
                               <div className="flex justify-between font-bold pt-1 border-t">
                                 <span>Total:</span>
                                 <span>{formatCurrency(sale.finalTotal || 0)}</span>
@@ -274,7 +328,11 @@ export const SalesHistoryList = () => {
                       <div>
                         <h4 className="font-semibold mb-2">Informações Adicionais</h4>
                         <div className="text-sm grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {sale.seller && <div><span className="font-medium">Vendedor:</span> {sale.seller.name}</div>}
+                          {sale.seller && (
+                            <div>
+                              <span className="font-medium">Vendedor:</span> {sale.seller.name || 'Não informado'}
+                            </div>
+                          )}
                           <div><span className="font-medium">Data/Hora:</span> {formatDate(sale.createdAt)}</div>
                         </div>
                       </div>
