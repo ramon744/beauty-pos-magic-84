@@ -70,6 +70,7 @@ const Sales = () => {
   const [isDiscountsListOpen, setIsDiscountsListOpen] = useState(false);
   const [discountToDelete, setDiscountToDelete] = useState<'manual' | 'promotion' | null>(null);
   const [managerAuthCallback, setManagerAuthCallback] = useState<() => void>(() => () => {});
+  const [actionType, setActionType] = useState<'remove-item' | 'clear-cart' | 'apply-discount' | 'delete-discount' | null>(null);
 
   const discountForm = useForm<DiscountFormValues>({
     resolver: zodResolver(discountFormSchema),
@@ -80,29 +81,39 @@ const Sales = () => {
   });
 
   const handleManagerAuthConfirm = () => {
-    if (managerAuthCallback) {
+    // Close the dialog first
+    setIsManagerAuthOpen(false);
+    
+    // Perform the action based on the action type
+    if (managerAuthCallback && typeof managerAuthCallback === 'function') {
       managerAuthCallback();
-    } else if (productIdToDelete === "discount") {
+    } else if (actionType === 'apply-discount') {
       const { discountType, discountValue } = discountForm.getValues();
       applyManualDiscount({
         type: discountType,
         value: discountValue
       });
-    } else if (productIdToDelete === "clear-all") {
-      doFinalizeSale();
-    } else if (productIdToDelete === "delete-discount") {
+    } else if (actionType === 'clear-cart') {
+      clearCart();
+      resetDiscounts();
+      toast({
+        title: "Carrinho limpo",
+        description: "Todos os itens foram removidos"
+      });
+    } else if (actionType === 'delete-discount') {
       if (discountToDelete === 'manual') {
         removeDiscount();
       } else if (discountToDelete === 'promotion') {
         removePromotion();
       }
       setDiscountToDelete(null);
-    } else if (productIdToDelete) {
+    } else if (actionType === 'remove-item' && productIdToDelete) {
       removeFromCart(productIdToDelete);
     }
     
+    // Reset states
     setProductIdToDelete(null);
-    setIsManagerAuthOpen(false);
+    setActionType(null);
     setManagerAuthCallback(() => () => {});
   };
 
@@ -118,6 +129,7 @@ const Sales = () => {
 
   const initiateRemoveFromCart = (productId: string) => {
     setProductIdToDelete(productId);
+    setActionType('remove-item');
     setIsManagerAuthOpen(true);
   };
 
@@ -125,13 +137,14 @@ const Sales = () => {
     const result = updateCartItemQuantity(productId, newQuantity);
     if (result) {
       setProductIdToDelete(result);
+      setActionType('remove-item');
       setIsManagerAuthOpen(true);
     }
   };
 
   const handleClearCart = () => {
     if (cart.length > 0) {
-      setProductIdToDelete("clear-all");
+      setActionType('clear-cart');
       setIsManagerAuthOpen(true);
     }
   };
@@ -166,10 +179,8 @@ const Sales = () => {
         value: values.discountValue
       });
     } else {
-      setProductIdToDelete("discount");
-      
+      setActionType('apply-discount');
       discountForm.reset(values);
-      
       setIsManagerAuthOpen(true);
     }
   };
@@ -184,7 +195,7 @@ const Sales = () => {
 
   const handleDeleteDiscount = (discountType: 'manual' | 'promotion') => {
     setDiscountToDelete(discountType);
-    setProductIdToDelete("delete-discount");
+    setActionType('delete-discount');
     setIsDiscountsListOpen(false);
     setIsManagerAuthOpen(true);
   };
@@ -260,6 +271,7 @@ const Sales = () => {
         onClose={() => {
           setIsManagerAuthOpen(false);
           setProductIdToDelete(null);
+          setActionType(null);
           setManagerAuthCallback(() => () => {});
         }}
         onConfirm={handleManagerAuthConfirm}
