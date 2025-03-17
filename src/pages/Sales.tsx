@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -17,7 +18,8 @@ import { CartSection } from '@/components/sales/CartSection';
 import { SaleSummary } from '@/components/sales/SaleSummary';
 import { DiscountForm, discountFormSchema, DiscountFormValues } from '@/components/sales/DiscountForm';
 import { useProducts } from '@/hooks/use-products';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from '@mui/material';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 const Sales = () => {
   const isMobile = useIsMobile();
