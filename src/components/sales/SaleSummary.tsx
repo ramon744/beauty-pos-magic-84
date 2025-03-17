@@ -147,7 +147,9 @@ export const SaleSummary: React.FC<SaleSummaryProps> = ({
               </Badge>
             )}
           </Button>
-          
+        </div>
+        
+        <div className="flex gap-2 w-full">
           <Button 
             variant="outline" 
             className="flex-1"
