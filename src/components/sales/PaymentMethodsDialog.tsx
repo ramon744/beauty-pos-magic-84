@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -33,7 +32,6 @@ export const PaymentMethodsDialog: React.FC<PaymentMethodsDialogProps> = ({
   const [totalPaid, setTotalPaid] = useState<number>(0);
   const [isMixedPayment, setIsMixedPayment] = useState<boolean>(false);
   
-  // Reset form values when dialog opens or total changes
   useEffect(() => {
     if (isOpen) {
       setPaymentMethod('credit_card');
@@ -89,7 +87,6 @@ export const PaymentMethodsDialog: React.FC<PaymentMethodsDialogProps> = ({
     }
     
     if (amount > remaining) {
-      // If attempting to pay more than remaining, adjust to exact remaining amount
       setPaymentAmount(remaining.toFixed(2));
       return;
     }
@@ -105,20 +102,15 @@ export const PaymentMethodsDialog: React.FC<PaymentMethodsDialogProps> = ({
       const cashAmount = parseFloat(cashReceived);
       newPayment.cashReceived = cashAmount;
       
-      // Calculate change only if paying with cash and amount exceeds what's needed
       if (cashAmount > amount) {
         newPayment.change = cashAmount - amount;
       }
     }
     
-    // Add the new payment
     setMixedPayments([...mixedPayments, newPayment]);
-    
-    // Update total paid
     const newTotalPaid = totalPaid + amount;
     setTotalPaid(newTotalPaid);
     
-    // Reset form for next payment if needed
     if (newTotalPaid < total) {
       setPaymentAmount((total - newTotalPaid).toFixed(2));
       setCashReceived((total - newTotalPaid).toFixed(2));
@@ -160,7 +152,12 @@ export const PaymentMethodsDialog: React.FC<PaymentMethodsDialogProps> = ({
   };
   
   const isPaymentComplete = (): boolean => {
-    return totalPaid >= total || (!isMixedPayment && paymentMethod === 'cash' && parseFloat(cashReceived || '0') >= total);
+    if (!isMixedPayment) {
+      return paymentMethod === 'cash' ? parseFloat(cashReceived || '0') >= total : true;
+    } else {
+      const epsilon = 0.01;
+      return totalPaid >= total - epsilon;
+    }
   };
   
   const installmentOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
@@ -396,7 +393,7 @@ export const PaymentMethodsDialog: React.FC<PaymentMethodsDialogProps> = ({
           {isMixedPayment ? (
             <Button 
               onClick={handleMixedPaymentConfirm}
-              disabled={mixedPayments.length === 0 || totalPaid < total}
+              disabled={mixedPayments.length === 0 || !isPaymentComplete()}
             >
               Confirmar Pagamento
             </Button>
