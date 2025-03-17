@@ -1,0 +1,65 @@
+
+import React from 'react';
+import { ShoppingCart, Gift } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { CartItemTable } from './CartItemTable';
+import { formatPromotionBadge } from '@/utils/promotions-utils';
+import { Promotion } from '@/types';
+
+interface CartItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  category: string;
+  quantity: number;
+  subtotal: number;
+}
+
+interface CartSectionProps {
+  cart: CartItem[];
+  updateCartItemQuantity: (productId: string, newQuantity: number) => void;
+  initiateRemoveFromCart: (productId: string) => void;
+  handleOpenPromotions: () => void;
+  availablePromotions: Promotion[];
+}
+
+export const CartSection: React.FC<CartSectionProps> = ({ 
+  cart, 
+  updateCartItemQuantity, 
+  initiateRemoveFromCart,
+  handleOpenPromotions,
+  availablePromotions
+}) => {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg flex items-center justify-between">
+          <div className="flex items-center">
+            <ShoppingCart className="mr-2 h-5 w-5" />
+            Itens no Carrinho
+          </div>
+          {availablePromotions.length > 0 && (
+            <Badge 
+              variant="outline" 
+              className="ml-2 cursor-pointer bg-amber-50 text-amber-800 hover:bg-amber-100 border-amber-200"
+              onClick={handleOpenPromotions}
+            >
+              <Gift className="mr-1 h-3 w-3" />
+              {formatPromotionBadge(availablePromotions.length)}
+            </Badge>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <CartItemTable 
+          cart={cart} 
+          updateCartItemQuantity={updateCartItemQuantity}
+          initiateRemoveFromCart={initiateRemoveFromCart}
+        />
+      </CardContent>
+    </Card>
+  );
+};
