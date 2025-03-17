@@ -369,6 +369,9 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
             ...product,
             category: targetCategory,
             updatedAt: new Date()
+          }, {
+            onSuccess: () => {},
+            onError: () => {}
           });
         }
       }
@@ -450,6 +453,9 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
             ...product,
             category: targetCategory,
             updatedAt: new Date()
+          }, {
+            onSuccess: () => {},
+            onError: () => {}
           });
         }
       }
@@ -560,6 +566,9 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
             ...product,
             category: originalCategory,
             updatedAt: new Date()
+          }, {
+            onSuccess: () => {},
+            onError: () => {}
           });
           
           revertedCount++;
