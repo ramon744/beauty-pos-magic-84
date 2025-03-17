@@ -15,7 +15,7 @@ export const ProductSearchTable: React.FC<ProductSearchTableProps> = ({
   searchResults, 
   addProductToCart 
 }) => {
-  const productColumns: ColumnDef<any>[] = [
+  const productColumns: ColumnDef<Product>[] = [
     {
       accessorKey: 'name',
       header: 'Produto',

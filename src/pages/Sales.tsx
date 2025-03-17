@@ -92,10 +92,7 @@ const Sales = () => {
   } = useSalesDialogs();
 
   const handleCartItemQuantityUpdate = (productId: string, newQuantity: number) => {
-    const result = updateCartItemQuantity(productId, newQuantity);
-    if (result) {
-      initiateRemoveFromCart(result);
-    }
+    updateCartItemQuantity(productId, newQuantity);
   };
 
   const handleClearCart = () => {
