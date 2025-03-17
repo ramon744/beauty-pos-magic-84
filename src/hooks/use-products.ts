@@ -1,55 +1,70 @@
-import { useQuery } from '@tanstack/react-query';
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Product, Category } from '@/types';
+import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 
-// Mock data (temporary) - in a real app, you would fetch this from an API
-const MOCK_PRODUCTS: Product[] = [
-  {
-    id: '1',
-    name: 'Smartphone XYZ',
-    description: 'Latest model with advanced features',
-    code: 'SM001',
-    category: { id: '1', name: 'Electronics' },
-    salePrice: 1999.99,
-    costPrice: 1499.99,
-    stock: 15,
-    minimumStock: 5,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '2',
-    name: 'Laptop Pro',
-    description: 'High-performance laptop for professionals',
-    code: 'LP002',
-    category: { id: '1', name: 'Electronics' },
-    salePrice: 3499.99,
-    costPrice: 2799.99,
-    stock: 10,
-    minimumStock: 3,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '3',
-    name: 'Wireless Headphones',
-    description: 'Noise-cancelling wireless headphones',
-    code: 'WH003',
-    category: { id: '1', name: 'Electronics' },
-    salePrice: 299.99,
-    costPrice: 199.99,
-    stock: 25,
-    minimumStock: 8,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+// Get products from storage or use mock data if not available
+const getProductsFromStorage = (): Product[] => {
+  const storedProducts = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS);
+  if (storedProducts && storedProducts.length > 0) {
+    return storedProducts;
   }
-];
+  
+  // If no products in storage, use mock data
+  const mockProducts: Product[] = [
+    {
+      id: '1',
+      name: 'Smartphone XYZ',
+      description: 'Latest model with advanced features',
+      code: 'SM001',
+      category: { id: '1', name: 'Electronics' },
+      salePrice: 1999.99,
+      costPrice: 1499.99,
+      stock: 15,
+      minimumStock: 5,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    {
+      id: '2',
+      name: 'Laptop Pro',
+      description: 'High-performance laptop for professionals',
+      code: 'LP002',
+      category: { id: '1', name: 'Electronics' },
+      salePrice: 3499.99,
+      costPrice: 2799.99,
+      stock: 10,
+      minimumStock: 3,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    {
+      id: '3',
+      name: 'Wireless Headphones',
+      description: 'Noise-cancelling wireless headphones',
+      code: 'WH003',
+      category: { id: '1', name: 'Electronics' },
+      salePrice: 299.99,
+      costPrice: 199.99,
+      stock: 25,
+      minimumStock: 8,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+  ];
+  
+  // Initialize storage with mock data
+  storageService.setItem(STORAGE_KEYS.PRODUCTS, mockProducts);
+  return mockProducts;
+};
 
-// Function to fetch products (mock implementation)
+// Function to fetch products from storage
 const fetchProducts = async (): Promise<Product[]> => {
-  // Simulate API call
+  // Simulate API call delay
   return new Promise((resolve) => {
     setTimeout(() => {
-      resolve(MOCK_PRODUCTS);
+      const products = getProductsFromStorage();
+      resolve(products);
     }, 500);
   });
 };
@@ -73,7 +88,8 @@ export const useFetchProduct = (productId: string) => {
       // Simulate API call
       return new Promise<Product | undefined>((resolve) => {
         setTimeout(() => {
-          const product = MOCK_PRODUCTS.find(p => p.id === productId);
+          const products = getProductsFromStorage();
+          const product = products.find(p => p.id === productId);
           resolve(product);
         }, 300);
       });
@@ -82,12 +98,24 @@ export const useFetchProduct = (productId: string) => {
   });
 };
 
-// Mock categories data
-const MOCK_CATEGORIES: Category[] = [
-  { id: '1', name: 'Electronics' },
-  { id: '2', name: 'Clothing' },
-  { id: '3', name: 'Food & Beverages' }
-];
+// Get categories from storage or use mock data if not available
+const getCategoriesFromStorage = (): Category[] => {
+  const storedCategories = storageService.getItem<Category[]>(STORAGE_KEYS.CATEGORIES);
+  if (storedCategories && storedCategories.length > 0) {
+    return storedCategories;
+  }
+  
+  // If no categories in storage, use mock data
+  const mockCategories: Category[] = [
+    { id: '1', name: 'Electronics' },
+    { id: '2', name: 'Clothing' },
+    { id: '3', name: 'Food & Beverages' }
+  ];
+  
+  // Initialize storage with mock data
+  storageService.setItem(STORAGE_KEYS.CATEGORIES, mockCategories);
+  return mockCategories;
+};
 
 // Hook to fetch categories
 export const useCategories = () => {
@@ -97,62 +125,145 @@ export const useCategories = () => {
       // Simulate API call
       return new Promise<Category[]>((resolve) => {
         setTimeout(() => {
-          resolve(MOCK_CATEGORIES);
+          const categories = getCategoriesFromStorage();
+          resolve(categories);
         }, 300);
       });
     },
   });
 };
 
-// Mocked save product function
+// Improved save product function that updates localStorage
 export const useSaveProduct = () => {
-  return {
-    mutate: (product: Product, options: any) => {
-      setTimeout(() => {
-        console.log('Saving product:', product);
-        options.onSuccess?.();
-      }, 500);
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (product: Product) => {
+      return new Promise<Product>((resolve) => {
+        setTimeout(() => {
+          console.log('Saving product:', product);
+          
+          // Get current products from storage
+          const products = getProductsFromStorage();
+          
+          // Find if product already exists
+          const existingProductIndex = products.findIndex(p => p.id === product.id);
+          
+          if (existingProductIndex >= 0) {
+            // Update existing product
+            products[existingProductIndex] = product;
+          } else {
+            // Add new product
+            products.push(product);
+          }
+          
+          // Save updated products to storage
+          storageService.setItem(STORAGE_KEYS.PRODUCTS, products);
+          
+          resolve(product);
+        }, 500);
+      });
     },
-    isPending: false
-  };
+    onSuccess: () => {
+      // Invalidate queries to refetch data
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product'] });
+      queryClient.invalidateQueries({ queryKey: ['productStats'] });
+    }
+  });
 };
 
-// Mocked delete product function
+// Improved delete product function that updates localStorage
 export const useDeleteProduct = () => {
-  return {
-    mutate: (productId: string, options: any) => {
-      setTimeout(() => {
-        console.log('Deleting product:', productId);
-        options.onSuccess?.();
-      }, 500);
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (productId: string) => {
+      return new Promise<string>((resolve) => {
+        setTimeout(() => {
+          console.log('Deleting product:', productId);
+          
+          // Get current products from storage
+          const products = getProductsFromStorage();
+          
+          // Filter out the deleted product
+          const updatedProducts = products.filter(p => p.id !== productId);
+          
+          // Save updated products to storage
+          storageService.setItem(STORAGE_KEYS.PRODUCTS, updatedProducts);
+          
+          resolve(productId);
+        }, 500);
+      });
     },
-    isPending: false
-  };
+    onSuccess: () => {
+      // Invalidate queries to refetch data
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['productStats'] });
+    }
+  });
 };
 
-// Mock function for stock adjustment
+// Improved stock adjustment function that updates localStorage
 export const useStockAdjustment = () => {
-  return {
-    mutate: (data: { productId: string, quantity: number, reason: string }, options: any) => {
-      setTimeout(() => {
-        console.log('Adjusting stock:', data);
-        options.onSuccess?.();
-      }, 500);
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (data: { productId: string, quantity: number, reason: string }) => {
+      return new Promise<typeof data>((resolve) => {
+        setTimeout(() => {
+          console.log('Adjusting stock:', data);
+          
+          // Get current products from storage
+          const products = getProductsFromStorage();
+          
+          // Find the product to adjust
+          const productIndex = products.findIndex(p => p.id === data.productId);
+          
+          if (productIndex >= 0) {
+            // Update product stock
+            products[productIndex].stock += data.quantity;
+            products[productIndex].updatedAt = new Date();
+            
+            // Save updated products to storage
+            storageService.setItem(STORAGE_KEYS.PRODUCTS, products);
+            
+            // Record stock history if needed
+            const stockHistory = storageService.getItem<any[]>(STORAGE_KEYS.STOCKS) || [];
+            stockHistory.push({
+              id: crypto.randomUUID(),
+              productId: data.productId,
+              date: new Date(),
+              quantity: data.quantity,
+              type: data.quantity > 0 ? 'increase' : 'decrease',
+              reason: data.reason
+            });
+            storageService.setItem(STORAGE_KEYS.STOCKS, stockHistory);
+          }
+          
+          resolve(data);
+        }, 500);
+      });
     },
-    isPending: false
-  };
+    onSuccess: () => {
+      // Invalidate queries to refetch data
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['stockHistory'] });
+      queryClient.invalidateQueries({ queryKey: ['productStats'] });
+    }
+  });
 };
 
-// Mock function for stock history
+// Updated stock history function to use localStorage
 export const useStockHistory = (productId: string) => {
   return useQuery({
     queryKey: ['stockHistory', productId],
     queryFn: async () => {
       return new Promise<any[]>((resolve) => {
         setTimeout(() => {
-          resolve([
-            { id: '1', date: new Date(), quantity: 5, type: 'increase', reason: 'Initial stock' }
-          ]);
+          const stockHistory = storageService.getItem<any[]>(STORAGE_KEYS.STOCKS) || [];
+          const productHistory = stockHistory.filter(item => item.productId === productId);
+          resolve(productHistory);
         }, 300);
       });
     },
@@ -160,7 +271,7 @@ export const useStockHistory = (productId: string) => {
   });
 };
 
-// Updated statistics calculation
+// Updated statistics calculation using real data from storage
 export const useStatistics = () => {
   const { data: products } = useFetchProducts();
   const { data: categories } = useCategories();
