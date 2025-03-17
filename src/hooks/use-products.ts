@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { Product, Category } from '@/types';
 
@@ -161,23 +160,30 @@ export const useStockHistory = (productId: string) => {
   });
 };
 
-// Mock statistics data
+// Updated statistics calculation
 export const useStatistics = () => {
+  const { data: products } = useFetchProducts();
+  const { data: categories } = useCategories();
+
   return useQuery({
     queryKey: ['productStats'],
     queryFn: async () => {
-      return new Promise<any>(resolve => {
-        setTimeout(() => {
-          resolve({
-            lowStock: 2,
-            outOfStock: 1,
-            totalProducts: MOCK_PRODUCTS.length,
-            productsByCategory: [
-              { category: 'Electronics', count: 3 }
-            ]
-          });
-        }, 300);
-      });
-    }
+      // Calculate actual statistics based on products data
+      const stats = {
+        totalProducts: products?.length || 0,
+        stockValue: products?.reduce((total, product) => total + (product.stock * product.costPrice), 0) || 0,
+        outOfStock: products?.filter(product => product.stock === 0).length || 0,
+        categories: categories?.length || 0,
+        lowStock: products?.filter(product => 
+          product.minimumStock !== undefined && 
+          product.stock > 0 && 
+          product.stock <= product.minimumStock
+        ).length || 0,
+      };
+      
+      return stats;
+    },
+    // Ensure the statistics are recalculated when products or categories change
+    enabled: !!products && !!categories,
   });
 };

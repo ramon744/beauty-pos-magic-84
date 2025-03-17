@@ -12,6 +12,7 @@ interface ProductStatistics {
   stockValue: number;
   outOfStock: number;
   categories: number;
+  lowStock: number;
 }
 
 export function ProductStats() {
