@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -17,6 +18,8 @@ import { CartSection } from '@/components/sales/CartSection';
 import { SaleSummary } from '@/components/sales/SaleSummary';
 import { DiscountForm, discountFormSchema, DiscountFormValues } from '@/components/sales/DiscountForm';
 import { useProducts } from '@/hooks/use-products';
+import { PaymentMethodsDialog, PaymentDetails } from '@/components/sales/PaymentMethodsDialog';
+import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 
 const Sales = () => {
   const isMobile = useIsMobile();
@@ -68,6 +71,7 @@ const Sales = () => {
   const [isDiscountDialogOpen, setIsDiscountDialogOpen] = useState(false);
   const [isPromotionDialogOpen, setIsPromotionDialogOpen] = useState(false);
   const [isDiscountsListOpen, setIsDiscountsListOpen] = useState(false);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [discountToDelete, setDiscountToDelete] = useState<'manual' | 'promotion' | null>(null);
   const [managerAuthCallback, setManagerAuthCallback] = useState<() => void>(() => () => {});
 
@@ -138,12 +142,55 @@ const Sales = () => {
     resetDiscounts();
   };
 
-  const finalizeSale = () => {
+  const handleOpenPaymentDialog = () => {
+    setIsPaymentDialogOpen(true);
+  };
+  
+  const handlePaymentConfirm = (paymentDetails: PaymentDetails) => {
+    // In a real app, this would save the order to a database
+    const order = {
+      id: Date.now().toString(),
+      items: cart,
+      customer: linkedCustomer,
+      paymentMethod: paymentDetails.method,
+      total: cartSubtotal,
+      discount: totalDiscountAmount,
+      finalTotal: cartTotal,
+      paymentDetails: paymentDetails,
+      seller: user,
+      createdAt: new Date()
+    };
+    
+    // Save the order in localStorage for now
+    const orders = storageService.getItem<any[]>(STORAGE_KEYS.ORDERS) || [];
+    orders.push(order);
+    storageService.setItem(STORAGE_KEYS.ORDERS, orders);
+    
+    let confirmationMessage = `Venda finalizada: R$ ${cartTotal.toFixed(2)}`;
+    
+    if (paymentDetails.method === 'credit_card' && paymentDetails.installments && paymentDetails.installments > 1) {
+      confirmationMessage += ` em ${paymentDetails.installments}x`;
+    } else if (paymentDetails.method === 'cash' && paymentDetails.change && paymentDetails.change > 0) {
+      confirmationMessage += ` | Troco: R$ ${paymentDetails.change.toFixed(2)}`;
+    }
+    
+    if (linkedCustomer) {
+      confirmationMessage += ` | Cliente: ${linkedCustomer.name}`;
+    }
+    
     toast({
-      title: "Venda finalizada",
-      description: `Total: R$ ${cartTotal.toFixed(2)}${linkedCustomer ? ` - Cliente: ${linkedCustomer.name}` : ''}`
+      title: "Pagamento confirmado",
+      description: confirmationMessage
     });
+    
+    setIsPaymentDialogOpen(false);
     doFinalizeSale();
+  };
+
+  const finalizeSale = () => {
+    if (cart.length > 0) {
+      handleOpenPaymentDialog();
+    }
   };
 
   const handleAddDiscount = () => {
@@ -292,6 +339,13 @@ const Sales = () => {
         selectedPromotionId={selectedPromotionId}
         onSelectPromotion={handleSelectPromotion}
         products={products}
+      />
+      
+      <PaymentMethodsDialog
+        isOpen={isPaymentDialogOpen}
+        onClose={() => setIsPaymentDialogOpen(false)}
+        onConfirm={handlePaymentConfirm}
+        total={cartTotal}
       />
     </div>
   );

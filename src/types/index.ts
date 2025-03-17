@@ -1,3 +1,4 @@
+
 // User roles
 export type UserRole = 'admin' | 'manager' | 'employee';
 
@@ -74,6 +75,14 @@ export interface Customer {
 // Payment method
 export type PaymentMethod = 'cash' | 'credit_card' | 'debit_card' | 'pix' | 'transfer';
 
+// Payment details
+export interface PaymentDetails {
+  method: PaymentMethod;
+  installments?: number;
+  cashReceived?: number;
+  change?: number;
+}
+
 // Cart item
 export interface CartItem {
   product: Product;
@@ -88,6 +97,7 @@ export interface Sale {
   items: CartItem[];
   customer?: Customer;
   paymentMethod: PaymentMethod;
+  paymentDetails?: PaymentDetails;
   total: number;
   discount: number;
   finalTotal: number;
