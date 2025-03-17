@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -39,7 +40,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import { X, Calendar as CalendarIcon, Search } from 'lucide-react';
+import { X, Calendar as CalendarIcon, Search, ShoppingBag, Gift, Percent, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Command,
