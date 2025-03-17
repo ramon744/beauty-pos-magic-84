@@ -251,6 +251,11 @@ export function calculatePromotionDiscount(
     discountAmount = promotion.maxDiscountPerPurchase;
   }
   
+  // Ensure discountAmount is a valid number to prevent toFixed errors
+  if (isNaN(discountAmount)) {
+    discountAmount = 0;
+  }
+  
   return {
     promotionId: promotion.id,
     discountAmount,

@@ -12,7 +12,8 @@ import {
   X,
   Percent,
   Tag,
-  Gift
+  Gift,
+  List
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +30,7 @@ import { useFetchPromotions } from '@/hooks/use-promotions';
 import { Product, CartItem as CartItemType } from '@/types';
 import { ManagerAuthDialog } from '@/components/auth/ManagerAuthDialog';
 import { PromotionSelectionDialog } from '@/components/sales/PromotionSelectionDialog';
+import { DiscountsList } from '@/components/sales/DiscountsList';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -80,7 +82,9 @@ const Sales = () => {
   const [manualDiscount, setManualDiscount] = useState<{type: 'percentage' | 'fixed', value: number} | null>(null);
   const [isDiscountDialogOpen, setIsDiscountDialogOpen] = useState(false);
   const [isPromotionDialogOpen, setIsPromotionDialogOpen] = useState(false);
+  const [isDiscountsListOpen, setIsDiscountsListOpen] = useState(false);
   const [selectedPromotionId, setSelectedPromotionId] = useState<string | null>(null);
+  const [discountToDelete, setDiscountToDelete] = useState<'manual' | 'promotion' | null>(null);
   
   const { data: products = [] } = useFetchProducts();
   const { data: promotions = [] } = useFetchPromotions();
@@ -104,10 +108,8 @@ const Sales = () => {
           id: item.id,
           name: item.name,
           description: item.description,
-          salePrice: item.price,
-          costPrice: 0,
+          price: item.price,
           stock: item.stock,
-          code: '',
           category: { id: '', name: item.category },
           createdAt: new Date(),
           updatedAt: new Date()
@@ -312,10 +314,25 @@ const Sales = () => {
         title: "Desconto aplicado",
         description: discountType === 'percentage' 
           ? `Desconto de ${discountValue}% aplicado`
-          : `Desconto de R$ ${discountValue.toFixed(2)} aplicado`
+          : `Desconto de R$ ${Number(discountValue).toFixed(2)} aplicado`
       });
     } else if (productIdToDelete === "clear-all") {
       doClearCart();
+    } else if (productIdToDelete === "delete-discount") {
+      if (discountToDelete === 'manual') {
+        setManualDiscount(null);
+        toast({
+          title: "Desconto removido",
+          description: "Desconto manual removido com sucesso."
+        });
+      } else if (discountToDelete === 'promotion') {
+        setSelectedPromotionId(null);
+        toast({
+          title: "Promoção removida",
+          description: "Promoção removida com sucesso."
+        });
+      }
+      setDiscountToDelete(null);
     } else if (productIdToDelete) {
       removeFromCart(productIdToDelete);
     }
@@ -496,6 +513,17 @@ const Sales = () => {
       title: "Promoção removida",
       description: "Promoção automática removida da venda"
     });
+  };
+
+  const handleShowDiscountsList = () => {
+    setIsDiscountsListOpen(true);
+  };
+
+  const handleDeleteDiscount = (discountType: 'manual' | 'promotion') => {
+    setDiscountToDelete(discountType);
+    setProductIdToDelete("delete-discount");
+    setIsDiscountsListOpen(false);
+    setIsManagerAuthOpen(true);
   };
 
   return (
@@ -734,6 +762,15 @@ const Sales = () => {
                 <Button 
                   variant="outline" 
                   className="flex-1"
+                  onClick={handleShowDiscountsList}
+                >
+                  <List className="mr-1 h-4 w-4" />
+                  Listar
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
                   disabled={cart.length === 0}
                   onClick={clearCart}
                 >
@@ -830,6 +867,17 @@ const Sales = () => {
             </form>
           </Form>
         }
+      />
+
+      <DiscountsList 
+        isOpen={isDiscountsListOpen}
+        onClose={() => setIsDiscountsListOpen(false)}
+        manualDiscount={manualDiscount}
+        appliedPromotion={appliedPromotion}
+        promotions={promotions}
+        onRemoveManualDiscount={removeDiscount}
+        onRemovePromotion={removePromotion}
+        onDeleteDiscount={handleDeleteDiscount}
       />
 
       <PromotionSelectionDialog
