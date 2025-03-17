@@ -1,3 +1,4 @@
+
 // User roles
 export type UserRole = 'admin' | 'manager' | 'employee';
 
@@ -67,6 +68,8 @@ export interface Customer {
   addressNumber?: string; // Added house/building number
   addressComplement?: string; // Added address complement
   cep?: string; // CEP/Postal code
+  orderCount?: number; // Number of orders
+  totalSpent?: number; // Total amount spent
   createdAt: Date;
   updatedAt: Date;
 }

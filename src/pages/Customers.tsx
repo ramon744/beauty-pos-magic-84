@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { Customer } from '@/types';
+import { Customer, Sale } from '@/types';
 import { 
   Dialog, 
   DialogContent, 
@@ -27,10 +27,13 @@ import { useForm } from 'react-hook-form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Edit, Trash2, UserPlus, Search } from 'lucide-react';
+import { Edit, Trash2, UserPlus, Search, ShoppingBag } from 'lucide-react';
 import { useCustomers } from '@/hooks/use-customers';
 import PageTransition from '@/components/ui/PageTransition';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { formatCurrency } from '@/lib/formatters';
+import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 
 const customerFormSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
@@ -52,6 +55,7 @@ const Customers = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isSearchingCEP, setIsSearchingCEP] = useState(false);
+  const [customersWithOrderData, setCustomersWithOrderData] = useState<Customer[]>([]);
 
   const addForm = useForm<CustomerFormValues>({
     resolver: zodResolver(customerFormSchema),
@@ -80,6 +84,28 @@ const Customers = () => {
       addressComplement: '',
     },
   });
+
+  useEffect(() => {
+    if (customers.length > 0) {
+      const orders = storageService.getItem<Sale[]>(STORAGE_KEYS.ORDERS) || [];
+      
+      const enrichedCustomers = customers.map(customer => {
+        const customerOrders = orders.filter(order => order.customer?.id === customer.id);
+        const orderCount = customerOrders.length;
+        const totalSpent = customerOrders.reduce((total, order) => total + order.finalTotal, 0);
+        
+        return {
+          ...customer,
+          orderCount,
+          totalSpent
+        };
+      });
+      
+      setCustomersWithOrderData(enrichedCustomers);
+    } else {
+      setCustomersWithOrderData([]);
+    }
+  }, [customers]);
 
   const handleCEPSearchAdd = async () => {
     const cep = addForm.getValues('cep');
@@ -256,6 +282,31 @@ const Customers = () => {
       header: 'CPF',
     },
     {
+      id: 'orderCount',
+      header: 'Pedidos',
+      cell: ({ row }) => {
+        const orderCount = row.original.orderCount || 0;
+        return (
+          <div className="flex items-center">
+            <ShoppingBag className="mr-2 h-4 w-4 text-muted-foreground" />
+            <span>{orderCount}</span>
+          </div>
+        );
+      },
+    },
+    {
+      id: 'totalSpent',
+      header: 'Total Gasto',
+      cell: ({ row }) => {
+        const totalSpent = row.original.totalSpent || 0;
+        return (
+          <Badge variant={totalSpent > 0 ? "default" : "outline"} className={totalSpent > 0 ? "bg-green-500" : ""}>
+            {formatCurrency(totalSpent)}
+          </Badge>
+        );
+      },
+    },
+    {
       accessorKey: 'address',
       header: 'Endereço',
       cell: ({ row }) => {
@@ -327,7 +378,7 @@ const Customers = () => {
           <TabsContent value="customers" className="mt-6">
             <DataTable 
               columns={columns} 
-              data={customers} 
+              data={customersWithOrderData} 
               searchColumn="name"
               searchPlaceholder="Buscar por nome..."
             />
