@@ -177,7 +177,7 @@ const InventoryControl = () => {
         reason: adjustmentReason || `Ajuste de estoque (${adjustmentType})`
       },
       {
-        onSuccess: ({ updatedProduct, historyEntry }) => {
+        onSuccess: () => {
           const actionMap = {
             'balance': 'Balanço',
             'add': 'Entrada',
@@ -697,3 +697,4 @@ const InventoryControl = () => {
 };
 
 export default InventoryControl;
+
