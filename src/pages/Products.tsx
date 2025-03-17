@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import ProductsList from '@/components/products/ProductsList';
 import ProductForm from '@/components/products/ProductForm';
 import { Button } from '@/components/ui/button';
@@ -10,11 +11,32 @@ import ExpirationControl from '@/components/products/ExpirationControl';
 import InventoryControl from '@/components/products/InventoryControl';
 import { useFetchProducts } from '@/hooks/use-products';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/components/ui/use-toast';
 
 const Products = () => {
   const [activeTab, setActiveTab] = useState('list');
   const [editProductId, setEditProductId] = useState<string | null>(null);
-  const { data: products } = useFetchProducts();
+  const { data: products, isLoading, error } = useFetchProducts();
+  const { toast } = useToast();
+
+  // Check for data loading issues
+  useEffect(() => {
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao carregar produtos",
+        description: "Ocorreu um erro ao carregar a lista de produtos."
+      });
+    }
+    
+    if (!isLoading && (!products || products.length === 0)) {
+      toast({
+        variant: "destructive",
+        title: "Sem produtos encontrados",
+        description: "Não foram encontrados produtos cadastrados no sistema."
+      });
+    }
+  }, [isLoading, products, error, toast]);
 
   const handleNewProduct = () => {
     setEditProductId(null);

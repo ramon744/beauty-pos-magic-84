@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Product, Category } from '@/types';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
@@ -146,6 +147,7 @@ const initialProducts: Product[] = [
 
 // Initialize data in localStorage if it doesn't exist
 const initializeData = () => {
+  // Ensure we use the correct storage keys
   storageService.initialize({
     [STORAGE_KEYS.PRODUCTS]: initialProducts,
     [STORAGE_KEYS.CATEGORIES]: initialCategories,
@@ -184,14 +186,31 @@ const updateStatistics = () => {
   return statistics;
 };
 
-// Initialize data
-initializeData();
+// Initialize data - ensure this runs only once on module load
+// Check if data already exists before initializing
+const initializeIfNeeded = () => {
+  const existingProducts = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS);
+  if (!existingProducts || existingProducts.length === 0) {
+    initializeData();
+    console.log("Initialized product data in localStorage");
+  }
+};
+
+// Run initialization
+initializeIfNeeded();
 
 // Hook for fetching all products
 export function useFetchProducts() {
   return useQuery({
     queryKey: ['products'],
     queryFn: async () => {
+      // Ensure data is initialized if empty
+      const products = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS);
+      if (!products || products.length === 0) {
+        initializeData();
+        console.log("Re-initialized product data during fetch");
+      }
+      
       // Fetch from localStorage
       return storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
     },

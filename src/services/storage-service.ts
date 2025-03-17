@@ -12,10 +12,10 @@ export interface StorageService {
 
 // Define storage keys centrally to maintain consistency
 export const STORAGE_KEYS = {
-  PRODUCTS: 'products',
-  CATEGORIES: 'categories',
-  PRODUCTS_STATISTICS: 'products-statistics',
-  STOCK_HISTORY: 'stock-history',
+  PRODUCTS: 'makeup-pos-products',
+  CATEGORIES: 'makeup-pos-categories',
+  PRODUCTS_STATISTICS: 'makeup-pos-products-statistics',
+  STOCK_HISTORY: 'makeup-pos-stock-history',
   PROMOTIONS: 'promotions',
   PROMOTIONS_STATISTICS: 'promotions-statistics',
   CUSTOMERS: 'customers',
