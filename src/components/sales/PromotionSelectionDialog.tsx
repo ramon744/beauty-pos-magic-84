@@ -1,4 +1,3 @@
-
 import React, { useMemo } from "react";
 import {
   Dialog,
@@ -36,9 +35,7 @@ export const PromotionSelectionDialog = ({
 }: PromotionSelectionDialogProps) => {
   if (!promotions.length) return null;
 
-  // Create cart items for discount calculation preview
   const cartItems = useMemo(() => {
-    // Get all unique product IDs from all promotions
     const relevantProductIds = new Set<string>();
     
     promotions.forEach(promo => {
@@ -47,7 +44,6 @@ export const PromotionSelectionDialog = ({
       if (promo.productIds) promo.productIds.forEach(id => relevantProductIds.add(id));
       if (promo.bundleProducts) promo.bundleProducts.forEach(id => relevantProductIds.add(id));
       
-      // If category-based, add all products from that category
       if (promo.categoryId) {
         products.forEach(product => {
           if (product.category.id === promo.categoryId) {
@@ -57,7 +53,6 @@ export const PromotionSelectionDialog = ({
       }
     });
     
-    // Create cart items for all relevant products
     return Array.from(relevantProductIds).map(id => {
       const product = products.find(p => p.id === id);
       if (!product) return null;
@@ -161,13 +156,11 @@ export const PromotionSelectionDialog = ({
     }
   };
 
-  // Calculate estimated savings for each promotion
   const getEstimatedSavings = (promotion: Promotion) => {
     const result = calculatePromotionDiscount(cartItems, promotion, products);
     return result.discountAmount > 0 ? formatCurrency(result.discountAmount) : "";
   };
 
-  // Sort promotions by discount amount (highest first)
   const sortedPromotions = useMemo(() => {
     return [...promotions].sort((a, b) => {
       const savingsA = calculatePromotionDiscount(cartItems, a, products).discountAmount;
@@ -288,3 +281,4 @@ export const PromotionSelectionDialog = ({
     </Dialog>
   );
 };
+

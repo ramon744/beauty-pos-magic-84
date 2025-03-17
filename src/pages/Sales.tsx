@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -17,11 +16,13 @@ import { ProductSearch } from '@/components/sales/ProductSearch';
 import { CartSection } from '@/components/sales/CartSection';
 import { SaleSummary } from '@/components/sales/SaleSummary';
 import { DiscountForm, discountFormSchema, DiscountFormValues } from '@/components/sales/DiscountForm';
+import { useProducts } from '@/hooks/use-products';
 
 const Sales = () => {
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { data: products = [] } = useProducts();
   
   // Cart state and hooks
   const { 
@@ -290,7 +291,7 @@ const Sales = () => {
         promotions={availablePromotions}
         selectedPromotionId={selectedPromotionId}
         onSelectPromotion={handleSelectPromotion}
-        products={availablePromotions}
+        products={products}
       />
     </div>
   );
