@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
+import { Customer } from '@/types';
 
 export interface CartItem {
   id: string;
@@ -29,10 +30,25 @@ export const useCart = () => {
     const savedCart = storageService.getItem<CartItem[]>(STORAGE_KEYS.CART);
     return savedCart || [];
   });
+  
+  // Adicionar estado para o cliente associado à venda
+  const [linkedCustomer, setLinkedCustomer] = useState<Customer | null>(() => {
+    const savedCustomer = storageService.getItem<Customer>(STORAGE_KEYS.CART_CUSTOMER);
+    return savedCustomer;
+  });
 
   useEffect(() => {
     storageService.setItem(STORAGE_KEYS.CART, cart);
   }, [cart]);
+  
+  // Salvar o cliente vinculado no localStorage
+  useEffect(() => {
+    if (linkedCustomer) {
+      storageService.setItem(STORAGE_KEYS.CART_CUSTOMER, linkedCustomer);
+    } else {
+      storageService.removeItem(STORAGE_KEYS.CART_CUSTOMER);
+    }
+  }, [linkedCustomer]);
 
   const addProductToCart = (product: Product, qty: number) => {
     if (!product || qty <= 0) return;
@@ -94,9 +110,26 @@ export const useCart = () => {
 
   const clearCart = () => {
     setCart([]);
+    setLinkedCustomer(null);
     toast({
       title: "Carrinho limpo",
       description: "Todos os itens foram removidos"
+    });
+  };
+
+  const linkCustomer = (customer: Customer) => {
+    setLinkedCustomer(customer);
+    toast({
+      title: "Cliente vinculado",
+      description: `${customer.name} foi vinculado à venda`
+    });
+  };
+
+  const unlinkCustomer = () => {
+    setLinkedCustomer(null);
+    toast({
+      title: "Cliente removido",
+      description: "Cliente foi desvinculado da venda"
     });
   };
 
@@ -105,10 +138,13 @@ export const useCart = () => {
   return {
     cart,
     cartSubtotal,
+    linkedCustomer,
     addProductToCart,
     updateCartItemQuantity,
     removeFromCart,
     clearCart,
+    linkCustomer,
+    unlinkCustomer,
     setCart
   };
 };

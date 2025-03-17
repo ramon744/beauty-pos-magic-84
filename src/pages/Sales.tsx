@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -28,11 +29,14 @@ const Sales = () => {
   const { 
     cart, 
     cartSubtotal, 
+    linkedCustomer,
     addProductToCart, 
     updateCartItemQuantity, 
     removeFromCart, 
     clearCart, 
-    setCart 
+    setCart,
+    linkCustomer,
+    unlinkCustomer
   } = useCart();
   
   // Product search hooks
@@ -145,7 +149,7 @@ const Sales = () => {
   const finalizeSale = () => {
     toast({
       title: "Venda finalizada",
-      description: `Total: R$ ${cartTotal.toFixed(2)}`
+      description: `Total: R$ ${cartTotal.toFixed(2)}${linkedCustomer ? ` - Cliente: ${linkedCustomer.name}` : ''}`
     });
     doFinalizeSale();
   };
@@ -217,10 +221,13 @@ const Sales = () => {
 
           <CartSection 
             cart={cart}
+            linkedCustomer={linkedCustomer}
             updateCartItemQuantity={handleCartItemQuantityUpdate}
             initiateRemoveFromCart={initiateRemoveFromCart}
             handleOpenPromotions={handleOpenPromotions}
             availablePromotions={availablePromotions}
+            onLinkCustomer={linkCustomer}
+            onUnlinkCustomer={unlinkCustomer}
           />
         </div>
 

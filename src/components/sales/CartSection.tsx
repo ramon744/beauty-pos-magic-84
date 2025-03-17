@@ -1,11 +1,12 @@
 
 import React from 'react';
-import { ShoppingCart, Gift } from 'lucide-react';
+import { ShoppingCart, Gift, UserRound } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CartItemTable } from './CartItemTable';
+import { CustomerLinking } from './CustomerLinking';
 import { formatPromotionBadge } from '@/utils/promotions-utils';
-import { Promotion } from '@/types';
+import { Promotion, Customer } from '@/types';
 
 interface CartItem {
   id: string;
@@ -20,18 +21,24 @@ interface CartItem {
 
 interface CartSectionProps {
   cart: CartItem[];
+  linkedCustomer: Customer | null;
   updateCartItemQuantity: (productId: string, newQuantity: number) => void;
   initiateRemoveFromCart: (productId: string) => void;
   handleOpenPromotions: () => void;
   availablePromotions: Promotion[];
+  onLinkCustomer: (customer: Customer) => void;
+  onUnlinkCustomer: () => void;
 }
 
 export const CartSection: React.FC<CartSectionProps> = ({ 
   cart, 
+  linkedCustomer,
   updateCartItemQuantity, 
   initiateRemoveFromCart,
   handleOpenPromotions,
-  availablePromotions
+  availablePromotions,
+  onLinkCustomer,
+  onUnlinkCustomer
 }) => {
   return (
     <Card>
@@ -54,6 +61,12 @@ export const CartSection: React.FC<CartSectionProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent>
+        <CustomerLinking 
+          linkedCustomer={linkedCustomer}
+          onLinkCustomer={onLinkCustomer}
+          onUnlinkCustomer={onUnlinkCustomer}
+        />
+        
         <CartItemTable 
           cart={cart} 
           updateCartItemQuantity={updateCartItemQuantity}
