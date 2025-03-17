@@ -26,6 +26,13 @@ export function useBarcodeScan(onBarcodeDetected: BarcodeScanCallback) {
   const handleKeyDown = (e: KeyboardEvent) => {
     if (!isActive.current) return;
     
+    // Don't capture if it's inside a text input element (except for Enter key)
+    if (e.key !== 'Enter' && 
+        (e.target instanceof HTMLInputElement || 
+         e.target instanceof HTMLTextAreaElement)) {
+      return;
+    }
+    
     const currentTime = new Date().getTime();
     
     // If it's been more than 100ms since the last keypress, clear the buffer
