@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -40,7 +39,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import { X, Calendar as CalendarIcon, Search, ShoppingBag, Gift, Percent, Tag } from 'lucide-react';
+import { X, Calendar as CalendarIcon, Search, ShoppingBag, Gift, Percent, Tag, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Command,
@@ -64,6 +63,7 @@ const promotionFormSchema = z.object({
   secondaryProductDiscount: z.coerce.number().optional(),
   bundlePrice: z.coerce.number().optional(),
   productId: z.string().optional(),
+  productIds: z.array(z.string()).optional(),
   categoryId: z.string().optional(),
   startDate: z.date(),
   endDate: z.date(),
@@ -87,7 +87,8 @@ const promotionFormSchema = z.object({
     return false;
   }
   
-  if (['discount_percentage', 'discount_value'].includes(data.type) && !data.productId && !data.categoryId) {
+  if (['discount_percentage', 'discount_value'].includes(data.type) && 
+      !data.productId && !data.categoryId && (!data.productIds || data.productIds.length === 0)) {
     return false;
   }
   
@@ -117,11 +118,14 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
   const { user } = useAuth();
   
   const [selectedBundleProducts, setSelectedBundleProducts] = useState<string[]>([]);
+  const [selectedMultipleProducts, setSelectedMultipleProducts] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [multipleProductSearchQuery, setMultipleProductSearchQuery] = useState('');
   const [productSearchQuery, setProductSearchQuery] = useState('');
   const [secondaryProductSearchQuery, setSecondaryProductSearchQuery] = useState('');
   const [productSearchOpen, setProductSearchOpen] = useState(false);
   const [secondaryProductSearchOpen, setSecondaryProductSearchOpen] = useState(false);
+  const [multipleProductSearchOpen, setMultipleProductSearchOpen] = useState(false);
 
   const form = useForm<PromotionFormValues>({
     resolver: zodResolver(promotionFormSchema),
@@ -138,6 +142,7 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
       secondaryProductDiscount: 100,
       bundlePrice: undefined,
       productId: undefined,
+      productIds: [],
       categoryId: undefined,
       startDate: new Date(),
       endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
@@ -170,6 +175,10 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
         setSelectedBundleProducts(promotion.bundleProducts);
       }
       
+      if (promotion.productIds) {
+        setSelectedMultipleProducts(promotion.productIds);
+      }
+      
       form.reset({
         name: promotion.name,
         description: promotion.description,
@@ -183,6 +192,7 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
         secondaryProductDiscount: promotion.secondaryProductDiscount ?? 100,
         bundlePrice: promotion.bundlePrice,
         productId: promotion.productId,
+        productIds: promotion.productIds || [],
         categoryId: promotion.categoryId,
         startDate: new Date(promotion.startDate),
         endDate: new Date(promotion.endDate),
@@ -207,6 +217,10 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
       ? selectedBundleProducts 
       : undefined;
     
+    const productIds = ['discount_percentage', 'discount_value'].includes(data.type) 
+      ? selectedMultipleProducts.length > 0 ? selectedMultipleProducts : undefined
+      : undefined;
+    
     const promotionToSave: Promotion = {
       id: promotionId || crypto.randomUUID(),
       name: data.name,
@@ -225,6 +239,7 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
         (['discount_percentage', 'discount_value'].includes(data.type) && data.productId) 
         ? data.productId 
         : undefined,
+      productIds: productIds,
       categoryId: ['discount_percentage', 'discount_value'].includes(data.type) && data.categoryId 
         ? data.categoryId 
         : undefined,
@@ -271,6 +286,22 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
     form.setValue('bundleProducts', updatedProducts);
   };
 
+  const handleSelectMultipleProduct = (productId: string) => {
+    if (!selectedMultipleProducts.includes(productId)) {
+      const updatedProducts = [...selectedMultipleProducts, productId];
+      setSelectedMultipleProducts(updatedProducts);
+      form.setValue('productIds', updatedProducts);
+    }
+    setMultipleProductSearchQuery('');
+    setMultipleProductSearchOpen(false);
+  };
+
+  const handleRemoveMultipleProduct = (productId: string) => {
+    const updatedProducts = selectedMultipleProducts.filter(id => id !== productId);
+    setSelectedMultipleProducts(updatedProducts);
+    form.setValue('productIds', updatedProducts);
+  };
+
   const filteredProducts = products?.filter(product => {
     if (!searchQuery) return true;
     
@@ -285,6 +316,16 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
     if (!productSearchQuery) return true;
     
     const query = productSearchQuery.toLowerCase();
+    return (
+      product.name.toLowerCase().includes(query) ||
+      product.code.toLowerCase().includes(query)
+    );
+  });
+
+  const filteredMultipleProductsForSearch = products?.filter(product => {
+    if (!multipleProductSearchQuery) return true;
+    
+    const query = multipleProductSearchQuery.toLowerCase();
     return (
       product.name.toLowerCase().includes(query) ||
       product.code.toLowerCase().includes(query)
@@ -492,22 +533,24 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                       <h3 className="text-sm font-medium">Aplicar em:</h3>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                       <FormField
                         control={form.control}
                         name="productId"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Produto Específico</FormLabel>
+                            <FormLabel>Produto Único</FormLabel>
                             <Select
                               value={field.value}
                               onValueChange={(value) => {
                                 field.onChange(value);
                                 if (value) {
                                   form.setValue('categoryId', undefined);
+                                  setSelectedMultipleProducts([]);
+                                  form.setValue('productIds', []);
                                 }
                               }}
-                              disabled={!!form.watch('categoryId')}
+                              disabled={!!form.watch('categoryId') || selectedMultipleProducts.length > 0}
                             >
                               <FormControl>
                                 <SelectTrigger>
@@ -539,9 +582,11 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                                 field.onChange(value);
                                 if (value) {
                                   form.setValue('productId', undefined);
+                                  setSelectedMultipleProducts([]);
+                                  form.setValue('productIds', []);
                                 }
                               }}
-                              disabled={!!form.watch('productId')}
+                              disabled={!!form.watch('productId') || selectedMultipleProducts.length > 0}
                             >
                               <FormControl>
                                 <SelectTrigger>
@@ -560,12 +605,93 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                           </FormItem>
                         )}
                       />
+                      
+                      <div>
+                        <FormLabel>Múltiplos Produtos</FormLabel>
+                        <div className="relative mt-2">
+                          <Popover open={multipleProductSearchOpen} onOpenChange={setMultipleProductSearchOpen}>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={multipleProductSearchOpen}
+                                className="w-full justify-between"
+                                disabled={!!form.watch('productId') || !!form.watch('categoryId')}
+                              >
+                                <span className="truncate">
+                                  {selectedMultipleProducts.length > 0 
+                                    ? `${selectedMultipleProducts.length} produtos` 
+                                    : "Selecionar produtos"}
+                                </span>
+                                <Plus className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[300px] p-0" align="start">
+                              <Command>
+                                <CommandInput 
+                                  placeholder="Buscar produtos..." 
+                                  value={multipleProductSearchQuery}
+                                  onValueChange={setMultipleProductSearchQuery}
+                                />
+                                <CommandList>
+                                  <CommandEmpty>Nenhum produto encontrado</CommandEmpty>
+                                  <CommandGroup>
+                                    {filteredMultipleProductsForSearch?.map(product => (
+                                      <CommandItem
+                                        key={product.id}
+                                        value={product.id}
+                                        onSelect={() => handleSelectMultipleProduct(product.id)}
+                                        disabled={selectedMultipleProducts.includes(product.id)}
+                                      >
+                                        <div className="flex flex-col">
+                                          <span>{product.name}</span>
+                                          <span className="text-xs text-muted-foreground">
+                                            Código: {product.code} | {formatCurrency(product.salePrice)}
+                                          </span>
+                                        </div>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </div>
                     </div>
                     
-                    {!form.watch('productId') && !form.watch('categoryId') && (
+                    {!form.watch('productId') && !form.watch('categoryId') && selectedMultipleProducts.length === 0 && (
                       <p className="text-sm text-destructive">
-                        Selecione um produto ou uma categoria.
+                        Selecione um produto, vários produtos ou uma categoria.
                       </p>
+                    )}
+                    
+                    {selectedMultipleProducts.length > 0 && (
+                      <div className="mt-2">
+                        <h4 className="text-sm font-medium mb-2">Produtos selecionados:</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedMultipleProducts.map(productId => {
+                            const product = products?.find(p => p.id === productId);
+                            return product ? (
+                              <Badge 
+                                key={product.id} 
+                                variant="secondary"
+                                className="px-2 py-1 flex items-center gap-1"
+                              >
+                                {product.name}
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-5 w-5 p-0" 
+                                  onClick={() => handleRemoveMultipleProduct(product.id)}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </Badge>
+                            ) : null;
+                          })}
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -587,6 +713,37 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                         <div className="font-semibold text-green-600">
                           {formatCurrency(selectedProduct.salePrice - ((selectedProduct.salePrice * (form.watch('discountPercent') || 0)) / 100))}
                         </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {selectedMultipleProducts.length > 0 && (
+                  <Card className="overflow-hidden border-2 border-green-100 shadow-md">
+                    <div className="bg-gradient-to-r from-green-50 to-blue-50 px-4 py-2 border-b">
+                      <h4 className="font-medium text-green-800">Prévia do Desconto para Múltiplos Produtos</h4>
+                    </div>
+                    <CardContent className="p-4 bg-white">
+                      <p className="text-sm mb-3">
+                        Aplicando desconto de {form.watch('discountPercent')}% em {selectedMultipleProducts.length} produtos selecionados.
+                      </p>
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {selectedMultipleProducts.map(productId => {
+                          const product = products?.find(p => p.id === productId);
+                          if (!product) return null;
+                          
+                          const discount = (product.salePrice * (form.watch('discountPercent') || 0)) / 100;
+                          const finalPrice = product.salePrice - discount;
+                          
+                          return (
+                            <div key={product.id} className="grid grid-cols-4 gap-2 text-sm p-2 border-b">
+                              <div className="font-medium">{product.name}</div>
+                              <div>{formatCurrency(product.salePrice)}</div>
+                              <div className="text-destructive">-{formatCurrency(discount)}</div>
+                              <div className="text-green-600">{formatCurrency(finalPrice)}</div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </CardContent>
                   </Card>
@@ -622,22 +779,24 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                       <h3 className="text-sm font-medium">Aplicar em:</h3>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                       <FormField
                         control={form.control}
                         name="productId"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Produto Específico</FormLabel>
+                            <FormLabel>Produto Único</FormLabel>
                             <Select
                               value={field.value}
                               onValueChange={(value) => {
                                 field.onChange(value);
                                 if (value) {
                                   form.setValue('categoryId', undefined);
+                                  setSelectedMultipleProducts([]);
+                                  form.setValue('productIds', []);
                                 }
                               }}
-                              disabled={!!form.watch('categoryId')}
+                              disabled={!!form.watch('categoryId') || selectedMultipleProducts.length > 0}
                             >
                               <FormControl>
                                 <SelectTrigger>
@@ -669,9 +828,11 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                                 field.onChange(value);
                                 if (value) {
                                   form.setValue('productId', undefined);
+                                  setSelectedMultipleProducts([]);
+                                  form.setValue('productIds', []);
                                 }
                               }}
-                              disabled={!!form.watch('productId')}
+                              disabled={!!form.watch('productId') || selectedMultipleProducts.length > 0}
                             >
                               <FormControl>
                                 <SelectTrigger>
@@ -690,590 +851,25 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                           </FormItem>
                         )}
                       />
-                    </div>
-                    
-                    {!form.watch('productId') && !form.watch('categoryId') && (
-                      <p className="text-sm text-destructive">
-                        Selecione um produto ou uma categoria.
-                      </p>
-                    )}
-                  </div>
-                </div>
-                
-                {selectedProduct && (
-                  <Card className="overflow-hidden border-2 border-blue-100 shadow-md">
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-2 border-b">
-                      <h4 className="font-medium text-blue-800">Prévia do Desconto</h4>
-                    </div>
-                    <CardContent className="p-4 bg-white">
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div className="text-gray-600">Preço Original:</div>
-                        <div className="font-semibold">{formatCurrency(selectedProduct.salePrice)}</div>
-                        <div className="text-gray-600">Desconto:</div>
-                        <div className="font-semibold text-destructive">
-                          -{formatCurrency(form.watch('discountValue') || 0)}
-                        </div>
-                        <div className="text-gray-600">Preço Final:</div>
-                        <div className="font-semibold text-green-600">
-                          {formatCurrency(Math.max(0, selectedProduct.salePrice - (form.watch('discountValue') || 0)))}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-                
-                {selectedCategory && (
-                  <div className="text-sm">
-                    Aplicando desconto de {formatCurrency(form.watch('discountValue') || 0)} em todos os produtos da categoria <strong>{selectedCategory.name}</strong>.
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {promotionType === 'fixed_price' && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="fixedPrice"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Preço Fixo (R$)</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="0.01" step="0.01" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="productId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Produto</FormLabel>
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione um produto" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {products?.map((product) => (
-                              <SelectItem key={product.id} value={product.id}>
-                                {product.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                {selectedProduct && (
-                  <Card className="overflow-hidden border-2 border-amber-100 shadow-md">
-                    <div className="bg-gradient-to-r from-amber-50 to-yellow-50 px-4 py-2 border-b">
-                      <h4 className="font-medium text-amber-800">Prévia do Preço Promocional</h4>
-                    </div>
-                    <CardContent className="p-4 bg-white">
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div className="text-gray-600">Preço Original:</div>
-                        <div className="font-semibold">{formatCurrency(selectedProduct.salePrice)}</div>
-                        <div className="text-gray-600">Preço Promocional:</div>
-                        <div className="font-semibold text-green-600">
-                          {formatCurrency(form.watch('fixedPrice') || 0)}
-                        </div>
-                        <div className="text-gray-600">Economia:</div>
-                        <div className="font-semibold text-destructive">
-                          {selectedProduct.salePrice > (form.watch('fixedPrice') || 0) ? 
-                            `-${formatCurrency(selectedProduct.salePrice - (form.watch('fixedPrice') || 0))}` : 
-                            'Sem economia'}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            )}
-            
-            {promotionType === 'buy_x_get_y' && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <FormLabel>Produto Principal</FormLabel>
-                    <div className="relative">
-                      <Popover open={productSearchOpen} onOpenChange={setProductSearchOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={productSearchOpen}
-                            className="w-full justify-between"
-                          >
-                            {selectedProduct ? selectedProduct.name : "Buscar produto..."}
-                            <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[300px] p-0">
-                          <Command>
-                            <CommandInput 
-                              placeholder="Buscar por nome ou código" 
-                              value={productSearchQuery}
-                              onValueChange={setProductSearchQuery}
-                            />
-                            <CommandList>
-                              <CommandEmpty>Nenhum produto encontrado</CommandEmpty>
-                              <CommandGroup>
-                                {filteredProductsForSearch?.map(product => (
-                                  <CommandItem
-                                    key={product.id}
-                                    value={product.id}
-                                    onSelect={() => handleSelectProduct(product.id)}
-                                  >
-                                    <div className="flex flex-col">
-                                      <span>{product.name}</span>
-                                      <span className="text-xs text-muted-foreground">
-                                        Código: {product.code} | {formatCurrency(product.salePrice)}
-                                      </span>
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    {!selectedProduct && (
-                      <p className="text-sm text-destructive">
-                        Selecione um produto para a promoção
-                      </p>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <FormLabel>Produto Secundário (Opcional)</FormLabel>
-                    <div className="relative">
-                      <Popover open={secondaryProductSearchOpen} onOpenChange={setSecondaryProductSearchOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={secondaryProductSearchOpen}
-                            className="w-full justify-between"
-                          >
-                            {selectedSecondaryProduct ? selectedSecondaryProduct.name : "Mesmo produto ou buscar outro..."}
-                            <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[300px] p-0">
-                          <Command>
-                            <CommandInput 
-                              placeholder="Buscar por nome ou código" 
-                              value={secondaryProductSearchQuery}
-                              onValueChange={setSecondaryProductSearchQuery}
-                            />
-                            <CommandList>
-                              <CommandEmpty>Nenhum produto encontrado</CommandEmpty>
-                              <CommandGroup>
-                                {filteredSecondaryProductsForSearch?.map(product => (
-                                  <CommandItem
-                                    key={product.id}
-                                    value={product.id}
-                                    onSelect={() => handleSelectSecondaryProduct(product.id)}
-                                  >
-                                    <div className="flex flex-col">
-                                      <span>{product.name}</span>
-                                      <span className="text-xs text-muted-foreground">
-                                        Código: {product.code} | {formatCurrency(product.salePrice)}
-                                      </span>
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="buyQuantity"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Compre Quantidade</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="1" step="1" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="getQuantity"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Leve Quantidade</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="1" step="1" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="secondaryProductDiscount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Desconto no Produto (%)</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="1" max="100" step="1" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          100% = Grátis
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                {selectedProduct && (
-                  <Card className="overflow-hidden border-2 border-purple-100 shadow-md">
-                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 px-4 py-2 border-b">
-                      <h4 className="font-medium text-purple-800">Prévia da Promoção</h4>
-                    </div>
-                    <CardContent className="p-4 bg-white">
-                      <div className="space-y-3 text-sm">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="p-1.5 rounded-full bg-purple-100">
-                            <ShoppingBag className="h-4 w-4 text-purple-600" />
-                          </div>
-                          <p className="font-medium">Comprando {form.watch('buyQuantity')} unidades de <span className="text-purple-700 font-semibold">{selectedProduct.name}</span></p>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <div className="p-1.5 rounded-full bg-pink-100">
-                            <Gift className="h-4 w-4 text-pink-600" />
-                          </div>
-                          {selectedSecondaryProduct ? (
-                            <p>
-                              O cliente leva {form.watch('getQuantity')} unidades de <span className="text-pink-700 font-semibold">{selectedSecondaryProduct.name}</span> com <span className="font-semibold">{form.watch('secondaryProductDiscount')}%</span> de desconto.
-                            </p>
-                          ) : (
-                            <p>
-                              O cliente leva {form.watch('getQuantity')} unidades adicionais do mesmo produto com <span className="font-semibold">{form.watch('secondaryProductDiscount')}%</span> de desconto.
-                            </p>
-                          )}
-                        </div>
-                        
-                        {form.watch('secondaryProductDiscount') === 100 && (
-                          <div className="mt-2 p-2 bg-green-50 border border-green-100 rounded-md text-center">
-                            <p className="font-medium text-green-600">
-                              Produto com 100% de desconto = GRÁTIS!
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            )}
-            
-            {promotionType === 'bundle' && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="bundlePrice"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Preço do Pacote (R$)</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="0.01" step="0.01" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <div>
-                    <div className="mb-2">
-                      <FormLabel className="block mb-2">Produtos no Pacote</FormLabel>
-                      <div className="flex gap-2 items-center">
-                        <Input
-                          placeholder="Buscar por nome ou código..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          className="flex-1"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="mt-2 space-y-2">
-                      {selectedBundleProducts.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {selectedBundleProducts.map(productId => {
-                            const product = products?.find(p => p.id === productId);
-                            return product ? (
-                              <Badge 
-                                key={product.id} 
-                                variant="secondary"
-                                className="px-2 py-1 flex items-center gap-1"
-                              >
-                                {product.name} ({formatCurrency(product.salePrice)})
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="h-5 w-5 p-0" 
-                                  onClick={() => handleRemoveBundleProduct(product.id)}
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              </Badge>
-                            ) : null;
-                          })}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-destructive">
-                          Adicione pelo menos dois produtos ao pacote
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                {searchQuery && (
-                  <Card className="mt-2">
-                    <CardContent className="p-2">
-                      <div className="max-h-[200px] overflow-y-auto">
-                        {filteredProducts && filteredProducts.length > 0 ? (
-                          <div className="space-y-1">
-                            {filteredProducts.map(product => (
+                      
+                      <div>
+                        <FormLabel>Múltiplos Produtos</FormLabel>
+                        <div className="relative mt-2">
+                          <Popover open={multipleProductSearchOpen} onOpenChange={setMultipleProductSearchOpen}>
+                            <PopoverTrigger asChild>
                               <Button
-                                key={product.id}
-                                variant="ghost"
-                                className="w-full justify-start text-left"
-                                onClick={() => handleSelectBundleProduct(product.id)}
-                                disabled={selectedBundleProducts.includes(product.id)}
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={multipleProductSearchOpen}
+                                className="w-full justify-between"
+                                disabled={!!form.watch('productId') || !!form.watch('categoryId')}
                               >
-                                <div className="flex flex-col items-start">
-                                  <span>{product.name}</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    Código: {product.code} | {formatCurrency(product.salePrice)}
-                                  </span>
-                                </div>
+                                <span className="truncate">
+                                  {selectedMultipleProducts.length > 0 
+                                    ? `${selectedMultipleProducts.length} produtos` 
+                                    : "Selecionar produtos"}
+                                </span>
+                                <Plus className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground p-2">
-                            Nenhum produto encontrado
-                          </p>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-                
-                {selectedBundleProducts.length > 0 && (
-                  <Card className="overflow-hidden border-2 border-indigo-100 shadow-md">
-                    <div className="bg-gradient-to-r from-indigo-50 to-blue-50 px-4 py-2 border-b">
-                      <h4 className="font-medium text-indigo-800">Resumo do Pacote</h4>
-                    </div>
-                    <CardContent className="p-4 bg-white">
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div className="text-gray-600">Valor Total dos Produtos:</div>
-                        <div className="font-semibold">{formatCurrency(getBundleTotalValue())}</div>
-                        <div className="text-gray-600">Preço do Pacote:</div>
-                        <div className="font-semibold text-green-600">
-                          {formatCurrency(form.watch('bundlePrice') || 0)}
-                        </div>
-                        <div className="text-gray-600">Economia:</div>
-                        <div className="font-semibold text-destructive">
-                          -{formatCurrency(getBundleTotalValue() - (form.watch('bundlePrice') || 0))}
-                        </div>
-                        <div className="text-gray-600">Desconto Percentual:</div>
-                        <div className="font-semibold">
-                          <Badge variant="outline" className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100">
-                            {getBundleDiscountPercentage()}%
-                          </Badge>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="settings" className="space-y-6 py-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <FormLabel>Período da Promoção</FormLabel>
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="startDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Data Inicial</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  formatDate(field.value)
-                                ) : (
-                                  <span>Selecione a data</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="endDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Data Final</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  formatDate(field.value)
-                                ) : (
-                                  <span>Selecione a data</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="isActive"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">Ativar Promoção</FormLabel>
-                        <FormDescription>
-                          A promoção será aplicada automaticamente aos produtos compatíveis
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="maxDiscountPerPurchase"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Desconto Máximo por Compra (R$)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          min="0.01" 
-                          step="0.01" 
-                          placeholder="Sem limite" 
-                          {...field}
-                          value={field.value || ''}
-                          onChange={e => {
-                            const value = e.target.value ? parseFloat(e.target.value) : undefined;
-                            field.onChange(value);
-                          }}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Opcional. Deixe em branco para não aplicar limite.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-            
-            <div className="pt-6">
-              <Button type="submit" className="w-full md:w-auto" disabled={saving}>
-                {saving ? (
-                  <>
-                    <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-                    {promotionId ? 'Atualizando...' : 'Criando...'}
-                  </>
-                ) : (
-                  promotionId ? 'Atualizar Promoção' : 'Criar Promoção'
-                )}
-              </Button>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </form>
-    </Form>
-  );
-}
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[300px]

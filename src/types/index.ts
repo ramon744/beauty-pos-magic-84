@@ -1,4 +1,3 @@
-
 // User roles
 export type UserRole = 'admin' | 'manager' | 'employee';
 
@@ -118,7 +117,7 @@ export interface Promotion {
   bundleProducts?: string[];
   bundlePrice?: number;
   productId?: string;
-  productIds?: string[]; // Novo campo para múltiplos produtos
+  productIds?: string[]; // Field for multiple products
   secondaryProductId?: string; // Added for "buy X get Y" with different products
   secondaryProductDiscount?: number; // Added discount percentage for secondary product
   categoryId?: string;

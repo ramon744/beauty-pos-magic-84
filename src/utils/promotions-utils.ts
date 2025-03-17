@@ -85,22 +85,39 @@ export function calculatePromotionDiscount(
         const matchesCategory = promotion.categoryId && item.product.category.id === promotion.categoryId;
         
         if (matchesProduct || matchesMultipleProducts || matchesCategory) {
-          // Distribute the discount proportionally to the quantity
-          const itemDiscount = Math.min(
-            item.price * item.quantity,
-            (promotion.discountValue || 0) * (item.quantity / cartItems.reduce(
-              (total, i) => {
-                const itemMatches = 
-                  (matchesProduct && i.product.id === item.product.id) ||
-                  (matchesMultipleProducts && promotion.productIds?.includes(i.product.id)) ||
-                  (matchesCategory && i.product.category.id === item.product.category.id);
-                
-                return itemMatches ? total + i.quantity : total;
-              }, 0
-            ))
-          );
-          discountAmount += itemDiscount;
-          appliedItems.push(item.product.id);
+          // For multiple products, distribute the discount proportionally based on item price
+          if (matchesMultipleProducts) {
+            const relevantItems = cartItems.filter(ci => 
+              promotion.productIds?.includes(ci.product.id)
+            );
+            
+            const totalRelevantItemsValue = relevantItems.reduce(
+              (sum, ci) => sum + (ci.price * ci.quantity), 0
+            );
+            
+            // Calculate proportional discount for this item
+            const itemProportion = (item.price * item.quantity) / totalRelevantItemsValue;
+            const itemDiscount = itemProportion * (promotion.discountValue || 0);
+            
+            discountAmount += itemDiscount;
+            appliedItems.push(item.product.id);
+          } else {
+            // For single product or category, use original logic
+            const itemDiscount = Math.min(
+              item.price * item.quantity,
+              (promotion.discountValue || 0) * (item.quantity / cartItems.reduce(
+                (total, i) => {
+                  const itemMatches = 
+                    (matchesProduct && i.product.id === item.product.id) ||
+                    (matchesCategory && i.product.category.id === item.product.category.id);
+                  
+                  return itemMatches ? total + i.quantity : total;
+                }, 0
+              ))
+            );
+            discountAmount += itemDiscount;
+            appliedItems.push(item.product.id);
+          }
         }
       });
       break;
