@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useFetchProducts } from '@/hooks/use-products';
@@ -64,6 +63,10 @@ export const useDiscounts = (cart: CartItem[], cartSubtotal: number) => {
 
   const appliedPromotion = useMemo((): AppliedPromotion | null => {
     if (cart.length === 0 || availablePromotions.length === 0) return null;
+    
+    if (selectedPromotionId === null && cart.length > 0) {
+      return null;
+    }
     
     if (selectedPromotionId) {
       const selectedPromotion = availablePromotions.find(p => p.id === selectedPromotionId);

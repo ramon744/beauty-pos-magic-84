@@ -83,7 +83,9 @@ const Sales = () => {
 
   // Auth and confirmation functions
   const handleManagerAuthConfirm = () => {
-    if (productIdToDelete === "discount") {
+    if (managerAuthCallback) {
+      managerAuthCallback();
+    } else if (productIdToDelete === "discount") {
       const { discountType, discountValue } = discountForm.getValues();
       applyManualDiscount({
         type: discountType,
@@ -104,6 +106,7 @@ const Sales = () => {
     
     setProductIdToDelete(null);
     setIsManagerAuthOpen(false);
+    setManagerAuthCallback(() => () => {});
   };
 
   const requestManagerAuth = (callback: () => void) => {
@@ -252,6 +255,7 @@ const Sales = () => {
         onClose={() => {
           setIsManagerAuthOpen(false);
           setProductIdToDelete(null);
+          setManagerAuthCallback(() => () => {});
         }}
         onConfirm={handleManagerAuthConfirm}
         title="Autenticação Gerencial"
@@ -292,6 +296,7 @@ const Sales = () => {
         selectedPromotionId={selectedPromotionId}
         onSelectPromotion={handleSelectPromotion}
         products={products}
+        requestManagerAuth={requestManagerAuth}
       />
     </div>
   );

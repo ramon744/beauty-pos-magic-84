@@ -1,3 +1,4 @@
+
 import React, { useMemo } from "react";
 import {
   Dialog,
@@ -23,6 +24,7 @@ interface PromotionSelectionDialogProps {
   selectedPromotionId: string | null;
   onSelectPromotion: (promotionId: string | null) => void;
   products: Product[];
+  requestManagerAuth: (callback: () => void) => void;
 }
 
 export const PromotionSelectionDialog = ({
@@ -32,6 +34,7 @@ export const PromotionSelectionDialog = ({
   selectedPromotionId,
   onSelectPromotion,
   products,
+  requestManagerAuth,
 }: PromotionSelectionDialogProps) => {
   if (!promotions.length) return null;
 
@@ -169,6 +172,17 @@ export const PromotionSelectionDialog = ({
     });
   }, [promotions, cartItems, products]);
 
+  const handleSelectPromotion = (promotionId: string | null) => {
+    if (promotionId === null && selectedPromotionId !== null) {
+      // If selecting "no discount" and a promotion was previously selected,
+      // request manager authentication
+      requestManagerAuth(() => onSelectPromotion(null));
+    } else {
+      // If selecting a specific promotion, apply it directly without auth
+      onSelectPromotion(promotionId);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
@@ -185,7 +199,7 @@ export const PromotionSelectionDialog = ({
         <div className="py-4">
           <RadioGroup
             value={selectedPromotionId || "none"}
-            onValueChange={(value) => onSelectPromotion(value === "none" ? null : value)}
+            onValueChange={handleSelectPromotion}
             className="space-y-4"
           >
             {sortedPromotions.map((promotion) => {
@@ -197,7 +211,7 @@ export const PromotionSelectionDialog = ({
                   className={`flex items-start space-x-3 rounded-md border p-3 hover:bg-muted/50 cursor-pointer transition-colors ${
                     selectedPromotionId === promotion.id ? "border-2 border-primary/50 bg-primary/5" : ""
                   }`}
-                  onClick={() => onSelectPromotion(promotion.id)}
+                  onClick={() => handleSelectPromotion(promotion.id)}
                 >
                   <RadioGroupItem value={promotion.id} id={promotion.id} className="mt-1" />
                   <div className="flex flex-1 items-start space-x-3">
@@ -242,7 +256,7 @@ export const PromotionSelectionDialog = ({
               className={`flex items-start space-x-3 rounded-md border p-3 hover:bg-muted/50 cursor-pointer transition-colors ${
                 !selectedPromotionId ? "border-2 border-primary/50 bg-primary/5" : ""
               }`}
-              onClick={() => onSelectPromotion(null)}
+              onClick={() => handleSelectPromotion(null)}
             >
               <RadioGroupItem value="none" id="none" className="mt-1" />
               <div className="flex flex-1 items-start space-x-3">
@@ -281,4 +295,3 @@ export const PromotionSelectionDialog = ({
     </Dialog>
   );
 };
-
