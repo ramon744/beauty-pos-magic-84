@@ -87,7 +87,11 @@ export const useCart = () => {
   };
 
   const updateCartItemQuantity = (productId: string, newQuantity: number) => {
-    if (newQuantity <= 0) return productId; // Return the productId to handle removal elsewhere
+    if (newQuantity <= 0) {
+      // Se a quantidade for zero ou negativa, remova o item
+      removeFromCart(productId);
+      return null;
+    }
     
     setCart(cart.map(item => 
       item.id === productId
@@ -103,19 +107,35 @@ export const useCart = () => {
   };
 
   const removeFromCart = (productId: string) => {
-    setCart(cart.filter(item => item.id !== productId));
+    // Encontre o item para usar seu nome na mensagem toast
+    const itemToRemove = cart.find(item => item.id === productId);
+    
+    // Filtre o carrinho para remover o item
+    setCart(prevCart => prevCart.filter(item => item.id !== productId));
+    
+    // Exiba a mensagem toast com o nome do item se disponível
     toast({
       title: "Produto removido",
-      description: "Item removido do carrinho"
+      description: itemToRemove 
+        ? `${itemToRemove.name} removido do carrinho` 
+        : "Item removido do carrinho"
     });
   };
 
   const clearCart = () => {
+    // Salve uma cópia do carrinho atual antes de limpá-lo
+    const currentCart = [...cart];
+    
+    // Limpe o carrinho
     setCart([]);
-    toast({
-      title: "Carrinho limpo",
-      description: "Todos os itens foram removidos"
-    });
+    
+    // Exiba o toast apenas se havia itens no carrinho
+    if (currentCart.length > 0) {
+      toast({
+        title: "Carrinho limpo",
+        description: `${currentCart.length} item(s) removido(s) do carrinho`
+      });
+    }
   };
 
   const cartSubtotal = cart.reduce((total, item) => total + item.subtotal, 0);
