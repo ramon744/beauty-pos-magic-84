@@ -1,4 +1,3 @@
-
 export const storageService = {
   setItem: <T>(key: string, value: T): void => {
     try {
@@ -34,23 +33,23 @@ export const storageService = {
     try {
       localStorage.clear();
     } catch (error) {
-      console.error('Error clearing localStorage:', error);
+      console.error("Error clearing localStorage:", error);
     }
-  }
+  },
 };
 
 export const STORAGE_KEYS = {
-  USERS: 'makeup-pos-users',
-  PRODUCTS: 'makeup-pos-products',
-  CUSTOMERS: 'makeup-pos-customers',
-  CATEGORIES: 'makeup-pos-categories',
-  PROMOTIONS: 'makeup-pos-promotions',
-  PROMOTIONS_STATISTICS: 'makeup-pos-promotions-statistics',  // Added this missing key
-  SUPPLIERS: 'makeup-pos-suppliers',
-  CART: 'makeup-pos-cart',
-  CART_CUSTOMER: 'makeup-pos-cart-customer',
-  ORDERS: 'makeup-pos-orders',
-  THEME: 'makeup-pos-theme',
-  AUTH: 'makeup-pos-auth',
-  STOCKS: 'makeup-pos-stocks'
+  USERS: 'users',
+  PRODUCTS: 'products',
+  CUSTOMERS: 'customers',
+  CATEGORIES: 'categories',
+  PROMOTIONS: 'promotions',
+  PROMOTIONS_STATISTICS: 'promotions_statistics', // Added this key
+  SUPPLIERS: 'suppliers',
+  CART: 'cart',
+  CART_CUSTOMER: 'cart_customer',
+  ORDERS: 'orders',
+  THEME: 'theme',
+  AUTH: 'auth',
+  STOCKS: 'stocks',
 };
