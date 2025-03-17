@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -902,4 +903,378 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                                 {filteredSecondaryProductsForSearch?.map(product => (
                                   <CommandItem
                                     key={product.id}
-                                    value
+                                    value={product.id}
+                                    onSelect={() => handleSelectSecondaryProduct(product.id)}
+                                  >
+                                    <div className="flex flex-col">
+                                      <span>{product.name}</span>
+                                      <span className="text-xs text-muted-foreground">
+                                        Código: {product.code} | {formatCurrency(product.salePrice)}
+                                      </span>
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="buyQuantity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Compre Quantidade</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="1" step="1" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="getQuantity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Leve Quantidade</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="1" step="1" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="secondaryProductDiscount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Desconto no Produto (%)</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="1" max="100" step="1" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          100% = Grátis
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                {selectedProduct && (
+                  <Card>
+                    <CardContent className="p-4">
+                      <h4 className="font-medium mb-2">Prévia da Promoção</h4>
+                      <div className="space-y-2 text-sm">
+                        <p>Comprando {form.watch('buyQuantity')} unidades de <strong>{selectedProduct.name}</strong>...</p>
+                        
+                        {selectedSecondaryProduct ? (
+                          <p>
+                            ...o cliente leva {form.watch('getQuantity')} unidades de <strong>{selectedSecondaryProduct.name}</strong> com <strong>{form.watch('secondaryProductDiscount')}%</strong> de desconto.
+                          </p>
+                        ) : (
+                          <p>
+                            ...o cliente leva {form.watch('getQuantity')} unidades adicionais do mesmo produto com <strong>{form.watch('secondaryProductDiscount')}%</strong> de desconto.
+                          </p>
+                        )}
+                        
+                        {form.watch('secondaryProductDiscount') === 100 && (
+                          <p className="font-medium text-green-600">
+                            Produto com 100% de desconto = GRÁTIS!
+                          </p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+            
+            {promotionType === 'bundle' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="bundlePrice"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Preço do Pacote (R$)</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="0.01" step="0.01" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div>
+                    <div className="mb-2">
+                      <FormLabel className="block mb-2">Produtos no Pacote</FormLabel>
+                      <div className="flex gap-2 items-center">
+                        <Input
+                          placeholder="Buscar por nome ou código..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Selected bundle products */}
+                    <div className="mt-2 space-y-2">
+                      {selectedBundleProducts.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {selectedBundleProducts.map(productId => {
+                            const product = products?.find(p => p.id === productId);
+                            return product ? (
+                              <Badge 
+                                key={product.id} 
+                                variant="secondary"
+                                className="px-2 py-1 flex items-center gap-1"
+                              >
+                                {product.name} ({formatCurrency(product.salePrice)})
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-5 w-5 p-0" 
+                                  onClick={() => handleRemoveBundleProduct(product.id)}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </Badge>
+                            ) : null;
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-destructive">
+                          Adicione pelo menos dois produtos ao pacote
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Product search results for bundle */}
+                {searchQuery && (
+                  <Card className="mt-2">
+                    <CardContent className="p-2">
+                      <div className="max-h-[200px] overflow-y-auto">
+                        {filteredProducts && filteredProducts.length > 0 ? (
+                          <div className="space-y-1">
+                            {filteredProducts.map(product => (
+                              <Button
+                                key={product.id}
+                                variant="ghost"
+                                className="w-full justify-start text-left"
+                                onClick={() => handleSelectBundleProduct(product.id)}
+                                disabled={selectedBundleProducts.includes(product.id)}
+                              >
+                                <div className="flex flex-col items-start">
+                                  <span>{product.name}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    Código: {product.code} | {formatCurrency(product.salePrice)}
+                                  </span>
+                                </div>
+                              </Button>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground p-2">
+                            Nenhum produto encontrado
+                          </p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {/* Bundle summary */}
+                {selectedBundleProducts.length > 0 && (
+                  <Card>
+                    <CardContent className="p-4">
+                      <h4 className="font-medium mb-2">Resumo do Pacote</h4>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>Valor Total dos Produtos:</div>
+                        <div className="font-semibold">{formatCurrency(getBundleTotalValue())}</div>
+                        <div>Preço do Pacote:</div>
+                        <div className="font-semibold text-green-600">
+                          {formatCurrency(form.watch('bundlePrice') || 0)}
+                        </div>
+                        <div>Economia:</div>
+                        <div className="font-semibold text-destructive">
+                          -{formatCurrency(getBundleTotalValue() - (form.watch('bundlePrice') || 0))}
+                        </div>
+                        <div>Desconto Percentual:</div>
+                        <div className="font-semibold">{getBundleDiscountPercentage()}%</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="settings" className="space-y-6 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <FormLabel>Período da Promoção</FormLabel>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="startDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Data Inicial</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  formatDate(field.value)
+                                ) : (
+                                  <span>Selecione a data</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="endDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Data Final</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  formatDate(field.value)
+                                ) : (
+                                  <span>Selecione a data</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="isActive"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Ativar Promoção</FormLabel>
+                        <FormDescription>
+                          A promoção será aplicada automaticamente aos produtos compatíveis
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="maxDiscountPerPurchase"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Desconto Máximo por Compra (R$)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          min="0.01" 
+                          step="0.01" 
+                          placeholder="Sem limite" 
+                          {...field}
+                          value={field.value || ''}
+                          onChange={e => {
+                            const value = e.target.value ? parseFloat(e.target.value) : undefined;
+                            field.onChange(value);
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Opcional. Deixe em branco para não aplicar limite.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+            
+            <div className="pt-6">
+              <Button type="submit" className="w-full md:w-auto" disabled={saving}>
+                {saving ? (
+                  <>
+                    <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                    {promotionId ? 'Atualizando...' : 'Criando...'}
+                  </>
+                ) : (
+                  promotionId ? 'Atualizar Promoção' : 'Criar Promoção'
+                )}
+              </Button>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </form>
+    </Form>
+  );
+}
