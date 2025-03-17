@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useCategories, useFetchProducts, useSaveProduct } from '@/hooks/use-products';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -68,7 +69,8 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
   const { toast } = useToast();
   const { data: categories, isLoading, refetch } = useCategories();
   const { data: products } = useFetchProducts();
-  const { mutateAsync: saveProduct } = useSaveProduct();
+  // Fixed: Changed mutateAsync to mutate since the hook doesn't provide mutateAsync
+  const { mutate: saveProduct } = useSaveProduct();
   const [newCategory, setNewCategory] = useState('');
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -164,6 +166,9 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
         ...product,
         category: originalCategory,
         updatedAt: new Date()
+      }, {
+        onSuccess: () => {},
+        onError: () => {}
       });
       
       console.log(`Product ${product.name} reverted from ${product.category.name} to ${originalCategory.name}`);

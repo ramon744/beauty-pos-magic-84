@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useFetchProducts, useStockAdjustment, useStockHistory } from '@/hooks/use-products';
 import { DataTable } from '@/components/common/DataTable';
@@ -40,33 +39,27 @@ import {
 
 const InventoryControl = () => {
   const { data: products, isLoading } = useFetchProducts();
-  const { data: stockHistory } = useStockHistory();
+  const { data: stockHistory } = useStockHistory('');
   const [searchValue, setSearchValue] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const { mutate: adjustStock } = useStockAdjustment();
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Tab state for inventory control tabs
   const [activeInventoryTab, setActiveInventoryTab] = useState<string>('products');
-
-  // New states for the stock control dialogs
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [adjustmentType, setAdjustmentType] = useState<'balance' | 'add' | 'remove' | null>(null);
   const [newStockValue, setNewStockValue] = useState<number>(0);
   const [adjustmentReason, setAdjustmentReason] = useState<string>('');
   const [adjustmentQuantity, setAdjustmentQuantity] = useState<number>(0);
 
-  // Filter products based on search and status filter
   const filteredProducts = products ? products.filter(product => {
-    // Apply search filter
     if (searchValue && 
         !product.name.toLowerCase().includes(searchValue.toLowerCase()) &&
         !product.code.toLowerCase().includes(searchValue.toLowerCase())) {
       return false;
     }
     
-    // Apply status filter
     switch(statusFilter) {
       case 'out-of-stock':
         return product.stock === 0;
@@ -90,7 +83,6 @@ const InventoryControl = () => {
     setSearchValue('');
   };
 
-  // Function to open the adjustment dialog
   const openAdjustmentDialog = (product: Product, type: 'balance' | 'add' | 'remove') => {
     setSelectedProduct(product);
     setAdjustmentType(type);
@@ -106,7 +98,6 @@ const InventoryControl = () => {
     setAdjustmentReason('');
   };
 
-  // Function to close the adjustment dialog
   const closeAdjustmentDialog = () => {
     setSelectedProduct(null);
     setAdjustmentType(null);
@@ -115,11 +106,9 @@ const InventoryControl = () => {
     setAdjustmentReason('');
   };
 
-  // Function to handle stock adjustments
   const handleStockAdjustment = (product: Product, adjustment: number) => {
     const newStock = product.stock + adjustment;
     
-    // Prevent negative stock
     if (newStock < 0) {
       toast({
         variant: "destructive",
@@ -129,12 +118,10 @@ const InventoryControl = () => {
       return;
     }
     
-    // Use the new stock adjustment hook
     adjustStock(
       {
-        product,
-        newStock,
-        adjustmentType: adjustment > 0 ? 'add' : 'remove',
+        productId: product.id,
+        quantity: Math.abs(adjustment),
         reason: 'Ajuste rápido de estoque'
       },
       {
@@ -155,7 +142,6 @@ const InventoryControl = () => {
     );
   };
 
-  // Function to handle the confirmation of the dialog
   const handleConfirmAdjustment = () => {
     if (!selectedProduct || adjustmentType === null) return;
 
@@ -175,7 +161,6 @@ const InventoryControl = () => {
         return;
     }
 
-    // Prevent negative stock
     if (newStock < 0) {
       toast({
         variant: "destructive",
@@ -185,12 +170,10 @@ const InventoryControl = () => {
       return;
     }
 
-    // Use the new stock adjustment hook with history logging
     adjustStock(
       {
-        product: selectedProduct,
-        newStock,
-        adjustmentType,
+        productId: selectedProduct.id,
+        quantity: Math.abs(newStock - selectedProduct.stock),
         reason: adjustmentReason || `Ajuste de estoque (${adjustmentType})`
       },
       {
@@ -219,7 +202,6 @@ const InventoryControl = () => {
     );
   };
 
-  // Calculate statistics
   const calculateStats = () => {
     if (!products) return { outOfStock: 0, lowStock: 0, warningStock: 0, healthyStock: 0 };
     
@@ -235,7 +217,6 @@ const InventoryControl = () => {
 
   const stats = calculateStats();
 
-  // Helper function to get adjustment type text
   const getAdjustmentTypeText = (type: 'balance' | 'add' | 'remove') => {
     switch (type) {
       case 'balance': return 'Balanço';
@@ -244,7 +225,6 @@ const InventoryControl = () => {
     }
   };
 
-  // Table columns
   const columns: ColumnDef<Product>[] = [
     {
       accessorKey: "code",
@@ -348,7 +328,6 @@ const InventoryControl = () => {
     },
   ];
 
-  // Determine dialog title based on adjustment type
   const getDialogTitle = () => {
     if (!adjustmentType || !selectedProduct) return '';
     
@@ -362,7 +341,6 @@ const InventoryControl = () => {
     }
   };
 
-  // Determine dialog icon based on adjustment type
   const getDialogIcon = () => {
     switch (adjustmentType) {
       case 'balance':
@@ -376,7 +354,6 @@ const InventoryControl = () => {
     }
   };
 
-  // Format timestamp for display
   const formatDateTime = (date: Date | string) => {
     return format(new Date(date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
   };
@@ -573,7 +550,6 @@ const InventoryControl = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Stock Adjustment Dialog */}
       <Dialog open={adjustmentType !== null} onOpenChange={(open) => !open && closeAdjustmentDialog()}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -596,7 +572,6 @@ const InventoryControl = () => {
               <div className="font-bold">{selectedProduct?.stock || 0} unidades</div>
             </div>
 
-            {/* User info field - automatically filled */}
             <div className="flex items-center space-x-2">
               <div className="font-medium min-w-[120px]">Responsável:</div>
               <div className="font-bold">{user?.name} ({user?.role === 'admin' ? 'Administrador' : 'Gerente'})</div>
@@ -704,7 +679,7 @@ const InventoryControl = () => {
                 (adjustmentType === 'balance' && selectedProduct?.stock === newStockValue) ||
                 (adjustmentType !== 'balance' && adjustmentQuantity <= 0) ||
                 (adjustmentType === 'remove' && selectedProduct && (selectedProduct.stock - adjustmentQuantity < 0)) ||
-                !adjustmentReason // Make reason field required
+                !adjustmentReason
               }
               className={cn(
                 adjustmentType === 'remove' ? "bg-red-600 hover:bg-red-700" : 
