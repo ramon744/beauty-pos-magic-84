@@ -38,25 +38,37 @@ export const PromotionSelectionDialog = ({
 
   // Create cart items for discount calculation preview
   const cartItems = useMemo(() => {
+    // Get all unique product IDs from all promotions
     const relevantProductIds = new Set<string>();
     
-    // Get all product IDs that are relevant to any promotion
     promotions.forEach(promo => {
       if (promo.productId) relevantProductIds.add(promo.productId);
       if (promo.secondaryProductId) relevantProductIds.add(promo.secondaryProductId);
       if (promo.productIds) promo.productIds.forEach(id => relevantProductIds.add(id));
       if (promo.bundleProducts) promo.bundleProducts.forEach(id => relevantProductIds.add(id));
+      
+      // If category-based, add all products from that category
+      if (promo.categoryId) {
+        products.forEach(product => {
+          if (product.category.id === promo.categoryId) {
+            relevantProductIds.add(product.id);
+          }
+        });
+      }
     });
     
     // Create cart items for all relevant products
-    return products
-      .filter(p => relevantProductIds.has(p.id))
-      .map(product => ({
+    return Array.from(relevantProductIds).map(id => {
+      const product = products.find(p => p.id === id);
+      if (!product) return null;
+      
+      return {
         product,
         quantity: 1,
         price: product.salePrice,
         discount: 0
-      }));
+      };
+    }).filter(Boolean) as CartItem[];
   }, [promotions, products]);
 
   const getPromotionDetails = (promotion: Promotion): string => {
@@ -155,6 +167,15 @@ export const PromotionSelectionDialog = ({
     return result.discountAmount > 0 ? formatCurrency(result.discountAmount) : "";
   };
 
+  // Sort promotions by discount amount (highest first)
+  const sortedPromotions = useMemo(() => {
+    return [...promotions].sort((a, b) => {
+      const savingsA = calculatePromotionDiscount(cartItems, a, products).discountAmount;
+      const savingsB = calculatePromotionDiscount(cartItems, b, products).discountAmount;
+      return savingsB - savingsA;
+    });
+  }, [promotions, cartItems, products]);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
@@ -174,7 +195,7 @@ export const PromotionSelectionDialog = ({
             onValueChange={(value) => onSelectPromotion(value === "none" ? null : value)}
             className="space-y-4"
           >
-            {promotions.map((promotion) => {
+            {sortedPromotions.map((promotion) => {
               const estimatedSavings = getEstimatedSavings(promotion);
               
               return (

@@ -22,40 +22,46 @@ export const getAvailablePromotions = (
                new Date(promo.endDate) >= now
   );
 
+  // Create a set of product IDs in the cart for faster lookup
+  const productIdsInCart = new Set(cartItems.map(item => item.product.id));
+  
+  // Create a map of category IDs in the cart for faster lookup
+  const categoryIdsInCart = new Set(cartItems.map(item => item.product.category.id));
+
   // Find applicable promotions for current cart items
   return activePromotions.filter((promotion) => {
     // For promotions that apply to specific products
     if (promotion.productId) {
-      return cartItems.some((item) => item.product.id === promotion.productId);
+      return productIdsInCart.has(promotion.productId);
     }
     
     // For promotions with multiple products
     if (promotion.productIds && promotion.productIds.length > 0) {
-      return cartItems.some((item) => promotion.productIds?.includes(item.product.id));
+      return promotion.productIds.some(id => productIdsInCart.has(id));
     }
     
     // For promotions that apply to specific categories
     if (promotion.categoryId) {
-      return cartItems.some(
-        (item) => item.product.category.id === promotion.categoryId
-      );
+      return categoryIdsInCart.has(promotion.categoryId);
     }
     
     // Bundle promotions with multiple products
     if (promotion.type === 'bundle' && promotion.bundleProducts?.length) {
-      const productIds = new Set(cartItems.map(item => item.product.id));
       // Check if all bundle products are in the cart
-      return promotion.bundleProducts.every(id => productIds.has(id));
+      return promotion.bundleProducts.every(id => productIdsInCart.has(id));
     }
     
     // For buy_x_get_y promotions, check both primary and secondary products
     if (promotion.type === 'buy_x_get_y') {
-      const hasPrimaryProduct = promotion.productId && 
-        cartItems.some(item => item.product.id === promotion.productId);
-        
-      const hasSecondaryProduct = promotion.secondaryProductId && 
-        cartItems.some(item => item.product.id === promotion.secondaryProductId);
-        
+      const hasPrimaryProduct = promotion.productId && productIdsInCart.has(promotion.productId);
+      const hasSecondaryProduct = promotion.secondaryProductId && productIdsInCart.has(promotion.secondaryProductId);
+      
+      // For buy X get Y from the same product type
+      if (!promotion.secondaryProductId && promotion.productId) {
+        return hasPrimaryProduct;
+      }
+      
+      // For buy X get Y for different products
       return hasPrimaryProduct || hasSecondaryProduct;
     }
     
