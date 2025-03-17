@@ -98,18 +98,32 @@ export const SalesHistoryList = () => {
     return paymentDetails && typeof paymentDetails === 'object' && 'payments' in paymentDetails;
   };
 
-  const getProductName = (productId: string): string => {
-    const product = products.find(p => p.id === productId);
-    return product ? product.name : 'Produto não disponível';
+  // Improved product name lookup that first tries to find product in the sale item's direct data
+  // and falls back to looking it up in the products list
+  const getProductName = (item: CartItem): string => {
+    // First check if the product object is complete within the item
+    if (item.product && item.product.name) {
+      return item.product.name;
+    }
+    
+    // If not, try to find it in the products list using id
+    if (item.product && item.product.id) {
+      const product = products.find(p => p.id === item.product.id);
+      if (product) {
+        return product.name;
+      }
+    }
+    
+    // Last fallback
+    return 'Produto não disponível';
   };
 
+  // Improved promotion details lookup
   const getPromotionDetails = (sale: Sale) => {
     if (!sale.appliedPromotionId) return null;
     
     const promotion = promotions.find(p => p.id === sale.appliedPromotionId);
-    if (!promotion) return null;
-    
-    return promotion;
+    return promotion || null;
   };
 
   return (
@@ -197,8 +211,7 @@ export const SalesHistoryList = () => {
                             {sale.items?.map((item, index) => item && (
                               <TableRow key={index}>
                                 <TableCell>
-                                  {item.product?.name || 
-                                   (item.product?.id ? getProductName(item.product.id) : 'Produto não disponível')}
+                                  {getProductName(item)}
                                 </TableCell>
                                 <TableCell className="text-right">{item.quantity || 0}</TableCell>
                                 <TableCell className="text-right">{formatCurrency(item.price || 0)}</TableCell>
@@ -230,7 +243,7 @@ export const SalesHistoryList = () => {
                               </div>
                             ) : (
                               <div className="text-sm text-muted-foreground">
-                                Promoção aplicada (detalhes não disponíveis)
+                                Promoção com ID: {sale.appliedPromotionId} (detalhes não disponíveis)
                               </div>
                             )}
                           </div>
@@ -311,7 +324,7 @@ export const SalesHistoryList = () => {
                               {sale.discount > 0 && sale.discountAuthorizedBy && (
                                 <div className="flex justify-between text-amber-600 text-xs italic">
                                   <span>Desconto autorizado por:</span>
-                                  <span>{sale.discountAuthorizedBy.name || 'Não informado'}</span>
+                                  <span>{sale.discountAuthorizedBy?.name || 'Usuário não identificado'}</span>
                                 </div>
                               )}
                               
