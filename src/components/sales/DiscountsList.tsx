@@ -63,6 +63,14 @@ export const DiscountsList = ({
     }
   };
 
+  // Helper function to safely format values
+  const formatValue = (value: any): string => {
+    if (typeof value === 'number') {
+      return value.toFixed(2);
+    }
+    return String(value);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
@@ -92,8 +100,8 @@ export const DiscountsList = ({
                     </Badge>
                     <span className="font-medium">
                       {manualDiscount.type === 'percentage'
-                        ? `${manualDiscount.value}%`
-                        : `R$ ${manualDiscount.value.toFixed(2)}`}
+                        ? `${formatValue(manualDiscount.value)}%`
+                        : `R$ ${formatValue(manualDiscount.value)}`}
                     </span>
                   </div>
                   <div className="flex gap-2">
@@ -119,7 +127,7 @@ export const DiscountsList = ({
                     <span className="font-medium">{appliedPromotionDetails.name}</span>
                     {appliedPromotion && (
                       <span className="text-sm text-muted-foreground">
-                        (R$ {appliedPromotion.discountAmount.toFixed(2)})
+                        (R$ {formatValue(appliedPromotion.discountAmount)})
                       </span>
                     )}
                   </div>
