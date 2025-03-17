@@ -2,9 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
-import { Product as ProductType } from '@/types';
 
-// Extended CartItem with needed fields for the cart functionality
 export interface CartItem {
   id: string;
   name: string;
@@ -16,8 +14,7 @@ export interface CartItem {
   subtotal: number;
 }
 
-// Simplified product interface for cart operations
-export interface CartProduct {
+export interface Product {
   id: string;
   name: string;
   description: string;
@@ -37,29 +34,14 @@ export const useCart = () => {
     storageService.setItem(STORAGE_KEYS.CART, cart);
   }, [cart]);
 
-  // Convert from the main Product type to CartProduct
-  const adaptProductForCart = (product: ProductType): CartProduct => {
-    return {
-      id: product.id,
-      name: product.name,
-      description: product.description,
-      price: product.salePrice,
-      stock: product.stock,
-      category: product.category.name
-    };
-  };
-
-  const addProductToCart = (product: ProductType | CartProduct, qty: number) => {
+  const addProductToCart = (product: Product, qty: number) => {
     if (!product || qty <= 0) return;
     
-    // Ensure we have the correct product format
-    const cartProduct = 'salePrice' in product ? adaptProductForCart(product as ProductType) : product;
-    
-    const existingItem = cart.find(item => item.id === cartProduct.id);
+    const existingItem = cart.find(item => item.id === product.id);
     
     if (existingItem) {
       setCart(cart.map(item => 
-        item.id === cartProduct.id
+        item.id === product.id
           ? { 
               ...item, 
               quantity: item.quantity + qty,
@@ -70,29 +52,26 @@ export const useCart = () => {
       
       toast({
         title: "Produto atualizado",
-        description: `${cartProduct.name} (${qty}) adicionado ao carrinho`
+        description: `${product.name} (${qty}) adicionado ao carrinho`
       });
     } else {
       setCart([...cart, {
-        ...cartProduct,
+        ...product,
         quantity: qty,
-        subtotal: qty * cartProduct.price
+        subtotal: qty * product.price
       }]);
       
       toast({
         title: "Produto adicionado",
-        description: `${cartProduct.name} adicionado ao carrinho`
+        description: `${product.name} adicionado ao carrinho`
       });
     }
   };
 
   const updateCartItemQuantity = (productId: string, newQuantity: number) => {
-    if (newQuantity <= 0) {
-      removeFromCart(productId);
-      return null;
-    }
+    if (newQuantity <= 0) return productId; // Return the productId to handle removal elsewhere
     
-    setCart(prevCart => prevCart.map(item => 
+    setCart(cart.map(item => 
       item.id === productId
         ? { 
             ...item, 
@@ -102,31 +81,23 @@ export const useCart = () => {
         : item
     ));
     
-    return null;
+    return null; // No product to remove
   };
 
   const removeFromCart = (productId: string) => {
-    const itemToRemove = cart.find(item => item.id === productId);
-    
-    setCart(prevCart => prevCart.filter(item => item.id !== productId));
-    
-    if (itemToRemove) {
-      toast({
-        title: "Produto removido",
-        description: `${itemToRemove.name} removido do carrinho`
-      });
-    }
+    setCart(cart.filter(item => item.id !== productId));
+    toast({
+      title: "Produto removido",
+      description: "Item removido do carrinho"
+    });
   };
 
   const clearCart = () => {
-    if (cart.length > 0) {
-      setCart([]);
-      
-      toast({
-        title: "Carrinho limpo",
-        description: `${cart.length} item(s) removido(s) do carrinho`
-      });
-    }
+    setCart([]);
+    toast({
+      title: "Carrinho limpo",
+      description: "Todos os itens foram removidos"
+    });
   };
 
   const cartSubtotal = cart.reduce((total, item) => total + item.subtotal, 0);

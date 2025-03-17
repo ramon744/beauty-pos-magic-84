@@ -4,7 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { DataTable } from '@/components/common/DataTable';
 import { ColumnDef } from '@tanstack/react-table';
-import { Product } from '@/types';
+
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  category: string;
+}
 
 interface ProductSearchTableProps {
   searchResults: Product[];
@@ -15,7 +23,7 @@ export const ProductSearchTable: React.FC<ProductSearchTableProps> = ({
   searchResults, 
   addProductToCart 
 }) => {
-  const productColumns: ColumnDef<Product>[] = [
+  const productColumns: ColumnDef<any>[] = [
     {
       accessorKey: 'name',
       header: 'Produto',
@@ -24,10 +32,10 @@ export const ProductSearchTable: React.FC<ProductSearchTableProps> = ({
       ),
     },
     {
-      accessorKey: 'salePrice',
+      accessorKey: 'price',
       header: 'Preço',
       cell: ({ row }) => (
-        <div className="text-right">R$ {row.original.salePrice.toFixed(2)}</div>
+        <div className="text-right">R$ {row.original.price.toFixed(2)}</div>
       ),
     },
     {

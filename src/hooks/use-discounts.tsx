@@ -65,10 +65,6 @@ export const useDiscounts = (cart: CartItem[], cartSubtotal: number) => {
   const appliedPromotion = useMemo((): AppliedPromotion | null => {
     if (cart.length === 0 || availablePromotions.length === 0) return null;
     
-    if (selectedPromotionId === null && cart.length > 0) {
-      return null;
-    }
-    
     if (selectedPromotionId) {
       const selectedPromotion = availablePromotions.find(p => p.id === selectedPromotionId);
       if (selectedPromotion) {
@@ -92,19 +88,15 @@ export const useDiscounts = (cart: CartItem[], cartSubtotal: number) => {
   }, [appliedPromotion, promotions]);
 
   const manualDiscountAmount = useMemo(() => {
-    if (!manualDiscount) return 0;
-    
-    // Fix: Ensure we're calculating the discount correctly based on type
-    if (manualDiscount.type === 'percentage') {
-      return (cartSubtotal * manualDiscount.value) / 100;
-    } else {
-      // For fixed discount, ensure it doesn't exceed the subtotal
-      return Math.min(manualDiscount.value, cartSubtotal);
-    }
+    return manualDiscount 
+      ? manualDiscount.type === 'percentage' 
+        ? (cartSubtotal * manualDiscount.value / 100) 
+        : Math.min(manualDiscount.value, cartSubtotal)
+      : 0;
   }, [manualDiscount, cartSubtotal]);
   
   const totalDiscountAmount = manualDiscountAmount + promotionDiscountAmount;
-  const cartTotal = Math.max(0, cartSubtotal - totalDiscountAmount);
+  const cartTotal = cartSubtotal - totalDiscountAmount;
 
   const handleSelectPromotion = (promotionId: string | null) => {
     setSelectedPromotionId(promotionId);
@@ -131,31 +123,13 @@ export const useDiscounts = (cart: CartItem[], cartSubtotal: number) => {
   };
 
   const applyManualDiscount = (discountData: ManualDiscount) => {
-    // Fix: Ensure the discount value is processed as a number
-    const value = typeof discountData.value === 'string' 
-      ? parseFloat(discountData.value) 
-      : discountData.value;
-    
-    // Fix: Only apply if the value is valid
-    if (!isNaN(value) && value > 0) {
-      setManualDiscount({
-        type: discountData.type,
-        value: value
-      });
-      
-      toast({
-        title: "Desconto aplicado",
-        description: discountData.type === 'percentage' 
-          ? `Desconto de ${value}% aplicado`
-          : `Desconto de R$ ${value.toFixed(2)} aplicado`
-      });
-    } else {
-      toast({
-        title: "Valor inválido",
-        description: "O valor do desconto deve ser maior que zero",
-        variant: "destructive"
-      });
-    }
+    setManualDiscount(discountData);
+    toast({
+      title: "Desconto aplicado",
+      description: discountData.type === 'percentage' 
+        ? `Desconto de ${discountData.value}% aplicado`
+        : `Desconto de R$ ${Number(discountData.value).toFixed(2)} aplicado`
+    });
   };
 
   const resetDiscounts = () => {

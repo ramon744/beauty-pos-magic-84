@@ -45,7 +45,6 @@ export const CartItemTable: React.FC<CartItemTableProps> = ({
             size="icon" 
             className="h-7 w-7"
             onClick={() => updateCartItemQuantity(row.original.id, row.original.quantity - 1)}
-            disabled={row.original.quantity <= 1}
           >
             <Minus className="h-3 w-3" />
           </Button>
@@ -55,7 +54,6 @@ export const CartItemTable: React.FC<CartItemTableProps> = ({
             size="icon"
             className="h-7 w-7" 
             onClick={() => updateCartItemQuantity(row.original.id, row.original.quantity + 1)}
-            disabled={row.original.quantity >= row.original.stock}
           >
             <Plus className="h-3 w-3" />
           </Button>
