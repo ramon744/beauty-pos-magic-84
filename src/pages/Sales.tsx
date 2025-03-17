@@ -102,24 +102,32 @@ const Sales = () => {
   const cartItemsForPromotions = useMemo(() => {
     return cart.map(item => {
       const product = products.find(p => p.id === item.id);
-      return {
-        product: product ? { 
-          ...product, 
-          category: { id: product.category.id, name: product.category.name } 
-        } : {
-          id: item.id,
-          name: item.name,
-          description: item.description,
+      if (product) {
+        return {
+          product: product,
+          quantity: item.quantity,
           price: item.price,
-          stock: item.stock,
-          category: { id: '', name: item.category },
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        quantity: item.quantity,
-        price: item.price,
-        discount: 0
-      };
+          discount: 0
+        };
+      } else {
+        return {
+          product: {
+            id: item.id,
+            name: item.name,
+            description: item.description,
+            code: '',
+            salePrice: item.price,
+            costPrice: item.price * 0.7,
+            stock: item.stock,
+            category: { id: '', name: item.category },
+            createdAt: new Date(),
+            updatedAt: new Date()
+          },
+          quantity: item.quantity,
+          price: item.price,
+          discount: 0
+        };
+      }
     });
   }, [cart, products]);
 
