@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Promotion } from '@/types';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
@@ -218,6 +219,71 @@ export function useDeletePromotion() {
     onSuccess: () => {
       // Invalidate queries to refetch the data
       queryClient.invalidateQueries({ queryKey: ['promotions'] });
+      queryClient.invalidateQueries({ queryKey: ['promotion-statistics'] });
+    },
+  });
+}
+
+// Hook for removing a product from a promotion
+export function useRemoveProductFromPromotion() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ promotionId, productId }: { promotionId: string, productId: string }) => {
+      // Get the current promotions from localStorage
+      const promotions = storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS) || [];
+      
+      // Find the promotion
+      const promotionIndex = promotions.findIndex(p => p.id === promotionId);
+      
+      if (promotionIndex === -1) {
+        throw new Error('Promotion not found');
+      }
+      
+      const promotion = promotions[promotionIndex];
+      
+      // Handle based on promotion type
+      if (promotion.type === 'bundle' && promotion.bundleProducts) {
+        // For bundle promotions, remove the product from the bundleProducts array
+        promotion.bundleProducts = promotion.bundleProducts.filter(id => id !== productId);
+        
+        // Update the promotion in the array
+        promotions[promotionIndex] = promotion;
+        
+        // Save the updated promotions back to localStorage
+        storageService.setItem(STORAGE_KEYS.PROMOTIONS, promotions);
+      } else if (promotion.productId === productId) {
+        // For other promotion types, if the main product is being removed, handle accordingly
+        promotion.productId = undefined;
+        
+        // Update the promotion in the array
+        promotions[promotionIndex] = promotion;
+        
+        // Save the updated promotions back to localStorage
+        storageService.setItem(STORAGE_KEYS.PROMOTIONS, promotions);
+      } else if (promotion.secondaryProductId === productId) {
+        // If the secondary product is being removed (for buy_x_get_y promotions)
+        promotion.secondaryProductId = undefined;
+        
+        // Update the promotion in the array
+        promotions[promotionIndex] = promotion;
+        
+        // Save the updated promotions back to localStorage
+        storageService.setItem(STORAGE_KEYS.PROMOTIONS, promotions);
+      }
+      
+      // Update statistics
+      updateStatistics();
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      return { promotionId, productId };
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate queries to refetch the data
+      queryClient.invalidateQueries({ queryKey: ['promotions'] });
+      queryClient.invalidateQueries({ queryKey: ['promotion', variables.promotionId] });
       queryClient.invalidateQueries({ queryKey: ['promotion-statistics'] });
     },
   });

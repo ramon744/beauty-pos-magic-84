@@ -9,7 +9,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Promotion, Product } from "@/types";
+import { Promotion, Product, CartItem } from "@/types";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { Check, Tag, Percent, ShoppingBag, Gift } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
