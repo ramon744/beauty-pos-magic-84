@@ -136,7 +136,7 @@ const Sales = () => {
     }
     
     return getBestPromotion(cartItemsForPromotions, availablePromotions, products);
-  }, [cartItemsForPromotions, availablePromotions, selectedPromotionId, products]);
+  }, [cartItemsForPromotions, availablePromotions, selectedPromotionId, products, cart.length]);
 
   const promotionDiscountAmount = useMemo(
     () => appliedPromotion?.discountAmount || 0,
@@ -484,6 +484,10 @@ const Sales = () => {
 
   const handleSelectPromotion = (promotionId: string | null) => {
     setSelectedPromotionId(promotionId);
+    toast({
+      title: promotionId ? "Promoção aplicada" : "Promoções automáticas removidas",
+      description: promotionId ? "Promoção selecionada aplicada ao carrinho" : "Nenhuma promoção será aplicada automaticamente"
+    });
   };
 
   const removePromotion = () => {

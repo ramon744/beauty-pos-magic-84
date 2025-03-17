@@ -116,14 +116,30 @@ const updateStatistics = (): PromotionStatistics => {
   return statistics;
 };
 
-// Initialize data
-initializeData();
+// Initialize data with a check to avoid duplicating entries
+const initializeIfNeeded = () => {
+  const existingPromotions = storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS);
+  if (!existingPromotions || existingPromotions.length === 0) {
+    initializeData();
+    console.log("Initialized promotion data in localStorage");
+  }
+};
+
+// Run initialization
+initializeIfNeeded();
 
 // Hook for fetching all promotions
 export function useFetchPromotions() {
   return useQuery({
     queryKey: ['promotions'],
     queryFn: async () => {
+      // Ensure data is initialized if empty
+      const promotions = storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS);
+      if (!promotions || promotions.length === 0) {
+        initializeData();
+        console.log("Re-initialized promotion data during fetch");
+      }
+      
       // Fetch from localStorage
       return storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS) || [];
     },
