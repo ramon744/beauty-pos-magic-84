@@ -1,4 +1,3 @@
-
 // User roles
 export type UserRole = 'admin' | 'manager' | 'employee';
 
@@ -113,6 +112,9 @@ export interface Sale {
   finalTotal: number;
   seller: User;
   createdAt: Date;
+  appliedPromotionId?: string;
+  promotionDiscountAmount?: number;
+  discountAuthorizedBy?: User;
 }
 
 // Promotion type
