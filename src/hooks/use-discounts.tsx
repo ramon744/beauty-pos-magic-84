@@ -65,15 +65,16 @@ export const useDiscounts = (cart: CartItem[], cartSubtotal: number) => {
   const appliedPromotion = useMemo((): AppliedPromotion | null => {
     if (cart.length === 0 || availablePromotions.length === 0) return null;
     
+    // Only apply a promotion if explicitly selected
     if (selectedPromotionId) {
       const selectedPromotion = availablePromotions.find(p => p.id === selectedPromotionId);
       if (selectedPromotion) {
         return calculatePromotionDiscount(cartItemsForPromotions, selectedPromotion, products);
       }
-      return null;
     }
     
-    return getBestPromotion(cartItemsForPromotions, availablePromotions, products);
+    // No longer automatically getting the best promotion when none is selected
+    return null;
   }, [cartItemsForPromotions, availablePromotions, selectedPromotionId, products, cart.length]);
 
   const promotionDiscountAmount = useMemo(
