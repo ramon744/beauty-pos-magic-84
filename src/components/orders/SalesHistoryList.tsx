@@ -195,6 +195,7 @@ export const SalesHistoryList = () => {
                 <AccordionContent>
                   <CardContent className="pt-4">
                     <div className="space-y-6">
+                      {/* Customer section */}
                       {sale.customer && (
                         <div className="border-b pb-4">
                           <h4 className="font-semibold mb-2 flex items-center">
@@ -211,6 +212,7 @@ export const SalesHistoryList = () => {
                         </div>
                       )}
                       
+                      {/* Items section */}
                       <div className="border-b pb-4">
                         <h4 className="font-semibold mb-2 flex items-center">
                           <ShoppingBag className="h-4 w-4 mr-2" />
@@ -246,7 +248,7 @@ export const SalesHistoryList = () => {
                         </Table>
                       </div>
                       
-                      {/* Promotion section - Updated to be always visible when a promotion was applied */}
+                      {/* Promotion section - Always display when a promotion was applied */}
                       {sale.appliedPromotionId && (
                         <div className="border-b pb-4">
                           <h4 className="font-semibold mb-2 flex items-center">
@@ -274,6 +276,7 @@ export const SalesHistoryList = () => {
                         </div>
                       )}
                       
+                      {/* Payment section */}
                       <div className="border-b pb-4">
                         <h4 className="font-semibold mb-2 flex items-center">
                           <CreditCard className="h-4 w-4 mr-2" />
@@ -333,6 +336,7 @@ export const SalesHistoryList = () => {
                                 <span>{formatCurrency(sale.total || 0)}</span>
                               </div>
                               
+                              {/* Separate display for manual discount */}
                               {(sale.discount || 0) > 0 && (
                                 <div className="flex justify-between text-red-600">
                                   <span className="flex items-center">
@@ -343,6 +347,7 @@ export const SalesHistoryList = () => {
                                 </div>
                               )}
                               
+                              {/* Separate display for promotion discount */}
                               {(sale.promotionDiscountAmount || 0) > 0 && (
                                 <div className="flex justify-between text-green-600">
                                   <span className="flex items-center">
@@ -353,7 +358,7 @@ export const SalesHistoryList = () => {
                                 </div>
                               )}
                               
-                              {/* Manual discount authorization display - Improved */}
+                              {/* Manager authorization for manual discount */}
                               {(sale.discount > 0) && sale.discountAuthorizedBy && (
                                 <div className="flex justify-between text-amber-600 text-xs italic">
                                   <span className="flex items-center">
@@ -373,6 +378,7 @@ export const SalesHistoryList = () => {
                         </div>
                       </div>
                       
+                      {/* Additional information section */}
                       <div>
                         <h4 className="font-semibold mb-2">Informações Adicionais</h4>
                         <div className="text-sm grid grid-cols-1 sm:grid-cols-2 gap-2">
