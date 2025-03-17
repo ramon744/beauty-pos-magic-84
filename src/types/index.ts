@@ -1,4 +1,3 @@
-
 // User roles
 export type UserRole = 'admin' | 'manager' | 'employee';
 
@@ -81,6 +80,14 @@ export interface PaymentDetails {
   installments?: number;
   cashReceived?: number;
   change?: number;
+  amount?: number;
+  isCompletePayment?: boolean;
+}
+
+// Mixed payment
+export interface MixedPayment {
+  payments: PaymentDetails[];
+  totalPaid: number;
 }
 
 // Cart item

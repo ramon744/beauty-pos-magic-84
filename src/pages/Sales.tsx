@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -18,8 +17,9 @@ import { CartSection } from '@/components/sales/CartSection';
 import { SaleSummary } from '@/components/sales/SaleSummary';
 import { DiscountForm, discountFormSchema, DiscountFormValues } from '@/components/sales/DiscountForm';
 import { useProducts } from '@/hooks/use-products';
-import { PaymentMethodsDialog, PaymentDetails } from '@/components/sales/PaymentMethodsDialog';
+import { PaymentMethodsDialog } from '@/components/sales/PaymentMethodsDialog';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
+import { PaymentDetails, MixedPayment } from '@/types';
 
 const Sales = () => {
   const isMobile = useIsMobile();
@@ -146,13 +146,12 @@ const Sales = () => {
     setIsPaymentDialogOpen(true);
   };
   
-  const handlePaymentConfirm = (paymentDetails: PaymentDetails) => {
-    // In a real app, this would save the order to a database
+  const handlePaymentConfirm = (paymentDetails: PaymentDetails | MixedPayment) => {
     const order = {
       id: Date.now().toString(),
       items: cart,
       customer: linkedCustomer,
-      paymentMethod: paymentDetails.method,
+      paymentMethod: 'mixed_payment' in paymentDetails ? 'mixed' : paymentDetails.method,
       total: cartSubtotal,
       discount: totalDiscountAmount,
       finalTotal: cartTotal,
@@ -161,14 +160,15 @@ const Sales = () => {
       createdAt: new Date()
     };
     
-    // Save the order in localStorage for now
     const orders = storageService.getItem<any[]>(STORAGE_KEYS.ORDERS) || [];
     orders.push(order);
     storageService.setItem(STORAGE_KEYS.ORDERS, orders);
     
     let confirmationMessage = `Venda finalizada: R$ ${cartTotal.toFixed(2)}`;
     
-    if (paymentDetails.method === 'credit_card' && paymentDetails.installments && paymentDetails.installments > 1) {
+    if ('payments' in paymentDetails) {
+      confirmationMessage += ` | Pagamento misto com ${paymentDetails.payments.length} formas`;
+    } else if (paymentDetails.method === 'credit_card' && paymentDetails.installments && paymentDetails.installments > 1) {
       confirmationMessage += ` em ${paymentDetails.installments}x`;
     } else if (paymentDetails.method === 'cash' && paymentDetails.change && paymentDetails.change > 0) {
       confirmationMessage += ` | Troco: R$ ${paymentDetails.change.toFixed(2)}`;
