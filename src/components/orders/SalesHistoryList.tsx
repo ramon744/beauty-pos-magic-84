@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Table, TableBody, TableCaption, TableCell, TableHead, 
@@ -97,12 +96,10 @@ export const SalesHistoryList = () => {
   };
 
   const getProductName = (item: CartItem): string => {
-    // First check if we have a complete product with name in the item itself
     if (item.product && typeof item.product.name === 'string' && item.product.name.trim() !== '') {
       return item.product.name;
     }
     
-    // If we only have an ID, try to find the product in our products list
     if (item.product && item.product.id) {
       const foundProduct = products.find(p => p.id === item.product.id);
       if (foundProduct && foundProduct.name) {
@@ -110,7 +107,6 @@ export const SalesHistoryList = () => {
       }
     }
     
-    // Last resort, check if the item itself has a name property
     if ('name' in item && typeof item.name === 'string' && item.name.trim() !== '') {
       return item.name;
     }
@@ -126,7 +122,6 @@ export const SalesHistoryList = () => {
       return promotion;
     }
     
-    // If we can't find the promotion details, at least return the ID
     return { 
       id: sale.appliedPromotionId,
       name: `Promoção #${sale.appliedPromotionId.substring(0, 8)}`,
