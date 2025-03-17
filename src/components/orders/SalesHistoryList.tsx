@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Table, TableBody, TableCaption, TableCell, TableHead, 
@@ -109,15 +110,6 @@ export const SalesHistoryList = () => {
       }
     }
     
-    // Fixed: Instead of checking for productId which doesn't exist on CartItem, 
-    // we check if product.id exists directly
-    if (item.product && item.product.id) {
-      const foundProduct = products.find(p => p.id === item.product.id);
-      if (foundProduct && foundProduct.name) {
-        return foundProduct.name;
-      }
-    }
-    
     // Last resort, check if the item itself has a name property
     if ('name' in item && typeof item.name === 'string' && item.name.trim() !== '') {
       return item.name;
@@ -140,6 +132,18 @@ export const SalesHistoryList = () => {
       name: `Promoção #${sale.appliedPromotionId.substring(0, 8)}`,
       description: 'Detalhes completos não disponíveis'
     };
+  };
+
+  const getDiscountAuthorizedByName = (sale: Sale) => {
+    if (!sale.discountAuthorizedBy) return 'Não informado';
+    
+    if (typeof sale.discountAuthorizedBy === 'object') {
+      if ('name' in sale.discountAuthorizedBy && typeof sale.discountAuthorizedBy.name === 'string') {
+        return sale.discountAuthorizedBy.name;
+      }
+    }
+    
+    return 'Usuário não identificado';
   };
 
   return (
@@ -340,11 +344,7 @@ export const SalesHistoryList = () => {
                               {(sale.discount > 0) && sale.discountAuthorizedBy && (
                                 <div className="flex justify-between text-amber-600 text-xs italic">
                                   <span>Desconto autorizado por:</span>
-                                  <span>
-                                    {sale.discountAuthorizedBy && typeof sale.discountAuthorizedBy === 'object' && 'name' in sale.discountAuthorizedBy
-                                      ? (sale.discountAuthorizedBy.name || 'Usuário não identificado')
-                                      : 'Usuário não identificado'}
-                                  </span>
+                                  <span>{getDiscountAuthorizedByName(sale)}</span>
                                 </div>
                               )}
                               
