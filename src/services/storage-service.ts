@@ -1,3 +1,4 @@
+
 export const storageService = {
   setItem: <T>(key: string, value: T): void => {
     try {
@@ -44,6 +45,7 @@ export const STORAGE_KEYS = {
   CUSTOMERS: 'makeup-pos-customers',
   CATEGORIES: 'makeup-pos-categories',
   PROMOTIONS: 'makeup-pos-promotions',
+  PROMOTIONS_STATISTICS: 'makeup-pos-promotions-statistics',  // Added this missing key
   SUPPLIERS: 'makeup-pos-suppliers',
   CART: 'makeup-pos-cart',
   CART_CUSTOMER: 'makeup-pos-cart-customer',

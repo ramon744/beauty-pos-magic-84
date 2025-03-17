@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Promotion } from '@/types';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
@@ -87,9 +86,7 @@ const initialPromotions: Promotion[] = [
 
 // Initialize data in localStorage if it doesn't exist
 const initializeData = () => {
-  storageService.initialize({
-    [STORAGE_KEYS.PROMOTIONS]: initialPromotions
-  });
+  storageService.setItem(STORAGE_KEYS.PROMOTIONS, initialPromotions);
   
   // Calculate and update statistics
   updateStatistics();
