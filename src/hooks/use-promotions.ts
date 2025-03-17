@@ -70,6 +70,19 @@ const initialPromotions: Promotion[] = [
     createdBy: '1', // Admin
     createdAt: new Date(2023, 5, 10), // June 10th
   },
+  {
+    id: '5',
+    name: 'Produtos para Finalização em Oferta',
+    type: 'discount_percentage',
+    description: 'Desconto de 15% em produtos selecionados para finalização',
+    discountPercent: 15,
+    productIds: ['6', '7', '8'], // Produtos de finalização
+    startDate: new Date(2023, 6, 1), // July 1st
+    endDate: new Date(2023, 9, 30), // October 30th
+    isActive: true,
+    createdBy: '1', // Admin
+    createdAt: new Date(2023, 5, 25), // June 25th
+  },
 ];
 
 // Initialize data in localStorage if it doesn't exist
@@ -246,6 +259,15 @@ export function useRemoveProductFromPromotion() {
       if (promotion.type === 'bundle' && promotion.bundleProducts) {
         // For bundle promotions, remove the product from the bundleProducts array
         promotion.bundleProducts = promotion.bundleProducts.filter(id => id !== productId);
+        
+        // Update the promotion in the array
+        promotions[promotionIndex] = promotion;
+        
+        // Save the updated promotions back to localStorage
+        storageService.setItem(STORAGE_KEYS.PROMOTIONS, promotions);
+      } else if (promotion.productIds && promotion.productIds.includes(productId)) {
+        // For multiple products promotions, remove the product from the productIds array
+        promotion.productIds = promotion.productIds.filter(id => id !== productId);
         
         // Update the promotion in the array
         promotions[promotionIndex] = promotion;

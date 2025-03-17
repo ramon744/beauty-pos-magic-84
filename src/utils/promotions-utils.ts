@@ -29,6 +29,11 @@ export const getAvailablePromotions = (
       return cartItems.some((item) => item.product.id === promotion.productId);
     }
     
+    // For promotions with multiple products
+    if (promotion.productIds && promotion.productIds.length > 0) {
+      return cartItems.some((item) => promotion.productIds?.includes(item.product.id));
+    }
+    
     // For promotions that apply to specific categories
     if (promotion.categoryId) {
       return cartItems.some(
@@ -59,10 +64,11 @@ export function calculatePromotionDiscount(
     case 'discount_percentage': {
       // Apply percentage discount
       cartItems.forEach(item => {
-        if (
-          (promotion.productId && item.product.id === promotion.productId) ||
-          (promotion.categoryId && item.product.category.id === promotion.categoryId)
-        ) {
+        const matchesProduct = promotion.productId && item.product.id === promotion.productId;
+        const matchesMultipleProducts = promotion.productIds && promotion.productIds.includes(item.product.id);
+        const matchesCategory = promotion.categoryId && item.product.category.id === promotion.categoryId;
+        
+        if (matchesProduct || matchesMultipleProducts || matchesCategory) {
           const itemDiscount = item.price * item.quantity * (promotion.discountPercent || 0) / 100;
           discountAmount += itemDiscount;
           appliedItems.push(item.product.id);
@@ -74,15 +80,23 @@ export function calculatePromotionDiscount(
     case 'discount_value': {
       // Apply fixed value discount
       cartItems.forEach(item => {
-        if (
-          (promotion.productId && item.product.id === promotion.productId) ||
-          (promotion.categoryId && item.product.category.id === promotion.categoryId)
-        ) {
+        const matchesProduct = promotion.productId && item.product.id === promotion.productId;
+        const matchesMultipleProducts = promotion.productIds && promotion.productIds.includes(item.product.id);
+        const matchesCategory = promotion.categoryId && item.product.category.id === promotion.categoryId;
+        
+        if (matchesProduct || matchesMultipleProducts || matchesCategory) {
           // Distribute the discount proportionally to the quantity
           const itemDiscount = Math.min(
             item.price * item.quantity,
             (promotion.discountValue || 0) * (item.quantity / cartItems.reduce(
-              (total, i) => i.product.id === item.product.id ? total + i.quantity : total, 0
+              (total, i) => {
+                const itemMatches = 
+                  (matchesProduct && i.product.id === item.product.id) ||
+                  (matchesMultipleProducts && promotion.productIds?.includes(i.product.id)) ||
+                  (matchesCategory && i.product.category.id === item.product.category.id);
+                
+                return itemMatches ? total + i.quantity : total;
+              }, 0
             ))
           );
           discountAmount += itemDiscount;
@@ -95,7 +109,10 @@ export function calculatePromotionDiscount(
     case 'fixed_price': {
       // Apply fixed price
       cartItems.forEach(item => {
-        if (promotion.productId && item.product.id === promotion.productId) {
+        const matchesProduct = promotion.productId && item.product.id === promotion.productId;
+        const matchesMultipleProducts = promotion.productIds && promotion.productIds.includes(item.product.id);
+        
+        if (matchesProduct || matchesMultipleProducts) {
           const normalPrice = item.price * item.quantity;
           const discountedPrice = (promotion.fixedPrice || 0) * item.quantity;
           discountAmount += normalPrice - discountedPrice;
@@ -107,16 +124,20 @@ export function calculatePromotionDiscount(
       
     case 'buy_x_get_y': {
       // Handle "buy X get Y" promotion
-      if (!promotion.productId) break;
+      if (!promotion.productId && (!promotion.productIds || !promotion.productIds.length)) break;
       
-      const eligibleItems = cartItems.filter(
-        item => item.product.id === promotion.productId
-      );
+      let eligibleItems = [];
+      
+      if (promotion.productId) {
+        eligibleItems = cartItems.filter(item => item.product.id === promotion.productId);
+      } else if (promotion.productIds) {
+        eligibleItems = cartItems.filter(item => promotion.productIds?.includes(item.product.id));
+      }
       
       // Calculate how many sets of "buy X" are in the cart
       const buyQuantity = promotion.buyQuantity || 1;
       const getQuantity = promotion.getQuantity || 1;
-      const secondaryProductId = promotion.secondaryProductId || promotion.productId;
+      const secondaryProductId = promotion.secondaryProductId || (promotion.productId || promotion.productIds?.[0]);
       const secondaryDiscount = promotion.secondaryProductDiscount || 100; // Default to 100% (free)
       
       let totalEligibleQuantity = eligibleItems.reduce(
@@ -124,7 +145,7 @@ export function calculatePromotionDiscount(
       );
       
       // If there's a secondary product
-      if (secondaryProductId !== promotion.productId) {
+      if (secondaryProductId !== promotion.productId && (!promotion.productIds || !promotion.productIds.includes(secondaryProductId))) {
         const secondaryItems = cartItems.filter(
           item => item.product.id === secondaryProductId
         );

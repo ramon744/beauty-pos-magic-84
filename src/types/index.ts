@@ -118,6 +118,7 @@ export interface Promotion {
   bundleProducts?: string[];
   bundlePrice?: number;
   productId?: string;
+  productIds?: string[]; // Novo campo para múltiplos produtos
   secondaryProductId?: string; // Added for "buy X get Y" with different products
   secondaryProductDiscount?: number; // Added discount percentage for secondary product
   categoryId?: string;
