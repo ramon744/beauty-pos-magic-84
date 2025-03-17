@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -51,7 +50,6 @@ import {
   CommandList,
 } from '@/components/ui/command';
 
-// Define the form schema with conditional fields based on promotion type
 const promotionFormSchema = z.object({
   name: z.string().min(3, { message: 'Nome deve ter pelo menos 3 caracteres' }),
   description: z.string().min(5, { message: 'Descrição deve ter pelo menos 5 caracteres' }),
@@ -88,17 +86,14 @@ const promotionFormSchema = z.object({
     return false;
   }
   
-  // Validate that target (product or category) is selected for certain promotion types
   if (['discount_percentage', 'discount_value'].includes(data.type) && !data.productId && !data.categoryId) {
     return false;
   }
   
-  // Product is required for specific promotion types
   if (['buy_x_get_y', 'fixed_price'].includes(data.type) && !data.productId) {
     return false;
   }
   
-  // Validate date range
   return data.startDate <= data.endDate;
 }, {
   message: "Todos os campos obrigatórios para esse tipo de promoção devem ser preenchidos corretamente.",
@@ -120,7 +115,6 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
   const { data: categories, isLoading: loadingCategories } = useCategories();
   const { user } = useAuth();
   
-  // State for bundle products selection and product search
   const [selectedBundleProducts, setSelectedBundleProducts] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [productSearchQuery, setProductSearchQuery] = useState('');
@@ -128,7 +122,6 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
   const [productSearchOpen, setProductSearchOpen] = useState(false);
   const [secondaryProductSearchOpen, setSecondaryProductSearchOpen] = useState(false);
 
-  // Initialize the form
   const form = useForm<PromotionFormValues>({
     resolver: zodResolver(promotionFormSchema),
     defaultValues: {
@@ -141,7 +134,7 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
       buyQuantity: undefined,
       getQuantity: undefined,
       secondaryProductId: undefined,
-      secondaryProductDiscount: 100, // Default to 100% (free)
+      secondaryProductDiscount: 100,
       bundlePrice: undefined,
       productId: undefined,
       categoryId: undefined,
@@ -153,31 +146,25 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
     },
   });
 
-  // Watch the promotion type to conditionally render fields
   const promotionType = form.watch('type');
   
-  // Get selected product details
   const selectedProductId = form.watch('productId');
   const selectedProduct = selectedProductId 
     ? products?.find(p => p.id === selectedProductId) 
     : null;
 
-  // Get selected secondary product details for buy_x_get_y
   const selectedSecondaryProductId = form.watch('secondaryProductId');
   const selectedSecondaryProduct = selectedSecondaryProductId
     ? products?.find(p => p.id === selectedSecondaryProductId)
     : null;
 
-  // Get selected category details
   const selectedCategoryId = form.watch('categoryId');
   const selectedCategory = selectedCategoryId
     ? categories?.find(c => c.id === selectedCategoryId)
     : null;
 
-  // Populate form when editing an existing promotion
   useEffect(() => {
     if (promotion && promotionId) {
-      // Set bundle products if applicable
       if (promotion.bundleProducts) {
         setSelectedBundleProducts(promotion.bundleProducts);
       }
@@ -215,12 +202,10 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
       return;
     }
     
-    // Prepare bundle products
     const bundleProducts = data.type === 'bundle' 
       ? selectedBundleProducts 
       : undefined;
     
-    // Construct promotion object
     const promotionToSave: Promotion = {
       id: promotionId || crypto.randomUUID(),
       name: data.name,
@@ -270,7 +255,6 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
     });
   };
 
-  // Handle adding a product to the bundle
   const handleSelectBundleProduct = (productId: string) => {
     if (!selectedBundleProducts.includes(productId)) {
       const updatedProducts = [...selectedBundleProducts, productId];
@@ -280,14 +264,12 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
     setSearchQuery('');
   };
 
-  // Handle removing a product from the bundle
   const handleRemoveBundleProduct = (productId: string) => {
     const updatedProducts = selectedBundleProducts.filter(id => id !== productId);
     setSelectedBundleProducts(updatedProducts);
     form.setValue('bundleProducts', updatedProducts);
   };
 
-  // Filter products based on search query for bundle
   const filteredProducts = products?.filter(product => {
     if (!searchQuery) return true;
     
@@ -298,7 +280,6 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
     );
   });
 
-  // Filter products based on product search query for buy_x_get_y
   const filteredProductsForSearch = products?.filter(product => {
     if (!productSearchQuery) return true;
     
@@ -309,7 +290,6 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
     );
   });
 
-  // Filter products based on secondary product search query for buy_x_get_y
   const filteredSecondaryProductsForSearch = products?.filter(product => {
     if (!secondaryProductSearchQuery) return true;
     
@@ -320,21 +300,18 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
     );
   });
 
-  // Handle selecting a product from the search
   const handleSelectProduct = (productId: string) => {
     form.setValue('productId', productId);
     setProductSearchOpen(false);
     setProductSearchQuery('');
   };
 
-  // Handle selecting a secondary product from the search
   const handleSelectSecondaryProduct = (productId: string) => {
     form.setValue('secondaryProductId', productId);
     setSecondaryProductSearchOpen(false);
     setSecondaryProductSearchQuery('');
   };
 
-  // Get total bundle value (original prices)
   const getBundleTotalValue = () => {
     if (!selectedBundleProducts.length || !products) return 0;
     
@@ -344,7 +321,6 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
     }, 0);
   };
 
-  // Get bundle discount percentage
   const getBundleDiscountPercentage = () => {
     const totalValue = getBundleTotalValue();
     const bundlePrice = form.watch('bundlePrice') || 0;
@@ -352,7 +328,7 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
     if (totalValue <= 0 || bundlePrice <= 0) return 0;
     
     const discountPercentage = 100 - ((bundlePrice / totalValue) * 100);
-    return Math.round(discountPercentage * 100) / 100; // Round to 2 decimal places
+    return Math.round(discountPercentage * 100) / 100;
   };
 
   if ((promotionId && loadingPromotion) || loadingProducts || loadingCategories) {
@@ -400,7 +376,6 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                       onValueChange={(value: PromotionType) => {
                         field.onChange(value);
                         
-                        // Reset relevant fields when promotion type changes
                         if (value === 'discount_percentage') {
                           form.setValue('discountPercent', 10);
                           form.setValue('discountValue', undefined);
@@ -595,17 +570,19 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                 </div>
                 
                 {selectedProduct && (
-                  <Card>
-                    <CardContent className="p-4">
-                      <h4 className="font-medium mb-2">Prévia do Desconto</h4>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>Preço Original:</div>
+                  <Card className="overflow-hidden border-2 border-green-100 shadow-md">
+                    <div className="bg-gradient-to-r from-green-50 to-blue-50 px-4 py-2 border-b">
+                      <h4 className="font-medium text-green-800">Prévia do Desconto</h4>
+                    </div>
+                    <CardContent className="p-4 bg-white">
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="text-gray-600">Preço Original:</div>
                         <div className="font-semibold">{formatCurrency(selectedProduct.salePrice)}</div>
-                        <div>Desconto ({form.watch('discountPercent')}%):</div>
+                        <div className="text-gray-600">Desconto ({form.watch('discountPercent')}%):</div>
                         <div className="font-semibold text-destructive">
                           -{formatCurrency((selectedProduct.salePrice * (form.watch('discountPercent') || 0)) / 100)}
                         </div>
-                        <div>Preço Final:</div>
+                        <div className="text-gray-600">Preço Final:</div>
                         <div className="font-semibold text-green-600">
                           {formatCurrency(selectedProduct.salePrice - ((selectedProduct.salePrice * (form.watch('discountPercent') || 0)) / 100))}
                         </div>
@@ -723,17 +700,19 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                 </div>
                 
                 {selectedProduct && (
-                  <Card>
-                    <CardContent className="p-4">
-                      <h4 className="font-medium mb-2">Prévia do Desconto</h4>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>Preço Original:</div>
+                  <Card className="overflow-hidden border-2 border-blue-100 shadow-md">
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-2 border-b">
+                      <h4 className="font-medium text-blue-800">Prévia do Desconto</h4>
+                    </div>
+                    <CardContent className="p-4 bg-white">
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="text-gray-600">Preço Original:</div>
                         <div className="font-semibold">{formatCurrency(selectedProduct.salePrice)}</div>
-                        <div>Desconto:</div>
+                        <div className="text-gray-600">Desconto:</div>
                         <div className="font-semibold text-destructive">
                           -{formatCurrency(form.watch('discountValue') || 0)}
                         </div>
-                        <div>Preço Final:</div>
+                        <div className="text-gray-600">Preço Final:</div>
                         <div className="font-semibold text-green-600">
                           {formatCurrency(Math.max(0, selectedProduct.salePrice - (form.watch('discountValue') || 0)))}
                         </div>
@@ -797,17 +776,19 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                 </div>
                 
                 {selectedProduct && (
-                  <Card>
-                    <CardContent className="p-4">
-                      <h4 className="font-medium mb-2">Prévia do Preço Promocional</h4>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>Preço Original:</div>
+                  <Card className="overflow-hidden border-2 border-amber-100 shadow-md">
+                    <div className="bg-gradient-to-r from-amber-50 to-yellow-50 px-4 py-2 border-b">
+                      <h4 className="font-medium text-amber-800">Prévia do Preço Promocional</h4>
+                    </div>
+                    <CardContent className="p-4 bg-white">
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="text-gray-600">Preço Original:</div>
                         <div className="font-semibold">{formatCurrency(selectedProduct.salePrice)}</div>
-                        <div>Preço Promocional:</div>
+                        <div className="text-gray-600">Preço Promocional:</div>
                         <div className="font-semibold text-green-600">
                           {formatCurrency(form.watch('fixedPrice') || 0)}
                         </div>
-                        <div>Economia:</div>
+                        <div className="text-gray-600">Economia:</div>
                         <div className="font-semibold text-destructive">
                           {selectedProduct.salePrice > (form.watch('fixedPrice') || 0) ? 
                             `-${formatCurrency(selectedProduct.salePrice - (form.watch('fixedPrice') || 0))}` : 
@@ -971,26 +952,40 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                 </div>
                 
                 {selectedProduct && (
-                  <Card>
-                    <CardContent className="p-4">
-                      <h4 className="font-medium mb-2">Prévia da Promoção</h4>
-                      <div className="space-y-2 text-sm">
-                        <p>Comprando {form.watch('buyQuantity')} unidades de <strong>{selectedProduct.name}</strong>...</p>
+                  <Card className="overflow-hidden border-2 border-purple-100 shadow-md">
+                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 px-4 py-2 border-b">
+                      <h4 className="font-medium text-purple-800">Prévia da Promoção</h4>
+                    </div>
+                    <CardContent className="p-4 bg-white">
+                      <div className="space-y-3 text-sm">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="p-1.5 rounded-full bg-purple-100">
+                            <ShoppingBag className="h-4 w-4 text-purple-600" />
+                          </div>
+                          <p className="font-medium">Comprando {form.watch('buyQuantity')} unidades de <span className="text-purple-700 font-semibold">{selectedProduct.name}</span></p>
+                        </div>
                         
-                        {selectedSecondaryProduct ? (
-                          <p>
-                            ...o cliente leva {form.watch('getQuantity')} unidades de <strong>{selectedSecondaryProduct.name}</strong> com <strong>{form.watch('secondaryProductDiscount')}%</strong> de desconto.
-                          </p>
-                        ) : (
-                          <p>
-                            ...o cliente leva {form.watch('getQuantity')} unidades adicionais do mesmo produto com <strong>{form.watch('secondaryProductDiscount')}%</strong> de desconto.
-                          </p>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-full bg-pink-100">
+                            <Gift className="h-4 w-4 text-pink-600" />
+                          </div>
+                          {selectedSecondaryProduct ? (
+                            <p>
+                              O cliente leva {form.watch('getQuantity')} unidades de <span className="text-pink-700 font-semibold">{selectedSecondaryProduct.name}</span> com <span className="font-semibold">{form.watch('secondaryProductDiscount')}%</span> de desconto.
+                            </p>
+                          ) : (
+                            <p>
+                              O cliente leva {form.watch('getQuantity')} unidades adicionais do mesmo produto com <span className="font-semibold">{form.watch('secondaryProductDiscount')}%</span> de desconto.
+                            </p>
+                          )}
+                        </div>
                         
                         {form.watch('secondaryProductDiscount') === 100 && (
-                          <p className="font-medium text-green-600">
-                            Produto com 100% de desconto = GRÁTIS!
-                          </p>
+                          <div className="mt-2 p-2 bg-green-50 border border-green-100 rounded-md text-center">
+                            <p className="font-medium text-green-600">
+                              Produto com 100% de desconto = GRÁTIS!
+                            </p>
+                          </div>
                         )}
                       </div>
                     </CardContent>
@@ -1029,7 +1024,6 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                       </div>
                     </div>
                     
-                    {/* Selected bundle products */}
                     <div className="mt-2 space-y-2">
                       {selectedBundleProducts.length > 0 ? (
                         <div className="flex flex-wrap gap-2">
@@ -1063,7 +1057,6 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                   </div>
                 </div>
                 
-                {/* Product search results for bundle */}
                 {searchQuery && (
                   <Card className="mt-2">
                     <CardContent className="p-2">
@@ -1097,24 +1090,29 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                   </Card>
                 )}
                 
-                {/* Bundle summary */}
                 {selectedBundleProducts.length > 0 && (
-                  <Card>
-                    <CardContent className="p-4">
-                      <h4 className="font-medium mb-2">Resumo do Pacote</h4>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>Valor Total dos Produtos:</div>
+                  <Card className="overflow-hidden border-2 border-indigo-100 shadow-md">
+                    <div className="bg-gradient-to-r from-indigo-50 to-blue-50 px-4 py-2 border-b">
+                      <h4 className="font-medium text-indigo-800">Resumo do Pacote</h4>
+                    </div>
+                    <CardContent className="p-4 bg-white">
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="text-gray-600">Valor Total dos Produtos:</div>
                         <div className="font-semibold">{formatCurrency(getBundleTotalValue())}</div>
-                        <div>Preço do Pacote:</div>
+                        <div className="text-gray-600">Preço do Pacote:</div>
                         <div className="font-semibold text-green-600">
                           {formatCurrency(form.watch('bundlePrice') || 0)}
                         </div>
-                        <div>Economia:</div>
+                        <div className="text-gray-600">Economia:</div>
                         <div className="font-semibold text-destructive">
                           -{formatCurrency(getBundleTotalValue() - (form.watch('bundlePrice') || 0))}
                         </div>
-                        <div>Desconto Percentual:</div>
-                        <div className="font-semibold">{getBundleDiscountPercentage()}%</div>
+                        <div className="text-gray-600">Desconto Percentual:</div>
+                        <div className="font-semibold">
+                          <Badge variant="outline" className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100">
+                            {getBundleDiscountPercentage()}%
+                          </Badge>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
