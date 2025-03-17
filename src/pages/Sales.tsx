@@ -151,7 +151,7 @@ const Sales = () => {
       id: Date.now().toString(),
       items: cart,
       customer: linkedCustomer,
-      paymentMethod: 'mixed_payment' in paymentDetails ? 'mixed' : paymentDetails.method,
+      paymentMethod: 'payments' in paymentDetails ? 'mixed' : paymentDetails.method,
       total: cartSubtotal,
       discount: totalDiscountAmount,
       finalTotal: cartTotal,
