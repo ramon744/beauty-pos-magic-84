@@ -2,7 +2,9 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
+import { Product as ProductType } from '@/types';
 
+// Extended CartItem with needed fields for the cart functionality
 export interface CartItem {
   id: string;
   name: string;
@@ -14,7 +16,8 @@ export interface CartItem {
   subtotal: number;
 }
 
-export interface Product {
+// Simplified product interface for cart operations
+export interface CartProduct {
   id: string;
   name: string;
   description: string;
@@ -34,14 +37,29 @@ export const useCart = () => {
     storageService.setItem(STORAGE_KEYS.CART, cart);
   }, [cart]);
 
-  const addProductToCart = (product: Product, qty: number) => {
+  // Convert from the main Product type to CartProduct
+  const adaptProductForCart = (product: ProductType): CartProduct => {
+    return {
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: product.salePrice,
+      stock: product.stock,
+      category: product.category.name
+    };
+  };
+
+  const addProductToCart = (product: ProductType | CartProduct, qty: number) => {
     if (!product || qty <= 0) return;
     
-    const existingItem = cart.find(item => item.id === product.id);
+    // Ensure we have the correct product format
+    const cartProduct = 'salePrice' in product ? adaptProductForCart(product as ProductType) : product;
+    
+    const existingItem = cart.find(item => item.id === cartProduct.id);
     
     if (existingItem) {
       setCart(cart.map(item => 
-        item.id === product.id
+        item.id === cartProduct.id
           ? { 
               ...item, 
               quantity: item.quantity + qty,
@@ -52,18 +70,18 @@ export const useCart = () => {
       
       toast({
         title: "Produto atualizado",
-        description: `${product.name} (${qty}) adicionado ao carrinho`
+        description: `${cartProduct.name} (${qty}) adicionado ao carrinho`
       });
     } else {
       setCart([...cart, {
-        ...product,
+        ...cartProduct,
         quantity: qty,
-        subtotal: qty * product.price
+        subtotal: qty * cartProduct.price
       }]);
       
       toast({
         title: "Produto adicionado",
-        description: `${product.name} adicionado ao carrinho`
+        description: `${cartProduct.name} adicionado ao carrinho`
       });
     }
   };

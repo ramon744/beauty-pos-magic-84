@@ -5,15 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { CardTitle, CardContent } from '@/components/ui/card';
 import { ProductSearchTable } from './ProductSearchTable';
-
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  stock: number;
-  category: string;
-}
+import { Product } from '@/types';
+import { CartProduct } from '@/hooks/use-cart';
 
 interface ProductSearchProps {
   searchQuery: string;

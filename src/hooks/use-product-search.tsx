@@ -3,10 +3,11 @@ import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useBarcodeScan } from '@/hooks/use-barcode-scan';
 import { useFetchProducts } from '@/hooks/use-products';
+import { Product } from '@/types';
 
-export const useProductSearch = (addProductToCart: any) => {
+export const useProductSearch = (addProductToCart: (product: Product, qty: number) => void) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const { toast } = useToast();
   const { data: products = [] } = useFetchProducts();
@@ -20,16 +21,7 @@ export const useProductSearch = (addProductToCart: any) => {
     const product = products.find(p => p.code === barcode);
     
     if (product) {
-      const productToAdd = {
-        id: product.id,
-        name: product.name,
-        description: product.description,
-        price: product.salePrice,
-        stock: product.stock,
-        category: product.category.name
-      };
-      
-      addProductToCart(productToAdd, 1);
+      addProductToCart(product, 1);
     } else {
       toast({
         title: "Produto não encontrado",
@@ -69,15 +61,7 @@ export const useProductSearch = (addProductToCart: any) => {
         product.code.includes(searchQuery)
       );
       
-      setSearchResults(results.map(p => ({
-        id: p.id,
-        name: p.name,
-        description: p.description,
-        price: p.salePrice,
-        stock: p.stock,
-        category: p.category.name
-      })));
-      
+      setSearchResults(results);
       setHasSearched(true);
       
       if (results.length === 0 && searchQuery.trim().length > 2) {

@@ -2,7 +2,6 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { useForm } from 'react-hook-form';
 import { useCart } from '@/hooks/use-cart';
 import { useProductSearch } from '@/hooks/use-product-search';
 import { useDiscounts } from '@/hooks/use-discounts';
@@ -12,6 +11,7 @@ import { useSalesDialogs } from '@/hooks/use-sales-dialogs';
 import { SalesHeader } from '@/components/sales/SalesHeader';
 import { SalesContainer } from '@/components/sales/SalesContainer';
 import { SalesDialogs } from '@/components/sales/SalesDialogs';
+import { Product } from '@/types';
 
 const Sales = () => {
   const { user } = useAuth();
@@ -28,6 +28,11 @@ const Sales = () => {
     setCart 
   } = useCart();
   
+  // Create a typed version of addProductToCart that accepts the main Product type
+  const handleAddProductToCart = (product: Product, qty: number) => {
+    addProductToCart(product, qty);
+  };
+  
   const { 
     searchQuery, 
     setSearchQuery, 
@@ -35,7 +40,7 @@ const Sales = () => {
     hasSearched, 
     isScanning, 
     toggleScanner 
-  } = useProductSearch(addProductToCart);
+  } = useProductSearch(handleAddProductToCart);
 
   const { 
     manualDiscount, 
@@ -148,7 +153,7 @@ const Sales = () => {
         hasSearched={hasSearched}
         isScanning={isScanning}
         toggleScanner={toggleScanner}
-        addProductToCart={addProductToCart}
+        addProductToCart={handleAddProductToCart}
         updateCartItemQuantity={handleCartItemQuantityUpdate}
         initiateRemoveFromCart={initiateRemoveFromCart}
         removeDiscount={removeDiscount}

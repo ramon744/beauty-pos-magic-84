@@ -7,7 +7,6 @@ import { SaleSummary } from '@/components/sales/SaleSummary';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Promotion, Product } from '@/types';
 import { CartItem } from '@/hooks/use-cart';
-import { AppliedPromotion } from '@/utils/promotions-utils';
 
 interface SalesContainerProps {
   cart: CartItem[];
