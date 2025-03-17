@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Table, TableBody, TableCaption, TableCell, TableHead, 
@@ -29,14 +28,12 @@ export const SalesHistoryList = () => {
   const [filteredSales, setFilteredSales] = useState<Sale[]>([]);
   const [timeFilter, setTimeFilter] = useState<'today' | 'week' | 'month' | 'all'>('all');
   
-  // Fetch products and promotions
   const { data: products = [] } = useFetchProducts();
   const { data: promotions = [] } = useFetchPromotions();
 
   useEffect(() => {
     const loadSales = () => {
       const savedSales = storageService.getItem<Sale[]>(STORAGE_KEYS.ORDERS) || [];
-      // Sort sales by date (newest first)
       const sortedSales = savedSales.sort((a, b) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
@@ -98,27 +95,21 @@ export const SalesHistoryList = () => {
     return paymentDetails && typeof paymentDetails === 'object' && 'payments' in paymentDetails;
   };
 
-  // Improved product name lookup that first tries to find product in the sale item's direct data
-  // and falls back to looking it up in the products list
   const getProductName = (item: CartItem): string => {
-    // First check if the product object is complete within the item
-    if (item.product && item.product.name) {
+    if (item.product && typeof item.product.name === 'string' && item.product.name) {
       return item.product.name;
     }
     
-    // If not, try to find it in the products list using id
     if (item.product && item.product.id) {
-      const product = products.find(p => p.id === item.product.id);
-      if (product) {
-        return product.name;
+      const foundProduct = products.find(p => p.id === item.product.id);
+      if (foundProduct && foundProduct.name) {
+        return foundProduct.name;
       }
     }
     
-    // Last fallback
     return 'Produto não disponível';
   };
 
-  // Improved promotion details lookup
   const getPromotionDetails = (sale: Sale) => {
     if (!sale.appliedPromotionId) return null;
     
@@ -174,7 +165,6 @@ export const SalesHistoryList = () => {
                 <AccordionContent>
                   <CardContent className="pt-4">
                     <div className="space-y-6">
-                      {/* Customer Information */}
                       {sale.customer && (
                         <div className="border-b pb-4">
                           <h4 className="font-semibold mb-2 flex items-center">
@@ -191,7 +181,6 @@ export const SalesHistoryList = () => {
                         </div>
                       )}
                       
-                      {/* Items List */}
                       <div className="border-b pb-4">
                         <h4 className="font-semibold mb-2 flex items-center">
                           <ShoppingBag className="h-4 w-4 mr-2" />
@@ -227,7 +216,6 @@ export const SalesHistoryList = () => {
                         </Table>
                       </div>
                       
-                      {/* Applied Promotion Info */}
                       {sale.appliedPromotionId && (
                         <div className="border-b pb-4">
                           <h4 className="font-semibold mb-2 flex items-center">
@@ -250,7 +238,6 @@ export const SalesHistoryList = () => {
                         </div>
                       )}
                       
-                      {/* Payment Information */}
                       <div className="border-b pb-4">
                         <h4 className="font-semibold mb-2 flex items-center">
                           <CreditCard className="h-4 w-4 mr-2" />
@@ -320,11 +307,10 @@ export const SalesHistoryList = () => {
                                 </div>
                               )}
                               
-                              {/* Manual discount authorization */}
                               {sale.discount > 0 && sale.discountAuthorizedBy && (
                                 <div className="flex justify-between text-amber-600 text-xs italic">
                                   <span>Desconto autorizado por:</span>
-                                  <span>{sale.discountAuthorizedBy?.name || 'Usuário não identificado'}</span>
+                                  <span>{sale.discountAuthorizedBy.name || 'Usuário não identificado'}</span>
                                 </div>
                               )}
                               
@@ -337,7 +323,6 @@ export const SalesHistoryList = () => {
                         </div>
                       </div>
                       
-                      {/* Sale Information */}
                       <div>
                         <h4 className="font-semibold mb-2">Informações Adicionais</h4>
                         <div className="text-sm grid grid-cols-1 sm:grid-cols-2 gap-2">
