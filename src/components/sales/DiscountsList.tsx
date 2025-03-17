@@ -40,12 +40,12 @@ export const DiscountsList = ({
 }: DiscountsListProps) => {
   const { toast } = useToast();
 
-  // Find promotion details
-  const appliedPromotionDetails = appliedPromotion
+  // Find promotion details safely
+  const appliedPromotionDetails = appliedPromotion && promotions
     ? promotions.find(p => p.id === appliedPromotion.promotionId)
     : null;
 
-  const hasDiscounts = manualDiscount || appliedPromotion;
+  const hasDiscounts = Boolean(manualDiscount || appliedPromotion);
 
   const handleRemoveManualDiscount = () => {
     onRequestAuth(() => onRemoveManualDiscount());
@@ -117,9 +117,11 @@ export const DiscountsList = ({
                       Promoção
                     </Badge>
                     <span className="font-medium">{appliedPromotionDetails.name}</span>
-                    <span className="text-sm text-muted-foreground">
-                      (R$ {appliedPromotion?.discountAmount.toFixed(2)})
-                    </span>
+                    {appliedPromotion && (
+                      <span className="text-sm text-muted-foreground">
+                        (R$ {appliedPromotion.discountAmount.toFixed(2)})
+                      </span>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <Button
