@@ -1,5 +1,4 @@
-
-import { Promotion, Product, CartItem } from "@/types";
+import { Product, Promotion, CartItemType } from '@/types';
 
 export type AppliedPromotion = {
   promotionId: string;
@@ -7,16 +6,19 @@ export type AppliedPromotion = {
   appliedItems: string[]; // Product IDs
 };
 
-export function getAvailablePromotions(
-  cartItems: CartItem[],
+export const getAvailablePromotions = (
+  cartItems: CartItemType[],
   allPromotions: Promotion[]
-): Promotion[] {
-  // Get current date to check if promotions are active
+): Promotion[] => {
+  if (!cartItems.length || !allPromotions.length) return [];
+  
   const now = new Date();
   
-  // Filter only active promotions
+  // Filter only active promotions that are currently valid
   const activePromotions = allPromotions.filter(
-    (promo) => promo.isActive && new Date(promo.startDate) <= now && new Date(promo.endDate) >= now
+    (promo) => promo.isActive && 
+               new Date(promo.startDate) <= now && 
+               new Date(promo.endDate) >= now
   );
 
   // Find applicable promotions for current cart items
@@ -42,10 +44,10 @@ export function getAvailablePromotions(
     
     return false;
   });
-}
+};
 
 export function calculatePromotionDiscount(
-  cartItems: CartItem[],
+  cartItems: CartItemType[],
   promotion: Promotion,
   products: Product[]
 ): AppliedPromotion {
@@ -196,7 +198,7 @@ export function calculatePromotionDiscount(
 }
 
 export function getBestPromotion(
-  cartItems: CartItem[],
+  cartItems: CartItemType[],
   availablePromotions: Promotion[],
   products: Product[]
 ): AppliedPromotion | null {

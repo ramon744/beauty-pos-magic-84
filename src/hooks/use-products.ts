@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Product, Category } from '@/types';
-import { storageService } from '@/services/storage-service';
+import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Define the Statistics interface
@@ -28,14 +28,6 @@ export interface StockHistoryEntry {
   userRole: string;
   timestamp: Date;
 }
-
-// Storage keys
-const STORAGE_KEYS = {
-  PRODUCTS: 'products',
-  CATEGORIES: 'categories',
-  STATISTICS: 'products-statistics',
-  STOCK_HISTORY: 'stock-history',
-};
 
 // Initial mock data for categories
 const initialCategories: Category[] = [
@@ -154,21 +146,11 @@ const initialProducts: Product[] = [
 
 // Initialize data in localStorage if it doesn't exist
 const initializeData = () => {
-  const existingProducts = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS);
-  const existingCategories = storageService.getItem<Category[]>(STORAGE_KEYS.CATEGORIES);
-  const existingStockHistory = storageService.getItem<StockHistoryEntry[]>(STORAGE_KEYS.STOCK_HISTORY);
-  
-  if (!existingProducts) {
-    storageService.setItem(STORAGE_KEYS.PRODUCTS, initialProducts);
-  }
-  
-  if (!existingCategories) {
-    storageService.setItem(STORAGE_KEYS.CATEGORIES, initialCategories);
-  }
-  
-  if (!existingStockHistory) {
-    storageService.setItem(STORAGE_KEYS.STOCK_HISTORY, []);
-  }
+  storageService.initialize({
+    [STORAGE_KEYS.PRODUCTS]: initialProducts,
+    [STORAGE_KEYS.CATEGORIES]: initialCategories,
+    [STORAGE_KEYS.STOCK_HISTORY]: []
+  });
   
   // Calculate and update statistics
   updateStatistics();
@@ -198,7 +180,7 @@ const updateStatistics = () => {
     approachingMinimumStock
   };
   
-  storageService.setItem(STORAGE_KEYS.STATISTICS, statistics);
+  storageService.setItem(STORAGE_KEYS.PRODUCTS_STATISTICS, statistics);
   return statistics;
 };
 
@@ -311,7 +293,7 @@ export function useStatistics() {
     queryKey: ['statistics'],
     queryFn: async () => {
       // If statistics don't exist, calculate them
-      const stats = storageService.getItem<ProductStatistics>(STORAGE_KEYS.STATISTICS);
+      const stats = storageService.getItem<ProductStatistics>(STORAGE_KEYS.PRODUCTS_STATISTICS);
       if (!stats) {
         return updateStatistics();
       }

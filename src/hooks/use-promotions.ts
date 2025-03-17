@@ -1,13 +1,6 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Promotion, PromotionType } from '@/types';
-import { storageService } from '@/services/storage-service';
-
-// Storage keys
-const STORAGE_KEYS = {
-  PROMOTIONS: 'promotions',
-  STATISTICS: 'promotions-statistics',
-};
+import { Promotion } from '@/types';
+import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 
 // Types for promotion statistics
 interface PromotionStatistics {
@@ -80,11 +73,9 @@ const initialPromotions: Promotion[] = [
 
 // Initialize data in localStorage if it doesn't exist
 const initializeData = () => {
-  const existingPromotions = storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS);
-  
-  if (!existingPromotions) {
-    storageService.setItem(STORAGE_KEYS.PROMOTIONS, initialPromotions);
-  }
+  storageService.initialize({
+    [STORAGE_KEYS.PROMOTIONS]: initialPromotions
+  });
   
   // Calculate and update statistics
   updateStatistics();
@@ -94,20 +85,20 @@ const initializeData = () => {
 const updateStatistics = (): PromotionStatistics => {
   const promotions = storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS) || [];
   
+  const now = new Date();
+  
   const statistics: PromotionStatistics = {
     totalPromotions: promotions.length,
     activePromotions: promotions.filter(p => p.isActive).length,
     upcomingPromotions: promotions.filter(p => {
-      const now = new Date();
-      return p.startDate > now && p.isActive;
+      return p.isActive && new Date(p.startDate) > now;
     }).length,
     expiredPromotions: promotions.filter(p => {
-      const now = new Date();
-      return p.endDate < now;
+      return new Date(p.endDate) < now;
     }).length,
   };
   
-  storageService.setItem(STORAGE_KEYS.STATISTICS, statistics);
+  storageService.setItem(STORAGE_KEYS.PROMOTIONS_STATISTICS, statistics);
   return statistics;
 };
 
@@ -150,7 +141,7 @@ export function usePromotionStatistics() {
     queryKey: ['promotion-statistics'],
     queryFn: async (): Promise<PromotionStatistics> => {
       // If statistics don't exist, calculate them
-      const stats = storageService.getItem<PromotionStatistics>(STORAGE_KEYS.STATISTICS);
+      const stats = storageService.getItem<PromotionStatistics>(STORAGE_KEYS.PROMOTIONS_STATISTICS);
       if (!stats) {
         return updateStatistics();
       }

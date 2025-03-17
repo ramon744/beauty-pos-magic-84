@@ -7,7 +7,23 @@ export interface StorageService {
   setItem<T>(key: string, value: T): void;
   removeItem(key: string): void;
   clear(): void;
+  initialize(initialData: Record<string, any>): void;
 }
+
+// Define storage keys centrally to maintain consistency
+export const STORAGE_KEYS = {
+  PRODUCTS: 'products',
+  CATEGORIES: 'categories',
+  PRODUCTS_STATISTICS: 'products-statistics',
+  STOCK_HISTORY: 'stock-history',
+  PROMOTIONS: 'promotions',
+  PROMOTIONS_STATISTICS: 'promotions-statistics',
+  CUSTOMERS: 'customers',
+  USERS: 'users',
+  CART: 'makeup-pos-cart',
+  SUPPLIERS: 'suppliers',
+  ORDERS: 'orders'
+};
 
 class LocalStorageService implements StorageService {
   getItem<T>(key: string): T | null {
@@ -22,7 +38,15 @@ class LocalStorageService implements StorageService {
 
   setItem<T>(key: string, value: T): void {
     try {
-      localStorage.setItem(key, JSON.stringify(value));
+      const stringValue = JSON.stringify(value, (_, val) => {
+        // Handle Date objects during serialization
+        if (val instanceof Date) {
+          return val.toISOString();
+        }
+        return val;
+      });
+      
+      localStorage.setItem(key, stringValue);
     } catch (error) {
       console.error(`Error storing ${key} in localStorage:`, error);
     }
@@ -42,6 +66,16 @@ class LocalStorageService implements StorageService {
       localStorage.clear();
     } catch (error) {
       console.error('Error clearing localStorage:', error);
+    }
+  }
+  
+  // Initialize storage with default data if items don't exist
+  initialize(initialData: Record<string, any>): void {
+    for (const [key, value] of Object.entries(initialData)) {
+      if (!this.getItem(key)) {
+        this.setItem(key, value);
+        console.info(`Initialized ${key} in localStorage`);
+      }
     }
   }
 }

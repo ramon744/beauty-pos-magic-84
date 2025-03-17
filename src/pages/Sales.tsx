@@ -21,7 +21,7 @@ import { DataTable } from '@/components/common/DataTable';
 import { useAuth } from '@/contexts/AuthContext';
 import { ColumnDef } from '@tanstack/react-table';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { storageService } from '@/services/storage-service';
+import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 import { useToast } from '@/hooks/use-toast';
 import { useBarcodeScan } from '@/hooks/use-barcode-scan';
 import { useFetchProducts } from '@/hooks/use-products';
@@ -53,8 +53,6 @@ interface CartItem {
   subtotal: number;
 }
 
-const CART_STORAGE_KEY = 'makeup-pos-cart';
-
 const discountFormSchema = z.object({
   discountType: z.enum(['percentage', 'fixed']),
   discountValue: z.coerce.number()
@@ -72,7 +70,7 @@ const Sales = () => {
   const [searchResults, setSearchResults] = useState<Omit<CartItem, 'quantity' | 'subtotal'>[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [cart, setCart] = useState<CartItem[]>(() => {
-    const savedCart = storageService.getItem<CartItem[]>(CART_STORAGE_KEY);
+    const savedCart = storageService.getItem<CartItem[]>(STORAGE_KEYS.CART);
     return savedCart || [];
   });
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -152,7 +150,7 @@ const Sales = () => {
   }, [appliedPromotion, promotions]);
 
   React.useEffect(() => {
-    storageService.setItem(CART_STORAGE_KEY, cart);
+    storageService.setItem(STORAGE_KEYS.CART, cart);
   }, [cart]);
 
   const handleBarcodeDetected = (barcode: string) => {
