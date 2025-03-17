@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Table, TableBody, TableCaption, TableCell, TableHead, 
@@ -110,9 +109,10 @@ export const SalesHistoryList = () => {
       }
     }
     
-    // If we only have the product ID directly on the item (not in a product object)
-    if (item.productId) {
-      const foundProduct = products.find(p => p.id === item.productId);
+    // Fixed: Instead of checking for productId which doesn't exist on CartItem, 
+    // we check if product.id exists directly
+    if (item.product && item.product.id) {
+      const foundProduct = products.find(p => p.id === item.product.id);
       if (foundProduct && foundProduct.name) {
         return foundProduct.name;
       }
