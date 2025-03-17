@@ -1,4 +1,5 @@
-import { Product, Promotion, CartItemType } from '@/types';
+
+import { Product, Promotion, CartItem } from '@/types';
 
 export type AppliedPromotion = {
   promotionId: string;
@@ -7,7 +8,7 @@ export type AppliedPromotion = {
 };
 
 export const getAvailablePromotions = (
-  cartItems: CartItemType[],
+  cartItems: CartItem[],
   allPromotions: Promotion[]
 ): Promotion[] => {
   if (!cartItems.length || !allPromotions.length) return [];
@@ -47,7 +48,7 @@ export const getAvailablePromotions = (
 };
 
 export function calculatePromotionDiscount(
-  cartItems: CartItemType[],
+  cartItems: CartItem[],
   promotion: Promotion,
   products: Product[]
 ): AppliedPromotion {
@@ -198,7 +199,7 @@ export function calculatePromotionDiscount(
 }
 
 export function getBestPromotion(
-  cartItems: CartItemType[],
+  cartItems: CartItem[],
   availablePromotions: Promotion[],
   products: Product[]
 ): AppliedPromotion | null {
