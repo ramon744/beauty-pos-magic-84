@@ -120,10 +120,10 @@ export const SalesHistoryList = () => {
                       <div className="flex items-center">
                         <ShoppingCart className="h-5 w-5 mr-2 text-primary" />
                         <CardTitle className="text-base font-medium mr-2">
-                          Venda #{sale.id.substring(0, 8)}
+                          Venda #{sale.id?.substring(0, 8) || 'N/A'}
                         </CardTitle>
                         <Badge variant="outline" className="ml-2">
-                          {sale.items.reduce((acc, item) => acc + item.quantity, 0)} itens
+                          {sale.items?.reduce((acc, item) => acc + (item?.quantity || 0), 0) || 0} itens
                         </Badge>
                       </div>
                       <div className="text-sm text-muted-foreground flex items-center">
@@ -132,7 +132,7 @@ export const SalesHistoryList = () => {
                       </div>
                     </div>
                     <div className="text-lg font-bold">
-                      {formatCurrency(sale.finalTotal)}
+                      {formatCurrency(sale.finalTotal || 0)}
                     </div>
                   </AccordionTrigger>
                 </CardHeader>
@@ -174,16 +174,16 @@ export const SalesHistoryList = () => {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {sale.items.map((item, index) => (
+                            {sale.items?.map((item, index) => item && (
                               <TableRow key={index}>
-                                <TableCell>{item.product.name}</TableCell>
-                                <TableCell className="text-right">{item.quantity}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(item.price)}</TableCell>
+                                <TableCell>{item.product?.name || 'Produto não disponível'}</TableCell>
+                                <TableCell className="text-right">{item.quantity || 0}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(item.price || 0)}</TableCell>
                                 <TableCell className="text-right">
-                                  {item.discount > 0 ? formatCurrency(item.discount * item.quantity) : '-'}
+                                  {(item.discount || 0) > 0 ? formatCurrency((item.discount || 0) * (item.quantity || 0)) : '-'}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                  {formatCurrency((item.price - item.discount) * item.quantity)}
+                                  {formatCurrency(((item.price || 0) - (item.discount || 0)) * (item.quantity || 0))}
                                 </TableCell>
                               </TableRow>
                             ))}
@@ -202,7 +202,7 @@ export const SalesHistoryList = () => {
                           <div>
                             <div className="text-sm">
                               <div className="mb-1">
-                                <span className="font-medium">Método:</span> {getPaymentMethodName(sale.paymentMethod)}
+                                <span className="font-medium">Método:</span> {getPaymentMethodName(sale.paymentMethod || 'cash')}
                               </div>
                               
                               {sale.paymentDetails && (
@@ -211,9 +211,9 @@ export const SalesHistoryList = () => {
                                     <div className="mt-2">
                                       <div className="font-medium mb-1">Pagamento Misto:</div>
                                       <ul className="list-disc list-inside pl-2 space-y-1">
-                                        {sale.paymentDetails.payments.map((payment, idx) => (
+                                        {sale.paymentDetails.payments?.map((payment, idx) => payment && (
                                           <li key={idx} className="text-sm">
-                                            {getPaymentMethodName(payment.method)}: {formatCurrency(payment.amount || 0)}
+                                            {getPaymentMethodName(payment.method || 'cash')}: {formatCurrency(payment.amount || 0)}
                                             {payment.method === 'credit_card' && payment.installments && payment.installments > 1 && 
                                               ` (${payment.installments}x)`}
                                           </li>
@@ -248,22 +248,22 @@ export const SalesHistoryList = () => {
                             <div className="text-sm space-y-1">
                               <div className="flex justify-between">
                                 <span>Subtotal:</span>
-                                <span>{formatCurrency(sale.total)}</span>
+                                <span>{formatCurrency(sale.total || 0)}</span>
                               </div>
                               
-                              {sale.discount > 0 && (
+                              {(sale.discount || 0) > 0 && (
                                 <div className="flex justify-between text-red-600">
                                   <span className="flex items-center">
                                     <Percent className="h-3 w-3 mr-1" />
                                     Desconto:
                                   </span>
-                                  <span>-{formatCurrency(sale.discount)}</span>
+                                  <span>-{formatCurrency(sale.discount || 0)}</span>
                                 </div>
                               )}
                               
                               <div className="flex justify-between font-bold pt-1 border-t">
                                 <span>Total:</span>
-                                <span>{formatCurrency(sale.finalTotal)}</span>
+                                <span>{formatCurrency(sale.finalTotal || 0)}</span>
                               </div>
                             </div>
                           </div>
