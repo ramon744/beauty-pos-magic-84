@@ -191,6 +191,11 @@ export function calculatePromotionDiscount(
     }
   }
   
+  // Apply maximum discount per purchase if set
+  if (promotion.maxDiscountPerPurchase && discountAmount > promotion.maxDiscountPerPurchase) {
+    discountAmount = promotion.maxDiscountPerPurchase;
+  }
+  
   return {
     promotionId: promotion.id,
     discountAmount,

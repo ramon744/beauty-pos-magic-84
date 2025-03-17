@@ -1,3 +1,4 @@
+
 // User roles
 export type UserRole = 'admin' | 'manager' | 'employee';
 
@@ -125,6 +126,7 @@ export interface Promotion {
   isActive: boolean;
   createdBy: string;
   createdAt: Date;
+  maxDiscountPerPurchase?: number; // Added maximum discount amount per purchase
 }
 
 // Report types
