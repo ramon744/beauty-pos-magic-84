@@ -89,7 +89,7 @@ export const SalesHistoryList = () => {
   };
 
   const isMixedPayment = (paymentDetails: any): paymentDetails is MixedPayment => {
-    return 'payments' in paymentDetails;
+    return paymentDetails && 'payments' in paymentDetails;
   };
 
   return (
@@ -274,7 +274,7 @@ export const SalesHistoryList = () => {
                       <div>
                         <h4 className="font-semibold mb-2">Informações Adicionais</h4>
                         <div className="text-sm grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          <div><span className="font-medium">Vendedor:</span> {sale.seller?.name}</div>
+                          {sale.seller && <div><span className="font-medium">Vendedor:</span> {sale.seller.name}</div>}
                           <div><span className="font-medium">Data/Hora:</span> {formatDate(sale.createdAt)}</div>
                         </div>
                       </div>
