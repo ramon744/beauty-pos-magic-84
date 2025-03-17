@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Table, TableBody, TableCaption, TableCell, TableHead, 
@@ -96,15 +97,30 @@ export const SalesHistoryList = () => {
   };
 
   const getProductName = (item: CartItem): string => {
-    if (item.product && typeof item.product.name === 'string' && item.product.name) {
+    // First check if we have a complete product with name in the item itself
+    if (item.product && typeof item.product.name === 'string' && item.product.name.trim() !== '') {
       return item.product.name;
     }
     
+    // If we only have an ID, try to find the product in our products list
     if (item.product && item.product.id) {
       const foundProduct = products.find(p => p.id === item.product.id);
       if (foundProduct && foundProduct.name) {
         return foundProduct.name;
       }
+    }
+    
+    // If we only have the product ID directly on the item (not in a product object)
+    if (item.productId) {
+      const foundProduct = products.find(p => p.id === item.productId);
+      if (foundProduct && foundProduct.name) {
+        return foundProduct.name;
+      }
+    }
+    
+    // Last resort, check if the item itself has a name property
+    if ('name' in item && typeof item.name === 'string' && item.name.trim() !== '') {
+      return item.name;
     }
     
     return 'Produto não disponível';
@@ -114,7 +130,16 @@ export const SalesHistoryList = () => {
     if (!sale.appliedPromotionId) return null;
     
     const promotion = promotions.find(p => p.id === sale.appliedPromotionId);
-    return promotion || null;
+    if (promotion) {
+      return promotion;
+    }
+    
+    // If we can't find the promotion details, at least return the ID
+    return { 
+      id: sale.appliedPromotionId,
+      name: `Promoção #${sale.appliedPromotionId.substring(0, 8)}`,
+      description: 'Detalhes completos não disponíveis'
+    };
   };
 
   return (
@@ -223,17 +248,22 @@ export const SalesHistoryList = () => {
                             Promoção Aplicada
                           </h4>
                           <div className="bg-muted p-3 rounded-md">
-                            {getPromotionDetails(sale) ? (
-                              <div className="text-sm">
-                                <div><span className="font-medium">Nome:</span> {getPromotionDetails(sale)?.name}</div>
-                                <div><span className="font-medium">Descrição:</span> {getPromotionDetails(sale)?.description}</div>
-                                <div><span className="font-medium">Desconto aplicado:</span> {formatCurrency(sale.promotionDiscountAmount || 0)}</div>
-                              </div>
-                            ) : (
-                              <div className="text-sm text-muted-foreground">
-                                Promoção com ID: {sale.appliedPromotionId} (detalhes não disponíveis)
-                              </div>
-                            )}
+                            {(() => {
+                              const promotionDetails = getPromotionDetails(sale);
+                              return promotionDetails ? (
+                                <div className="text-sm">
+                                  <div><span className="font-medium">Nome:</span> {promotionDetails.name}</div>
+                                  <div><span className="font-medium">Descrição:</span> {promotionDetails.description}</div>
+                                  {sale.promotionDiscountAmount !== undefined && (
+                                    <div><span className="font-medium">Desconto aplicado:</span> {formatCurrency(sale.promotionDiscountAmount || 0)}</div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="text-sm text-muted-foreground">
+                                  Promoção com ID: {sale.appliedPromotionId} (detalhes não disponíveis)
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
                       )}
@@ -307,10 +337,14 @@ export const SalesHistoryList = () => {
                                 </div>
                               )}
                               
-                              {sale.discount > 0 && sale.discountAuthorizedBy && (
+                              {(sale.discount > 0) && sale.discountAuthorizedBy && (
                                 <div className="flex justify-between text-amber-600 text-xs italic">
                                   <span>Desconto autorizado por:</span>
-                                  <span>{sale.discountAuthorizedBy.name || 'Usuário não identificado'}</span>
+                                  <span>
+                                    {sale.discountAuthorizedBy && typeof sale.discountAuthorizedBy === 'object' && 'name' in sale.discountAuthorizedBy
+                                      ? (sale.discountAuthorizedBy.name || 'Usuário não identificado')
+                                      : 'Usuário não identificado'}
+                                  </span>
                                 </div>
                               )}
                               
