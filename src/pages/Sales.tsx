@@ -70,7 +70,7 @@ const Sales = () => {
   const [isDiscountsListOpen, setIsDiscountsListOpen] = useState(false);
   const [discountToDelete, setDiscountToDelete] = useState<'manual' | 'promotion' | null>(null);
   const [managerAuthCallback, setManagerAuthCallback] = useState<() => void>(() => () => {});
-  const [actionType, setActionType] = useState<'remove-item' | 'clear-cart' | 'apply-discount' | 'delete-discount' | null>(null);
+  const [actionType, setActionType] = useState<string | null>(null);
 
   const discountForm = useForm<DiscountFormValues>({
     resolver: zodResolver(discountFormSchema),
@@ -81,37 +81,42 @@ const Sales = () => {
   });
 
   const handleManagerAuthConfirm = () => {
-    // Close the dialog first
+    // Store values before closing dialog
+    const currentAction = actionType;
+    const currentProductId = productIdToDelete;
+    const currentCallback = managerAuthCallback;
+    
+    // Close the dialog
     setIsManagerAuthOpen(false);
     
-    // Perform the action based on the action type
-    if (managerAuthCallback && typeof managerAuthCallback === 'function') {
-      managerAuthCallback();
-    } else if (actionType === 'apply-discount') {
+    // Execute action based on type
+    if (typeof currentCallback === 'function') {
+      currentCallback();
+    } else if (currentAction === 'discount') {
       const { discountType, discountValue } = discountForm.getValues();
       applyManualDiscount({
         type: discountType,
         value: discountValue
       });
-    } else if (actionType === 'clear-cart') {
+    } else if (currentAction === 'clear-all') {
       clearCart();
       resetDiscounts();
       toast({
         title: "Carrinho limpo",
         description: "Todos os itens foram removidos"
       });
-    } else if (actionType === 'delete-discount') {
+    } else if (currentAction === 'delete-discount') {
       if (discountToDelete === 'manual') {
         removeDiscount();
       } else if (discountToDelete === 'promotion') {
         removePromotion();
       }
       setDiscountToDelete(null);
-    } else if (actionType === 'remove-item' && productIdToDelete) {
-      removeFromCart(productIdToDelete);
+    } else if (currentAction === 'remove-item' && currentProductId) {
+      removeFromCart(currentProductId);
     }
     
-    // Reset states
+    // Reset states after action execution
     setProductIdToDelete(null);
     setActionType(null);
     setManagerAuthCallback(() => () => {});
@@ -144,7 +149,7 @@ const Sales = () => {
 
   const handleClearCart = () => {
     if (cart.length > 0) {
-      setActionType('clear-cart');
+      setActionType('clear-all');
       setIsManagerAuthOpen(true);
     }
   };
@@ -179,7 +184,7 @@ const Sales = () => {
         value: values.discountValue
       });
     } else {
-      setActionType('apply-discount');
+      setActionType('discount');
       discountForm.reset(values);
       setIsManagerAuthOpen(true);
     }
