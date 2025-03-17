@@ -11,10 +11,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Promotion, Product, CartItem } from "@/types";
 import { formatCurrency, formatDate } from "@/lib/formatters";
-import { Check, Tag, Percent, ShoppingBag, Gift, Calendar } from "lucide-react";
+import { Check, Tag, Percent, ShoppingBag, Gift, Calendar, BarChart4 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { calculatePromotionDiscount } from "@/utils/promotions-utils";
 
 interface PromotionSelectionDialogProps {
   isOpen: boolean;
@@ -35,6 +36,20 @@ export const PromotionSelectionDialog = ({
 }: PromotionSelectionDialogProps) => {
   if (!promotions.length) return null;
 
+  // Create cart items for discount calculation preview
+  const cartItems = products.filter(p => 
+    promotions.some(promo => 
+      promo.productId === p.id || 
+      (promo.productIds && promo.productIds.includes(p.id)) || 
+      (promo.bundleProducts && promo.bundleProducts.includes(p.id))
+    )
+  ).map(product => ({
+    product,
+    quantity: 1,
+    price: product.salePrice,
+    discount: 0
+  }));
+
   const getPromotionDetails = (promotion: Promotion): string => {
     const getProductName = (productId?: string) => {
       if (!productId) return "todos os produtos";
@@ -42,10 +57,32 @@ export const PromotionSelectionDialog = ({
       return product ? product.name : "produto não encontrado";
     };
 
+    const getMultipleProductsName = (productIds?: string[]) => {
+      if (!productIds || productIds.length === 0) return "nenhum produto";
+      if (productIds.length === 1) return getProductName(productIds[0]);
+      
+      const productNames = productIds.map(id => {
+        const product = products.find(p => p.id === id);
+        return product ? product.name : "produto não encontrado";
+      });
+      
+      if (productNames.length > 3) {
+        return `${productNames.slice(0, 2).join(", ")} e mais ${productNames.length - 2} produtos`;
+      }
+      
+      return productNames.join(", ");
+    };
+
     switch (promotion.type) {
       case "discount_percentage":
+        if (promotion.productIds && promotion.productIds.length > 0) {
+          return `${promotion.discountPercent}% de desconto em vários produtos: ${getMultipleProductsName(promotion.productIds)}`;
+        }
         return `${promotion.discountPercent}% de desconto em ${getProductName(promotion.productId)}`;
       case "discount_value":
+        if (promotion.productIds && promotion.productIds.length > 0) {
+          return `${formatCurrency(promotion.discountValue || 0)} de desconto em vários produtos: ${getMultipleProductsName(promotion.productIds)}`;
+        }
         return `${formatCurrency(promotion.discountValue || 0)} de desconto em ${getProductName(promotion.productId)}`;
       case "buy_x_get_y": {
         const mainProduct = getProductName(promotion.productId);
@@ -102,6 +139,12 @@ export const PromotionSelectionDialog = ({
     }
   };
 
+  // Calculate estimated savings for each promotion
+  const getEstimatedSavings = (promotion: Promotion) => {
+    const result = calculatePromotionDiscount(cartItems, promotion, products);
+    return result.discountAmount > 0 ? formatCurrency(result.discountAmount) : "";
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
@@ -121,45 +164,55 @@ export const PromotionSelectionDialog = ({
             onValueChange={(value) => onSelectPromotion(value === "none" ? null : value)}
             className="space-y-4"
           >
-            {promotions.map((promotion) => (
-              <div
-                key={promotion.id}
-                className={`flex items-start space-x-3 rounded-md border p-3 hover:bg-muted/50 cursor-pointer transition-colors ${
-                  selectedPromotionId === promotion.id ? "border-2 border-primary/50 bg-primary/5" : ""
-                }`}
-                onClick={() => onSelectPromotion(promotion.id)}
-              >
-                <RadioGroupItem value={promotion.id} id={promotion.id} className="mt-1" />
-                <div className="flex flex-1 items-start space-x-3">
-                  <div className={`p-2 rounded-full ${getPromotionTypeColor(promotion.type)}`}>
-                    {getPromotionIcon(promotion.type)}
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <Label
-                      htmlFor={promotion.id}
-                      className="text-base font-medium leading-none cursor-pointer"
-                    >
-                      {promotion.name}
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      {getPromotionDetails(promotion)}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <Badge variant="outline" className={getPromotionTypeColor(promotion.type)}>
-                        {promotion.type === "discount_percentage" ? "Desconto %" : 
-                         promotion.type === "discount_value" ? "Desconto R$" :
-                         promotion.type === "buy_x_get_y" ? "Compre e Leve" :
-                         promotion.type === "fixed_price" ? "Preço Fixo" : "Pacote"}
-                      </Badge>
-                      <div className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        Válido até {formatDate(new Date(promotion.endDate))}
+            {promotions.map((promotion) => {
+              const estimatedSavings = getEstimatedSavings(promotion);
+              
+              return (
+                <div
+                  key={promotion.id}
+                  className={`flex items-start space-x-3 rounded-md border p-3 hover:bg-muted/50 cursor-pointer transition-colors ${
+                    selectedPromotionId === promotion.id ? "border-2 border-primary/50 bg-primary/5" : ""
+                  }`}
+                  onClick={() => onSelectPromotion(promotion.id)}
+                >
+                  <RadioGroupItem value={promotion.id} id={promotion.id} className="mt-1" />
+                  <div className="flex flex-1 items-start space-x-3">
+                    <div className={`p-2 rounded-full ${getPromotionTypeColor(promotion.type)}`}>
+                      {getPromotionIcon(promotion.type)}
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <Label
+                        htmlFor={promotion.id}
+                        className="text-base font-medium leading-none cursor-pointer"
+                      >
+                        {promotion.name}
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        {getPromotionDetails(promotion)}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <Badge variant="outline" className={getPromotionTypeColor(promotion.type)}>
+                          {promotion.type === "discount_percentage" ? "Desconto %" : 
+                          promotion.type === "discount_value" ? "Desconto R$" :
+                          promotion.type === "buy_x_get_y" ? "Compre e Leve" :
+                          promotion.type === "fixed_price" ? "Preço Fixo" : "Pacote"}
+                        </Badge>
+                        {estimatedSavings && (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            <BarChart4 className="h-3 w-3 mr-1" />
+                            Economia estimada: {estimatedSavings}
+                          </Badge>
+                        )}
+                        <div className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          Válido até {formatDate(new Date(promotion.endDate))}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             
             <div
               className={`flex items-start space-x-3 rounded-md border p-3 hover:bg-muted/50 cursor-pointer transition-colors ${

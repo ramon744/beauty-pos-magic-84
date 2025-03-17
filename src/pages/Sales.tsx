@@ -121,8 +121,12 @@ const Sales = () => {
 
   const availablePromotions = useMemo(() => {
     if (cart.length === 0) return [];
-    return getAvailablePromotions(cartItemsForPromotions, promotions);
-  }, [cartItemsForPromotions, promotions]);
+    const promos = getAvailablePromotions(cartItemsForPromotions, promotions);
+    if (promos.length > 1 && !selectedPromotionId && cart.length > 0 && !isPromotionDialogOpen) {
+      return promos;
+    }
+    return promos;
+  }, [cartItemsForPromotions, promotions, cart.length, selectedPromotionId, isPromotionDialogOpen]);
 
   const appliedPromotion = useMemo((): AppliedPromotion | null => {
     if (cart.length === 0 || availablePromotions.length === 0) return null;
@@ -590,9 +594,21 @@ const Sales = () => {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center">
-                <ShoppingCart className="mr-2 h-5 w-5" />
-                Itens no Carrinho
+              <CardTitle className="text-lg flex items-center justify-between">
+                <div className="flex items-center">
+                  <ShoppingCart className="mr-2 h-5 w-5" />
+                  Itens no Carrinho
+                </div>
+                {availablePromotions.length > 0 && (
+                  <Badge 
+                    variant="outline" 
+                    className="ml-2 cursor-pointer bg-amber-50 text-amber-800 hover:bg-amber-100 border-amber-200"
+                    onClick={handleOpenPromotions}
+                  >
+                    <Gift className="mr-1 h-3 w-3" />
+                    {formatPromotionBadge(availablePromotions.length)}
+                  </Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -699,16 +715,22 @@ const Sales = () => {
                   <Percent className="mr-1 h-4 w-4" />
                   Desconto
                 </Button>
-                {availablePromotions.length > 0 && (
-                  <Button 
-                    variant="outline" 
-                    className="flex-1"
-                    onClick={handleOpenPromotions}
-                  >
-                    <Gift className="mr-1 h-4 w-4" />
-                    Promoções
-                  </Button>
-                )}
+                
+                <Button 
+                  variant={availablePromotions.length > 0 ? "outline" : "ghost"} 
+                  className={`flex-1 ${availablePromotions.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+                  disabled={availablePromotions.length === 0}
+                  onClick={handleOpenPromotions}
+                >
+                  <Gift className="mr-1 h-4 w-4" />
+                  Promoções
+                  {availablePromotions.length > 0 && (
+                    <Badge className="ml-1 bg-amber-100 text-amber-800 border-amber-200">
+                      {availablePromotions.length}
+                    </Badge>
+                  )}
+                </Button>
+                
                 <Button 
                   variant="outline" 
                   className="flex-1"
