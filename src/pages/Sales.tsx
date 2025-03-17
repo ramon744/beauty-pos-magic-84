@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -25,7 +24,6 @@ const Sales = () => {
   const { toast } = useToast();
   const { data: products = [] } = useProducts();
   
-  // Cart state and hooks
   const { 
     cart, 
     cartSubtotal, 
@@ -39,7 +37,6 @@ const Sales = () => {
     unlinkCustomer
   } = useCart();
   
-  // Product search hooks
   const { 
     searchQuery, 
     setSearchQuery, 
@@ -49,7 +46,6 @@ const Sales = () => {
     toggleScanner 
   } = useProductSearch(addProductToCart);
 
-  // Discounts hooks
   const { 
     manualDiscount, 
     appliedPromotion,
@@ -67,7 +63,6 @@ const Sales = () => {
     resetDiscounts,
   } = useDiscounts(cart, cartSubtotal);
 
-  // Dialog states
   const [isManagerAuthOpen, setIsManagerAuthOpen] = useState(false);
   const [productIdToDelete, setProductIdToDelete] = useState<string | null>(null);
   const [isDiscountDialogOpen, setIsDiscountDialogOpen] = useState(false);
@@ -76,7 +71,6 @@ const Sales = () => {
   const [discountToDelete, setDiscountToDelete] = useState<'manual' | 'promotion' | null>(null);
   const [managerAuthCallback, setManagerAuthCallback] = useState<() => void>(() => () => {});
 
-  // Discount form
   const discountForm = useForm<DiscountFormValues>({
     resolver: zodResolver(discountFormSchema),
     defaultValues: {
@@ -85,7 +79,6 @@ const Sales = () => {
     }
   });
 
-  // Auth and confirmation functions
   const handleManagerAuthConfirm = () => {
     if (productIdToDelete === "discount") {
       const { discountType, discountValue } = discountForm.getValues();
@@ -120,7 +113,6 @@ const Sales = () => {
     setIsManagerAuthOpen(true);
   };
 
-  // Cart related functions
   const initiateRemoveFromCart = (productId: string) => {
     setProductIdToDelete(productId);
     setIsManagerAuthOpen(true);
@@ -154,7 +146,6 @@ const Sales = () => {
     doFinalizeSale();
   };
 
-  // Discount related functions
   const handleAddDiscount = () => {
     discountForm.reset({
       discountType: 'percentage',
@@ -249,11 +240,13 @@ const Sales = () => {
             handleShowDiscountsList={handleShowDiscountsList}
             clearCart={handleClearCart}
             availablePromotions={availablePromotions}
+            linkedCustomer={linkedCustomer}
+            onLinkCustomer={linkCustomer}
+            onUnlinkCustomer={unlinkCustomer}
           />
         </div>
       </div>
 
-      {/* Dialogs */}
       <ManagerAuthDialog
         isOpen={isManagerAuthOpen}
         onClose={() => {

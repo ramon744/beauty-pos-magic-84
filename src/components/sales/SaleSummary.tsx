@@ -4,9 +4,9 @@ import { CreditCard, Percent, Gift, List, Trash2, X } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Promotion } from '@/types';
+import { Promotion, Customer } from '@/types';
 import { formatPromotionBadge } from '@/utils/promotions-utils';
-import { AppliedPromotion } from '@/utils/promotions-utils';
+import { CustomerLinking } from './CustomerLinking';
 
 interface SaleSummaryProps {
   cart: any[];
@@ -25,6 +25,9 @@ interface SaleSummaryProps {
   handleShowDiscountsList: () => void;
   clearCart: () => void;
   availablePromotions: Promotion[];
+  linkedCustomer: Customer | null;
+  onLinkCustomer: (customer: Customer) => void;
+  onUnlinkCustomer: () => void;
 }
 
 export const SaleSummary: React.FC<SaleSummaryProps> = ({
@@ -44,6 +47,9 @@ export const SaleSummary: React.FC<SaleSummaryProps> = ({
   handleShowDiscountsList,
   clearCart,
   availablePromotions,
+  linkedCustomer,
+  onLinkCustomer,
+  onUnlinkCustomer,
 }) => {
   return (
     <Card>
@@ -51,7 +57,14 @@ export const SaleSummary: React.FC<SaleSummaryProps> = ({
         <CardTitle className="text-lg">Resumo da Venda</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
+        {/* Customer linking component moved here */}
+        <CustomerLinking 
+          linkedCustomer={linkedCustomer}
+          onLinkCustomer={onLinkCustomer}
+          onUnlinkCustomer={onUnlinkCustomer}
+        />
+        
+        <div className="space-y-4 mt-4">
           <div className="flex justify-between">
             <span className="font-medium">Total de Itens:</span>
             <span>{cart.reduce((total, item) => total + item.quantity, 0)}</span>

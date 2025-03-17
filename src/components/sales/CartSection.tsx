@@ -1,10 +1,9 @@
 
 import React from 'react';
-import { ShoppingCart, Gift, UserRound } from 'lucide-react';
+import { ShoppingCart, Gift } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CartItemTable } from './CartItemTable';
-import { CustomerLinking } from './CustomerLinking';
 import { formatPromotionBadge } from '@/utils/promotions-utils';
 import { Promotion, Customer } from '@/types';
 
@@ -61,12 +60,6 @@ export const CartSection: React.FC<CartSectionProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <CustomerLinking 
-          linkedCustomer={linkedCustomer}
-          onLinkCustomer={onLinkCustomer}
-          onUnlinkCustomer={onUnlinkCustomer}
-        />
-        
         <CartItemTable 
           cart={cart} 
           updateCartItemQuantity={updateCartItemQuantity}
