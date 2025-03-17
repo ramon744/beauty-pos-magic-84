@@ -1,9 +1,10 @@
 
 import React, { useState } from 'react';
 import { OrdersList } from '@/components/orders/OrdersList';
+import { SalesHistoryList } from '@/components/orders/SalesHistoryList';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShoppingBag, AlertTriangle, Plus } from 'lucide-react';
+import { ShoppingBag, AlertTriangle, Plus, History } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useFetchProducts } from '@/hooks/use-products';
@@ -60,15 +61,19 @@ const Orders = () => {
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="pending">Pedidos Pendentes</TabsTrigger>
           <TabsTrigger value="history">Histórico de Pedidos</TabsTrigger>
+          <TabsTrigger value="sales">Histórico de Vendas</TabsTrigger>
         </TabsList>
         <TabsContent value="pending" className="space-y-4">
           <OrdersList status="pending" />
         </TabsContent>
         <TabsContent value="history" className="space-y-4">
           <OrdersList status="completed" />
+        </TabsContent>
+        <TabsContent value="sales" className="space-y-4">
+          <SalesHistoryList />
         </TabsContent>
       </Tabs>
 
