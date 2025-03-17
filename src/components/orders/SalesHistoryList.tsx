@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Table, TableBody, TableCaption, TableCell, TableHead, 
@@ -13,7 +14,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { 
   ShoppingCart, ShoppingBag, Calendar, User, CreditCard, 
-  Percent, Gift, DollarSign, Tag 
+  Percent, Gift, DollarSign, Tag, Shield 
 } from 'lucide-react';
 import { Sale, CartItem, Customer, User as UserType, PaymentMethod, MixedPayment } from '@/types';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
@@ -130,15 +131,20 @@ export const SalesHistoryList = () => {
   };
 
   const getDiscountAuthorizedByName = (sale: Sale) => {
-    if (!sale.discountAuthorizedBy) return 'Não informado';
+    if (!sale.discountAuthorizedBy) return null;
     
     if (typeof sale.discountAuthorizedBy === 'object') {
-      if ('name' in sale.discountAuthorizedBy && typeof sale.discountAuthorizedBy.name === 'string') {
+      if ('name' in sale.discountAuthorizedBy && sale.discountAuthorizedBy.name) {
         return sale.discountAuthorizedBy.name;
       }
+      if ('id' in sale.discountAuthorizedBy && sale.discountAuthorizedBy.id) {
+        return `Gerente ID: ${sale.discountAuthorizedBy.id}`;
+      }
+    } else if (typeof sale.discountAuthorizedBy === 'string') {
+      return sale.discountAuthorizedBy;
     }
     
-    return 'Usuário não identificado';
+    return 'Gerente não identificado';
   };
 
   return (
@@ -240,10 +246,11 @@ export const SalesHistoryList = () => {
                         </Table>
                       </div>
                       
+                      {/* Promotion section - Updated to be always visible when a promotion was applied */}
                       {sale.appliedPromotionId && (
                         <div className="border-b pb-4">
                           <h4 className="font-semibold mb-2 flex items-center">
-                            <Tag className="h-4 w-4 mr-2" />
+                            <Tag className="h-4 w-4 mr-2 text-green-600" />
                             Promoção Aplicada
                           </h4>
                           <div className="bg-muted p-3 rounded-md">
@@ -330,15 +337,29 @@ export const SalesHistoryList = () => {
                                 <div className="flex justify-between text-red-600">
                                   <span className="flex items-center">
                                     <Percent className="h-3 w-3 mr-1" />
-                                    Desconto:
+                                    Desconto manual:
                                   </span>
                                   <span>-{formatCurrency(sale.discount || 0)}</span>
                                 </div>
                               )}
                               
+                              {(sale.promotionDiscountAmount || 0) > 0 && (
+                                <div className="flex justify-between text-green-600">
+                                  <span className="flex items-center">
+                                    <Tag className="h-3 w-3 mr-1" />
+                                    Desconto de promoção:
+                                  </span>
+                                  <span>-{formatCurrency(sale.promotionDiscountAmount || 0)}</span>
+                                </div>
+                              )}
+                              
+                              {/* Manual discount authorization display - Improved */}
                               {(sale.discount > 0) && sale.discountAuthorizedBy && (
                                 <div className="flex justify-between text-amber-600 text-xs italic">
-                                  <span>Desconto autorizado por:</span>
+                                  <span className="flex items-center">
+                                    <Shield className="h-3 w-3 mr-1" />
+                                    Desconto autorizado por:
+                                  </span>
                                   <span>{getDiscountAuthorizedByName(sale)}</span>
                                 </div>
                               )}
