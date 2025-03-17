@@ -145,19 +145,30 @@ export const useStockAdjustment = () => {
 };
 
 // Mock function for stock history
-export const useStockHistory = (productId: string) => {
+export const useStockHistory = (productId?: string) => {
   return useQuery({
     queryKey: ['stockHistory', productId],
     queryFn: async () => {
       return new Promise<any[]>((resolve) => {
         setTimeout(() => {
           resolve([
-            { id: '1', date: new Date(), quantity: 5, type: 'increase', reason: 'Initial stock' }
+            { 
+              id: '1', 
+              timestamp: new Date(), 
+              productId: '1',
+              productName: 'Smartphone XYZ',
+              previousStock: 10,
+              newStock: 15,
+              quantity: 5,
+              adjustmentType: 'add', 
+              reason: 'Initial stock',
+              userName: 'Admin User'
+            }
           ]);
         }, 300);
       });
     },
-    enabled: !!productId,
+    enabled: true,
   });
 };
 

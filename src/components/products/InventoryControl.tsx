@@ -132,9 +132,8 @@ const InventoryControl = () => {
     // Use the new stock adjustment hook
     adjustStock(
       {
-        product,
-        newStock,
-        adjustmentType: adjustment > 0 ? 'add' : 'remove',
+        productId: product.id,
+        quantity: Math.abs(adjustment),
         reason: 'Ajuste rápido de estoque'
       },
       {
@@ -160,16 +159,20 @@ const InventoryControl = () => {
     if (!selectedProduct || adjustmentType === null) return;
 
     let newStock: number;
+    let quantity: number;
     
     switch (adjustmentType) {
       case 'balance':
         newStock = newStockValue;
+        quantity = Math.abs(newStockValue - selectedProduct.stock);
         break;
       case 'add':
         newStock = selectedProduct.stock + adjustmentQuantity;
+        quantity = adjustmentQuantity;
         break;
       case 'remove':
         newStock = selectedProduct.stock - adjustmentQuantity;
+        quantity = adjustmentQuantity;
         break;
       default:
         return;
@@ -185,16 +188,15 @@ const InventoryControl = () => {
       return;
     }
 
-    // Use the new stock adjustment hook with history logging
+    // Use the stock adjustment hook with the correct parameter format
     adjustStock(
       {
-        product: selectedProduct,
-        newStock,
-        adjustmentType,
+        productId: selectedProduct.id,
+        quantity: quantity,
         reason: adjustmentReason || `Ajuste de estoque (${adjustmentType})`
       },
       {
-        onSuccess: ({ updatedProduct, historyEntry }) => {
+        onSuccess: () => {
           const actionMap = {
             'balance': 'Balanço',
             'add': 'Entrada',
