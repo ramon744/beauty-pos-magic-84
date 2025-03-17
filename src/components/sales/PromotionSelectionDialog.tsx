@@ -14,7 +14,6 @@ import { formatCurrency, formatDate } from "@/lib/formatters";
 import { Check, Tag, Percent, ShoppingBag, Gift } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 
 interface PromotionSelectionDialogProps {
   isOpen: boolean;
@@ -100,7 +99,7 @@ export const PromotionSelectionDialog = ({
         
         <div className="py-4">
           <RadioGroup
-            value={selectedPromotionId || ""}
+            value={selectedPromotionId || "none"}
             onValueChange={(value) => onSelectPromotion(value === "none" ? null : value)}
             className="space-y-3"
           >

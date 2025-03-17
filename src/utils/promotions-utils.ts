@@ -16,7 +16,7 @@ export function getAvailablePromotions(
   
   // Filter only active promotions
   const activePromotions = allPromotions.filter(
-    (promo) => promo.isActive && promo.startDate <= now && promo.endDate >= now
+    (promo) => promo.isActive && new Date(promo.startDate) <= now && new Date(promo.endDate) >= now
   );
 
   // Find applicable promotions for current cart items
