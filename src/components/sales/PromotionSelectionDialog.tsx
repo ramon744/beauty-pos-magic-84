@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -37,18 +37,27 @@ export const PromotionSelectionDialog = ({
   if (!promotions.length) return null;
 
   // Create cart items for discount calculation preview
-  const cartItems = products.filter(p => 
-    promotions.some(promo => 
-      promo.productId === p.id || 
-      (promo.productIds && promo.productIds.includes(p.id)) || 
-      (promo.bundleProducts && promo.bundleProducts.includes(p.id))
-    )
-  ).map(product => ({
-    product,
-    quantity: 1,
-    price: product.salePrice,
-    discount: 0
-  }));
+  const cartItems = useMemo(() => {
+    const relevantProductIds = new Set<string>();
+    
+    // Get all product IDs that are relevant to any promotion
+    promotions.forEach(promo => {
+      if (promo.productId) relevantProductIds.add(promo.productId);
+      if (promo.secondaryProductId) relevantProductIds.add(promo.secondaryProductId);
+      if (promo.productIds) promo.productIds.forEach(id => relevantProductIds.add(id));
+      if (promo.bundleProducts) promo.bundleProducts.forEach(id => relevantProductIds.add(id));
+    });
+    
+    // Create cart items for all relevant products
+    return products
+      .filter(p => relevantProductIds.has(p.id))
+      .map(product => ({
+        product,
+        quantity: 1,
+        price: product.salePrice,
+        discount: 0
+      }));
+  }, [promotions, products]);
 
   const getPromotionDetails = (promotion: Promotion): string => {
     const getProductName = (productId?: string) => {
@@ -99,7 +108,8 @@ export const PromotionSelectionDialog = ({
       case "fixed_price":
         return `Preço fixo de ${formatCurrency(promotion.fixedPrice || 0)} para ${getProductName(promotion.productId)}`;
       case "bundle":
-        return `Pacote de produtos por ${formatCurrency(promotion.bundlePrice || 0)}`;
+        const bundleProducts = getMultipleProductsName(promotion.bundleProducts);
+        return `Pacote com ${bundleProducts} por ${formatCurrency(promotion.bundlePrice || 0)}`;
       default:
         return promotion.description;
     }
@@ -151,7 +161,7 @@ export const PromotionSelectionDialog = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Gift className="h-5 w-5 text-primary" />
-            Promoções Disponíveis
+            Promoções Disponíveis ({promotions.length})
           </DialogTitle>
           <DialogDescription>
             Selecione uma das promoções disponíveis para os produtos no seu carrinho

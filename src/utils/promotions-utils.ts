@@ -48,6 +48,17 @@ export const getAvailablePromotions = (
       return promotion.bundleProducts.every(id => productIds.has(id));
     }
     
+    // For buy_x_get_y promotions, check both primary and secondary products
+    if (promotion.type === 'buy_x_get_y') {
+      const hasPrimaryProduct = promotion.productId && 
+        cartItems.some(item => item.product.id === promotion.productId);
+        
+      const hasSecondaryProduct = promotion.secondaryProductId && 
+        cartItems.some(item => item.product.id === promotion.secondaryProductId);
+        
+      return hasPrimaryProduct || hasSecondaryProduct;
+    }
+    
     return false;
   });
 };

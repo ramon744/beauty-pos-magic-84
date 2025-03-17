@@ -121,12 +121,8 @@ const Sales = () => {
 
   const availablePromotions = useMemo(() => {
     if (cart.length === 0) return [];
-    const promos = getAvailablePromotions(cartItemsForPromotions, promotions);
-    if (promos.length > 1 && !selectedPromotionId && cart.length > 0 && !isPromotionDialogOpen) {
-      return promos;
-    }
-    return promos;
-  }, [cartItemsForPromotions, promotions, cart.length, selectedPromotionId, isPromotionDialogOpen]);
+    return getAvailablePromotions(cartItemsForPromotions, promotions);
+  }, [cartItemsForPromotions, promotions, cart.length]);
 
   const appliedPromotion = useMemo((): AppliedPromotion | null => {
     if (cart.length === 0 || availablePromotions.length === 0) return null;
