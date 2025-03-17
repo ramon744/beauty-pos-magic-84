@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -872,4 +873,781 @@ export default function PromotionForm({ promotionId, onSubmitted }: PromotionFor
                                 <Plus className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-[300px]
+                            <PopoverContent className="w-[300px] p-0" align="start">
+                              <Command>
+                                <CommandInput 
+                                  placeholder="Buscar produtos..." 
+                                  value={multipleProductSearchQuery}
+                                  onValueChange={setMultipleProductSearchQuery}
+                                />
+                                <CommandList>
+                                  <CommandEmpty>Nenhum produto encontrado</CommandEmpty>
+                                  <CommandGroup>
+                                    {filteredMultipleProductsForSearch?.map(product => (
+                                      <CommandItem
+                                        key={product.id}
+                                        value={product.id}
+                                        onSelect={() => handleSelectMultipleProduct(product.id)}
+                                        disabled={selectedMultipleProducts.includes(product.id)}
+                                      >
+                                        <div className="flex flex-col">
+                                          <span>{product.name}</span>
+                                          <span className="text-xs text-muted-foreground">
+                                            Código: {product.code} | {formatCurrency(product.salePrice)}
+                                          </span>
+                                        </div>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {!form.watch('productId') && !form.watch('categoryId') && selectedMultipleProducts.length === 0 && (
+                      <p className="text-sm text-destructive">
+                        Selecione um produto, vários produtos ou uma categoria.
+                      </p>
+                    )}
+                    
+                    {selectedMultipleProducts.length > 0 && (
+                      <div className="mt-2">
+                        <h4 className="text-sm font-medium mb-2">Produtos selecionados:</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedMultipleProducts.map(productId => {
+                            const product = products?.find(p => p.id === productId);
+                            return product ? (
+                              <Badge 
+                                key={product.id} 
+                                variant="secondary"
+                                className="px-2 py-1 flex items-center gap-1"
+                              >
+                                {product.name}
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-5 w-5 p-0" 
+                                  onClick={() => handleRemoveMultipleProduct(product.id)}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </Badge>
+                            ) : null;
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {selectedProduct && (
+                  <Card className="overflow-hidden border-2 border-green-100 shadow-md">
+                    <div className="bg-gradient-to-r from-green-50 to-blue-50 px-4 py-2 border-b">
+                      <h4 className="font-medium text-green-800">Prévia do Desconto</h4>
+                    </div>
+                    <CardContent className="p-4 bg-white">
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="text-gray-600">Preço Original:</div>
+                        <div className="font-semibold">{formatCurrency(selectedProduct.salePrice)}</div>
+                        <div className="text-gray-600">Desconto:</div>
+                        <div className="font-semibold text-destructive">
+                          -{formatCurrency(Math.min(form.watch('discountValue') || 0, selectedProduct.salePrice))}
+                        </div>
+                        <div className="text-gray-600">Preço Final:</div>
+                        <div className="font-semibold text-green-600">
+                          {formatCurrency(Math.max(selectedProduct.salePrice - (form.watch('discountValue') || 0), 0))}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {selectedMultipleProducts.length > 0 && (
+                  <Card className="overflow-hidden border-2 border-green-100 shadow-md">
+                    <div className="bg-gradient-to-r from-green-50 to-blue-50 px-4 py-2 border-b">
+                      <h4 className="font-medium text-green-800">Prévia do Desconto para Múltiplos Produtos</h4>
+                    </div>
+                    <CardContent className="p-4 bg-white">
+                      <p className="text-sm mb-3">
+                        Aplicando desconto de {formatCurrency(form.watch('discountValue') || 0)} em {selectedMultipleProducts.length} produtos selecionados.
+                      </p>
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {selectedMultipleProducts.map(productId => {
+                          const product = products?.find(p => p.id === productId);
+                          if (!product) return null;
+                          
+                          // Calculate proportional discount based on product price
+                          const totalValue = selectedMultipleProducts.reduce((total, id) => {
+                            const p = products?.find(prod => prod.id === id);
+                            return total + (p?.salePrice || 0);
+                          }, 0);
+                          
+                          const proportion = product.salePrice / totalValue;
+                          const discount = Math.min(
+                            product.salePrice, 
+                            (form.watch('discountValue') || 0) * proportion
+                          );
+                          const finalPrice = product.salePrice - discount;
+                          
+                          return (
+                            <div key={product.id} className="grid grid-cols-4 gap-2 text-sm p-2 border-b">
+                              <div className="font-medium">{product.name}</div>
+                              <div>{formatCurrency(product.salePrice)}</div>
+                              <div className="text-destructive">-{formatCurrency(discount)}</div>
+                              <div className="text-green-600">{formatCurrency(finalPrice)}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {selectedCategory && (
+                  <div className="text-sm">
+                    Aplicando desconto de {formatCurrency(form.watch('discountValue') || 0)} em todos os produtos da categoria <strong>{selectedCategory.name}</strong>.
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {promotionType === 'fixed_price' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="fixedPrice"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Preço Fixo (R$)</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="0.01" step="0.01" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="productId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Produto</FormLabel>
+                        <div className="relative">
+                          <Popover open={productSearchOpen} onOpenChange={setProductSearchOpen}>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={productSearchOpen}
+                                className="w-full justify-between"
+                              >
+                                {field.value && products ? (
+                                  <span className="truncate">
+                                    {products.find(p => p.id === field.value)?.name || "Selecione um produto"}
+                                  </span>
+                                ) : (
+                                  <span>Selecione um produto</span>
+                                )}
+                                <ShoppingBag className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[300px] p-0" align="start">
+                              <Command>
+                                <CommandInput 
+                                  placeholder="Buscar produtos..." 
+                                  value={productSearchQuery}
+                                  onValueChange={setProductSearchQuery}
+                                />
+                                <CommandList>
+                                  <CommandEmpty>Nenhum produto encontrado</CommandEmpty>
+                                  <CommandGroup>
+                                    {filteredProductsForSearch?.map(product => (
+                                      <CommandItem
+                                        key={product.id}
+                                        value={product.id}
+                                        onSelect={() => handleSelectProduct(product.id)}
+                                      >
+                                        <div className="flex flex-col">
+                                          <span>{product.name}</span>
+                                          <span className="text-xs text-muted-foreground">
+                                            Código: {product.code} | {formatCurrency(product.salePrice)}
+                                          </span>
+                                        </div>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                {selectedProduct && (
+                  <Card className="overflow-hidden border-2 border-green-100 shadow-md">
+                    <div className="bg-gradient-to-r from-green-50 to-blue-50 px-4 py-2 border-b">
+                      <h4 className="font-medium text-green-800">Prévia da Promoção</h4>
+                    </div>
+                    <CardContent className="p-4 bg-white">
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="text-gray-600">Preço Original:</div>
+                        <div className="font-semibold">{formatCurrency(selectedProduct.salePrice)}</div>
+                        <div className="text-gray-600">Novo Preço:</div>
+                        <div className="font-semibold text-green-600">
+                          {formatCurrency(form.watch('fixedPrice') || 0)}
+                        </div>
+                        <div className="text-gray-600">Economia:</div>
+                        <div className="font-semibold text-destructive">
+                          {selectedProduct.salePrice > (form.watch('fixedPrice') || 0) ? (
+                            `-${formatCurrency(selectedProduct.salePrice - (form.watch('fixedPrice') || 0))}`
+                          ) : (
+                            'Sem desconto'
+                          )}
+                        </div>
+                        <div className="text-gray-600">Desconto:</div>
+                        <div className="font-semibold">
+                          {selectedProduct.salePrice > (form.watch('fixedPrice') || 0) ? (
+                            `${Math.round((1 - ((form.watch('fixedPrice') || 0) / selectedProduct.salePrice)) * 100)}%`
+                          ) : (
+                            '0%'
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+            
+            {promotionType === 'buy_x_get_y' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="buyQuantity"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Compre (quantidade)</FormLabel>
+                          <FormControl>
+                            <Input type="number" min="1" step="1" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="getQuantity"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Leve (quantidade)</FormLabel>
+                          <FormControl>
+                            <Input type="number" min="1" step="1" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <FormField
+                    control={form.control}
+                    name="productId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Produto Principal</FormLabel>
+                        <div className="relative">
+                          <Popover open={productSearchOpen} onOpenChange={setProductSearchOpen}>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={productSearchOpen}
+                                className="w-full justify-between"
+                              >
+                                {field.value && products ? (
+                                  <span className="truncate">
+                                    {products.find(p => p.id === field.value)?.name || "Selecione um produto"}
+                                  </span>
+                                ) : (
+                                  <span>Selecione um produto</span>
+                                )}
+                                <ShoppingBag className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[300px] p-0" align="start">
+                              <Command>
+                                <CommandInput 
+                                  placeholder="Buscar produtos..." 
+                                  value={productSearchQuery}
+                                  onValueChange={setProductSearchQuery}
+                                />
+                                <CommandList>
+                                  <CommandEmpty>Nenhum produto encontrado</CommandEmpty>
+                                  <CommandGroup>
+                                    {filteredProductsForSearch?.map(product => (
+                                      <CommandItem
+                                        key={product.id}
+                                        value={product.id}
+                                        onSelect={() => handleSelectProduct(product.id)}
+                                      >
+                                        <div className="flex flex-col">
+                                          <span>{product.name}</span>
+                                          <span className="text-xs text-muted-foreground">
+                                            Código: {product.code} | {formatCurrency(product.salePrice)}
+                                          </span>
+                                        </div>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        <FormDescription>Produto que o cliente precisa comprar</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="secondaryProductId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Produto Secundário (opcional)</FormLabel>
+                        <div className="relative">
+                          <Popover open={secondaryProductSearchOpen} onOpenChange={setSecondaryProductSearchOpen}>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={secondaryProductSearchOpen}
+                                className="w-full justify-between"
+                              >
+                                {field.value && products ? (
+                                  <span className="truncate">
+                                    {products.find(p => p.id === field.value)?.name || "Mesmo produto"}
+                                  </span>
+                                ) : (
+                                  <span>Mesmo produto</span>
+                                )}
+                                <Gift className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[300px] p-0" align="start">
+                              <Command>
+                                <CommandInput 
+                                  placeholder="Buscar produtos..." 
+                                  value={secondaryProductSearchQuery}
+                                  onValueChange={setSecondaryProductSearchQuery}
+                                />
+                                <CommandList>
+                                  <CommandEmpty>Nenhum produto encontrado</CommandEmpty>
+                                  <CommandGroup>
+                                    {filteredSecondaryProductsForSearch?.map(product => (
+                                      <CommandItem
+                                        key={product.id}
+                                        value={product.id}
+                                        onSelect={() => handleSelectSecondaryProduct(product.id)}
+                                      >
+                                        <div className="flex flex-col">
+                                          <span>{product.name}</span>
+                                          <span className="text-xs text-muted-foreground">
+                                            Código: {product.code} | {formatCurrency(product.salePrice)}
+                                          </span>
+                                        </div>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        <FormDescription>
+                          Produto que o cliente vai ganhar desconto. Se não selecionado, será o mesmo produto.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="secondaryProductDiscount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Desconto no Produto Secundário (%)</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="1" max="100" step="1" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          100% = Grátis, 50% = Metade do preço, etc.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                {selectedProduct && (
+                  <Card className="overflow-hidden border-2 border-green-100 shadow-md">
+                    <div className="bg-gradient-to-r from-green-50 to-blue-50 px-4 py-2 border-b">
+                      <h4 className="font-medium text-green-800">Prévia da Promoção</h4>
+                    </div>
+                    <CardContent className="p-4 bg-white">
+                      <p className="font-medium text-lg mb-4">
+                        Compre {form.watch('buyQuantity') || 0} {selectedProduct.name}, 
+                        Leve {form.watch('getQuantity') || 0}
+                        {selectedSecondaryProduct && selectedSecondaryProduct.id !== selectedProduct.id
+                          ? ` ${selectedSecondaryProduct.name}` : ''}
+                        {' '}com {form.watch('secondaryProductDiscount')}% de desconto
+                      </p>
+                      
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="text-gray-600">Produto Principal:</div>
+                        <div className="font-semibold">{selectedProduct.name}</div>
+                        
+                        <div className="text-gray-600">Preço Unitário:</div>
+                        <div className="font-semibold">{formatCurrency(selectedProduct.salePrice)}</div>
+                        
+                        {selectedSecondaryProduct && selectedSecondaryProduct.id !== selectedProduct.id ? (
+                          <>
+                            <div className="text-gray-600">Produto Secundário:</div>
+                            <div className="font-semibold">{selectedSecondaryProduct.name}</div>
+                            
+                            <div className="text-gray-600">Preço do Secundário:</div>
+                            <div className="font-semibold">{formatCurrency(selectedSecondaryProduct.salePrice)}</div>
+                            
+                            <div className="text-gray-600">Desconto no Secundário:</div>
+                            <div className="font-semibold text-destructive">
+                              {form.watch('secondaryProductDiscount')}% = 
+                              {formatCurrency((selectedSecondaryProduct.salePrice * (form.watch('secondaryProductDiscount') || 0)) / 100)}
+                            </div>
+                            
+                            <div className="text-gray-600">Preço Final do Secundário:</div>
+                            <div className="font-semibold text-green-600">
+                              {formatCurrency(selectedSecondaryProduct.salePrice - ((selectedSecondaryProduct.salePrice * (form.watch('secondaryProductDiscount') || 0)) / 100))}
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="text-gray-600">Desconto no próprio produto:</div>
+                            <div className="font-semibold text-destructive">
+                              {form.watch('secondaryProductDiscount')}% = 
+                              {formatCurrency((selectedProduct.salePrice * (form.watch('secondaryProductDiscount') || 0)) / 100)}
+                            </div>
+                            
+                            <div className="text-gray-600">Preço após desconto:</div>
+                            <div className="font-semibold text-green-600">
+                              {formatCurrency(selectedProduct.salePrice - ((selectedProduct.salePrice * (form.watch('secondaryProductDiscount') || 0)) / 100))}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+            
+            {promotionType === 'bundle' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="bundlePrice"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Preço do Pacote (R$)</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="0.01" step="0.01" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div>
+                    <label className="text-sm font-medium">Adicionar Produtos ao Pacote</label>
+                    <div className="relative mt-2">
+                      <div className="grid grid-cols-1 gap-2">
+                        <Input
+                          type="text"
+                          placeholder="Pesquisar produtos para adicionar..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="mt-1"
+                        />
+                        
+                        {searchQuery.length > 0 && (
+                          <div className="absolute z-10 w-full bg-white shadow-lg rounded-md border border-gray-200 mt-1 max-h-60 overflow-y-auto">
+                            {filteredProducts?.length === 0 ? (
+                              <div className="p-2 text-sm text-gray-500">
+                                Nenhum produto encontrado
+                              </div>
+                            ) : (
+                              <div className="p-2">
+                                {filteredProducts?.map(product => (
+                                  <div 
+                                    key={product.id}
+                                    className="p-2 hover:bg-gray-100 cursor-pointer rounded-md flex justify-between items-center"
+                                    onClick={() => handleSelectBundleProduct(product.id)}
+                                  >
+                                    <div>
+                                      <div className="font-medium">{product.name}</div>
+                                      <div className="text-xs text-gray-500">
+                                        Código: {product.code} | {formatCurrency(product.salePrice)}
+                                      </div>
+                                    </div>
+                                    <Button variant="outline" size="sm">
+                                      <Plus className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {selectedBundleProducts.length > 0 ? (
+                  <div>
+                    <h3 className="text-sm font-medium mb-2">Produtos no Pacote:</h3>
+                    <div className="space-y-2">
+                      {selectedBundleProducts.map(productId => {
+                        const product = products?.find(p => p.id === productId);
+                        return product ? (
+                          <div 
+                            key={product.id} 
+                            className="flex justify-between items-center p-2 border rounded-md"
+                          >
+                            <div>
+                              <div className="font-medium">{product.name}</div>
+                              <div className="text-sm text-gray-500">
+                                {formatCurrency(product.salePrice)}
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveBundleProduct(product.id)}
+                              className="text-destructive"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : null;
+                      })}
+                    </div>
+                    
+                    <div className="mt-4 p-3 bg-muted rounded-md">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-medium">Valor Total dos Produtos:</span>
+                        <span className="font-semibold">{formatCurrency(getBundleTotalValue())}</span>
+                      </div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-medium">Preço do Pacote:</span>
+                        <span className="font-semibold text-green-600">{formatCurrency(form.watch('bundlePrice') || 0)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">Desconto Total:</span>
+                        <span className="font-semibold text-destructive">
+                          {getBundleDiscountPercentage()}% 
+                          ({formatCurrency(getBundleTotalValue() - (form.watch('bundlePrice') || 0))})
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 border border-dashed rounded-md text-center text-gray-500">
+                    Adicione produtos ao pacote para visualizar o desconto.
+                  </div>
+                )}
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="settings" className="space-y-6 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Data de Início</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                formatDate(field.value)
+                              ) : (
+                                <span>Selecione a data</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={(date) => date && field.onChange(date)}
+                            initialFocus
+                            disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="endDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Data de Término</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                formatDate(field.value)
+                              ) : (
+                                <span>Selecione a data</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={(date) => date && field.onChange(date)}
+                            initialFocus
+                            disabled={(date) => 
+                              date < new Date(new Date().setHours(0, 0, 0, 0)) || 
+                              date < form.watch('startDate')
+                            }
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="isActive"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Ativar Promoção</FormLabel>
+                        <FormDescription>
+                          Quando ativada, a promoção será aplicada automaticamente nas vendas.
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="maxDiscountPerPurchase"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Limite de Desconto por Compra (R$)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          min="0.01" 
+                          step="0.01" 
+                          placeholder="Opcional" 
+                          {...field} 
+                          value={field.value || ''}
+                          onChange={(e) => {
+                            const value = e.target.value === '' ? undefined : Number(e.target.value);
+                            field.onChange(value);
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Limite o valor máximo de desconto por compra. Deixe em branco para não ter limite.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+        
+        <div className="flex justify-end space-x-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onSubmitted}
+            disabled={saving}
+          >
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={saving}>
+            {saving ? (
+              <>
+                <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
+                Salvando...
+              </>
+            ) : (
+              <>{promotionId ? 'Atualizar Promoção' : 'Criar Promoção'}</>
+            )}
+          </Button>
+        </div>
+      </form>
+    </Form>
+  );
+}
