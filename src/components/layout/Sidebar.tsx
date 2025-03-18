@@ -18,6 +18,7 @@ import {
   ShoppingBag,
   Printer,
   Tag,
+  Wallet,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UserRole } from '@/types';
@@ -100,6 +101,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle }) => {
             to="/sales" 
             icon={<CircleDollarSign size={20} />} 
             label="PDV" 
+          />
+          <NavItem 
+            to="/cashiers" 
+            icon={<Wallet size={20} />} 
+            label="Caixa" 
+            requiredRoles={['admin', 'manager']}
           />
           <NavItem 
             to="/products" 

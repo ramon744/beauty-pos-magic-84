@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,6 +19,7 @@ import Reports from "./pages/Reports";
 import HistoryPage from "./pages/History";
 import Printers from "./pages/Printers";
 import Labels from "./pages/Labels";
+import Cashiers from "./pages/Cashiers";
 import MainLayout from "./components/layout/MainLayout";
 
 const queryClient = new QueryClient();
@@ -46,6 +48,7 @@ const App = () => (
               <Route path="/history" element={<HistoryPage />} />
               <Route path="/printers" element={<Printers />} />
               <Route path="/labels" element={<Labels />} />
+              <Route path="/cashiers" element={<Cashiers />} />
             </Route>
             
             {/* Catch-all route */}
