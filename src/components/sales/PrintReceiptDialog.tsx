@@ -19,6 +19,18 @@ interface PrintReceiptDialogProps {
   sale: any | null;
 }
 
+// Add a proper type for the printer
+interface PrinterConfig {
+  id: string;
+  name: string;
+  isDefault: boolean;
+  width: string;
+  deviceName?: string;
+  isNetworkPrinter: boolean;
+  ipAddress?: string;
+  port?: string;
+}
+
 export const PrintReceiptDialog: React.FC<PrintReceiptDialogProps> = ({
   isOpen,
   onClose,
@@ -31,9 +43,9 @@ export const PrintReceiptDialog: React.FC<PrintReceiptDialogProps> = ({
     return `R$ ${value.toFixed(2)}`;
   };
   
-  // Get default printer
-  const printers = storageService.getItem(STORAGE_KEYS.PRINTERS) || [];
-  const defaultPrinter = printers.find((p: any) => p.isDefault);
+  // Get default printer with proper type annotation
+  const printers = storageService.getItem<PrinterConfig[]>(STORAGE_KEYS.PRINTERS) || [];
+  const defaultPrinter = printers.find((p) => p.isDefault);
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

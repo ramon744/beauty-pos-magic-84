@@ -132,10 +132,16 @@ export const PrinterSettings = () => {
   };
   
   const onSubmit = (values: PrinterFormValues) => {
-    // Generate a new printer object
+    // Generate a new printer object with all required properties
     const updatedPrinter: Printer = {
       id: selectedPrinterId || `printer-${Date.now()}`,
-      ...values
+      name: values.name,
+      width: values.width,
+      isDefault: values.isDefault,
+      deviceName: values.deviceName,
+      isNetworkPrinter: values.isNetworkPrinter,
+      ipAddress: values.ipAddress,
+      port: values.port
     };
     
     let updatedPrinters: Printer[];

@@ -1,4 +1,3 @@
-
 // User roles
 export type UserRole = 'admin' | 'manager' | 'employee';
 
@@ -163,4 +162,16 @@ export interface ReportFilters {
   categoryId?: string;
   productId?: string;
   sellerId?: string;
+}
+
+// Added Printer interface
+export interface Printer {
+  id: string;
+  name: string;
+  isDefault: boolean;
+  width: string;
+  deviceName?: string;
+  isNetworkPrinter: boolean;
+  ipAddress?: string;
+  port?: string;
 }
