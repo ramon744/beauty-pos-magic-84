@@ -829,6 +829,23 @@ export const SalesHistoryList = () => {
                     </div>
                   </div>
                   
-                  <div className="col-span-1 md:col-span-2 mt-4 flex justify-end">
-                   
+                  <div className="px-4 pb-4 flex justify-end mt-4 border-t pt-4">
+                    <Button
+                      onClick={() => printReceipt(sale)}
+                      variant="outline"
+                      className="flex items-center"
+                    >
+                      <Printer className="mr-2 h-4 w-4" />
+                      Reimprimir Cupom
+                    </Button>
+                  </div>
+                </CollapsibleContent>
+              </div>
+            </Collapsible>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 
