@@ -64,14 +64,22 @@ export const CartItemTable: React.FC<CartItemTableProps> = ({
       accessorKey: 'price',
       header: 'Preço',
       cell: ({ row }) => (
-        <div className="text-right">R$ {row.original.price.toFixed(2)}</div>
+        <div className="text-right">
+          R$ {row.original.price !== null && row.original.price !== undefined 
+            ? row.original.price.toFixed(2) 
+            : '0.00'}
+        </div>
       ),
     },
     {
       accessorKey: 'subtotal',
       header: 'Subtotal',
       cell: ({ row }) => (
-        <div className="text-right font-medium">R$ {row.original.subtotal.toFixed(2)}</div>
+        <div className="text-right font-medium">
+          R$ {row.original.subtotal !== null && row.original.subtotal !== undefined 
+            ? row.original.subtotal.toFixed(2) 
+            : '0.00'}
+        </div>
       ),
     },
     {
