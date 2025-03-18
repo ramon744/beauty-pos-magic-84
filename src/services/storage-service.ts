@@ -1,3 +1,4 @@
+
 export const storageService = {
   getItem: <T>(key: string): T | null => {
     const value = localStorage.getItem(key);
@@ -25,4 +26,13 @@ export const STORAGE_KEYS = {
   CASHIERS: 'beautyPosCashiers',
   CASHIER_ASSIGNMENTS: 'beautyPosCashierAssignments',
   CASHIER_OPERATIONS: 'beautyPosCashierOperations',
+  
+  // Adding the missing keys
+  ORDERS: 'beautyPosOrders',
+  CATEGORIES: 'beautyPosCategories',
+  STOCKS: 'beautyPosStocks',
+  PRINTERS: 'beautyPosPrinters',
+  CART: 'beautyPosCart',
+  CART_CUSTOMER: 'beautyPosCartCustomer',
+  PROMOTIONS_STATISTICS: 'beautyPosPromotionsStatistics'
 };
