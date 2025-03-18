@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 import { Product, Sale, Customer } from '@/types';
@@ -145,9 +144,13 @@ export function useSalesSummary() {
       const todaySummary: SalesSummaryItem = { totalSales: 0, totalItems: 0, totalCustomers: 0 };
       const yesterdaySummary: SalesSummaryItem = { totalSales: 0, totalItems: 0, totalCustomers: 0 };
       
-      // Track unique customers
-      const todayCustomers = new Set<string>();
-      const yesterdayCustomers = new Set<string>();
+      // Count unique customers with IDs
+      const todayCustomersWithIds = new Set<string>();
+      const yesterdayCustomersWithIds = new Set<string>();
+      
+      // Count total sales (each sale counts as one customer served, regardless of customer ID)
+      let todaySalesCount = 0;
+      let yesterdaySalesCount = 0;
       
       // Process sales
       sales.forEach(sale => {
@@ -159,22 +162,30 @@ export function useSalesSummary() {
           todaySummary.totalSales += sale.finalTotal || 0;
           todaySummary.totalItems += sale.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
           
+          // If the sale has a customer with ID, add to unique customers set
           if (sale.customer?.id) {
-            todayCustomers.add(sale.customer.id);
+            todayCustomersWithIds.add(sale.customer.id);
           }
+          
+          // Count this sale as a customer served
+          todaySalesCount++;
         } else if (isYesterday) {
           yesterdaySummary.totalSales += sale.finalTotal || 0;
           yesterdaySummary.totalItems += sale.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
           
+          // If the sale has a customer with ID, add to unique customers set
           if (sale.customer?.id) {
-            yesterdayCustomers.add(sale.customer.id);
+            yesterdayCustomersWithIds.add(sale.customer.id);
           }
+          
+          // Count this sale as a customer served
+          yesterdaySalesCount++;
         }
       });
       
-      // Update customer counts
-      todaySummary.totalCustomers = todayCustomers.size;
-      yesterdaySummary.totalCustomers = yesterdayCustomers.size;
+      // Update customer counts - use the count of unique sales instead of unique customer IDs
+      todaySummary.totalCustomers = todaySalesCount;
+      yesterdaySummary.totalCustomers = yesterdaySalesCount;
       
       // Calculate monthly data (last 6 months)
       const monthlyData = calculateMonthlyData(sales);
