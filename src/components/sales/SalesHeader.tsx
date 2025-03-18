@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ShoppingCart, Users, PercentCircle, ListChecks, Banknote, Calculator } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -87,75 +86,63 @@ export const SalesHeader = ({ user }) => {
         </p>
       </div>
       
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <Badge variant="outline" className="py-1.5 text-base font-normal">
-          <Calculator className="mr-1 h-4 w-4" />
-          Total: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cartTotal)}
-          {totalDiscountAmount > 0 && (
-            <span className="ml-1 text-green-500">
-              (-{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalDiscountAmount)})
-            </span>
-          )}
-        </Badge>
+      <div className="flex gap-1.5">
+        <Button 
+          onClick={finalizeSale} 
+          disabled={cart.length === 0 || (user?.cashierLinked && !openCashiers.some(c => c.employeeId === user?.id))}
+          variant="default"
+          size="sm"
+        >
+          <Banknote className="mr-1.5 h-4 w-4" />
+          Finalizar
+        </Button>
+      
+        <Button 
+          onClick={() => linkCustomer()} 
+          variant="outline"
+          size="sm"
+        >
+          <Users className="mr-1.5 h-4 w-4" />
+          Cliente
+        </Button>
         
-        <div className="flex gap-1.5">
-          <Button 
-            onClick={finalizeSale} 
-            disabled={cart.length === 0 || (user?.cashierLinked && !openCashiers.some(c => c.employeeId === user?.id))}
-            variant="default"
-            size="sm"
-          >
-            <Banknote className="mr-1.5 h-4 w-4" />
-            Finalizar
-          </Button>
+        <Button 
+          onClick={handleAddDiscount} 
+          variant="outline"
+          size="sm"
+        >
+          <PercentCircle className="mr-1.5 h-4 w-4" />
+          Desconto
+        </Button>
         
+        <Button 
+          onClick={handleOpenPromotions} 
+          variant="outline"
+          size="sm"
+        >
+          <ListChecks className="mr-1.5 h-4 w-4" />
+          Promoções
+        </Button>
+        
+        {totalDiscountAmount > 0 && (
           <Button 
-            onClick={() => linkCustomer()} 
-            variant="outline"
+            onClick={handleShowDiscountsList}
+            variant="outline" 
             size="sm"
           >
-            <Users className="mr-1.5 h-4 w-4" />
-            Cliente
+            Ver Descontos
           </Button>
-          
-          <Button 
-            onClick={handleAddDiscount} 
-            variant="outline"
-            size="sm"
-          >
-            <PercentCircle className="mr-1.5 h-4 w-4" />
-            Desconto
-          </Button>
-          
-          <Button 
-            onClick={handleOpenPromotions} 
-            variant="outline"
-            size="sm"
-          >
-            <ListChecks className="mr-1.5 h-4 w-4" />
-            Promoções
-          </Button>
-          
-          {totalDiscountAmount > 0 && (
-            <Button 
-              onClick={handleShowDiscountsList}
-              variant="outline" 
-              size="sm"
-            >
-              Ver Descontos
-            </Button>
-          )}
-          
-          <Button 
-            onClick={handleClearCart} 
-            variant="destructive"
-            size="sm"
-            disabled={cart.length === 0}
-          >
-            <ShoppingCart className="mr-1.5 h-4 w-4" />
-            Limpar
-          </Button>
-        </div>
+        )}
+        
+        <Button 
+          onClick={handleClearCart} 
+          variant="destructive"
+          size="sm"
+          disabled={cart.length === 0}
+        >
+          <ShoppingCart className="mr-1.5 h-4 w-4" />
+          Limpar
+        </Button>
       </div>
       
       {/* Diálogo de abertura de caixa */}
