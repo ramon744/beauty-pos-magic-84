@@ -19,12 +19,13 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Wallet, ArrowUpRight, ArrowDownLeft, Eye } from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, Eye, History } from 'lucide-react';
 import { useCashiers } from '@/hooks/use-cashiers';
 import { useCashierOperations } from '@/hooks/use-cashier-operations';
 import { OpenCashierDialog } from '@/components/cashiers/OpenCashierDialog';
 import { CloseCashierDialog } from '@/components/cashiers/CloseCashierDialog';
 import { CashierDetailsDialog } from '@/components/cashiers/CashierDetailsDialog';
+import { CashierHistoryDialog } from '@/components/cashiers/CashierHistoryDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -40,7 +41,8 @@ const Cashiers = () => {
     isCashierOpen, 
     getCashierBalance,
     addDeposit,
-    addWithdrawal
+    addWithdrawal,
+    getLatestCashierOperation
   } = useCashierOperations();
   const { users } = useAuth();
   
@@ -49,6 +51,7 @@ const Cashiers = () => {
   const [isManagerAuthOpen, setIsManagerAuthOpen] = useState(false);
   const [selectedCashierId, setSelectedCashierId] = useState<string | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   
   const [withdrawalAmount, setWithdrawalAmount] = useState('');
   const [withdrawalReason, setWithdrawalReason] = useState('');
@@ -77,6 +80,11 @@ const Cashiers = () => {
   const handleViewDetails = (cashierId: string) => {
     setSelectedCashierId(cashierId);
     setIsDetailsDialogOpen(true);
+  };
+
+  const handleViewHistory = (cashierId: string) => {
+    setSelectedCashierId(cashierId);
+    setIsHistoryDialogOpen(true);
   };
   
   const handleWithdrawal = async () => {
@@ -267,8 +275,8 @@ const Cashiers = () => {
                   <TableRow>
                     <TableHead>Funcionário</TableHead>
                     <TableHead>Caixa</TableHead>
-                    <TableHead>Abertura</TableHead>
-                    <TableHead>Fechamento</TableHead>
+                    <TableHead>Última Abertura</TableHead>
+                    <TableHead>Último Fechamento</TableHead>
                     <TableHead>Valor Inicial</TableHead>
                     <TableHead>Valor Final</TableHead>
                     <TableHead>Diferença</TableHead>
@@ -284,23 +292,50 @@ const Cashiers = () => {
                     </TableRow>
                   ) : (
                     closedCashiers.map(cashier => {
+                      const lastOpenOp = operations
+                        .filter(op => op.cashierId === cashier.id && op.operationType === 'open')
+                        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+                      
+                      const lastCloseOp = operations
+                        .filter(op => op.cashierId === cashier.id && op.operationType === 'close')
+                        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+                      
+                      const initialAmount = lastOpenOp?.amount || 0;
+                      const finalAmount = lastCloseOp?.amount || 0;
+                      const difference = finalAmount - initialAmount;
+                      
                       return (
                         <TableRow key={cashier.id}>
                           <TableCell>{getAssignedUserName(cashier.assignedUserId)}</TableCell>
                           <TableCell>{cashier.name}</TableCell>
-                          <TableCell>09:15 - 11/05/2023</TableCell>
-                          <TableCell>18:30 - 11/05/2023</TableCell>
-                          <TableCell>R$ 200,00</TableCell>
-                          <TableCell>R$ 3.542,75</TableCell>
-                          <TableCell>R$ 0,00</TableCell>
                           <TableCell>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleViewDetails(cashier.id)}
-                            >
-                              <Eye size={16} className="mr-1" /> Detalhes
-                            </Button>
+                            {lastOpenOp ? formatDateTime(lastOpenOp.timestamp) : "N/A"}
+                          </TableCell>
+                          <TableCell>
+                            {lastCloseOp ? formatDateTime(lastCloseOp.timestamp) : "N/A"}
+                          </TableCell>
+                          <TableCell>{formatCurrency(initialAmount)}</TableCell>
+                          <TableCell>{formatCurrency(finalAmount)}</TableCell>
+                          <TableCell className={difference < 0 ? "text-red-500" : ""}>
+                            {formatCurrency(difference)}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleViewDetails(cashier.id)}
+                              >
+                                <Eye size={16} className="mr-1" /> Detalhes
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleViewHistory(cashier.id)}
+                              >
+                                <History size={16} className="mr-1" /> Histórico
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
@@ -464,12 +499,24 @@ const Cashiers = () => {
               setSelectedCashierId(null);
               window.location.reload();
             }}
+            showManagerAuth={() => setIsManagerAuthOpen(true)}
           />
           
           <CashierDetailsDialog
             isOpen={isDetailsDialogOpen}
             onClose={() => {
               setIsDetailsDialogOpen(false);
+              setSelectedCashierId(null);
+            }}
+            cashierId={selectedCashierId}
+            cashierName={cashiers.find(c => c.id === selectedCashierId)?.name || ""}
+            operations={operations.filter(op => op.cashierId === selectedCashierId)}
+          />
+
+          <CashierHistoryDialog
+            isOpen={isHistoryDialogOpen}
+            onClose={() => {
+              setIsHistoryDialogOpen(false);
               setSelectedCashierId(null);
             }}
             cashierId={selectedCashierId}
