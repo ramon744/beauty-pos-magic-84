@@ -115,7 +115,10 @@ export const SalesHistoryList = () => {
   const getDiscountAuthorizedByName = (sale: Sale) => {
     if (sale.discountAuthorizedBy) {
       const manager = allUsers.find((u: UserType) => u.id === sale.discountAuthorizedBy);
-      return manager ? `${manager.name} (ID: ${manager.id})` : "Não identificado";
+      if (manager) {
+        return manager.name;
+      }
+      return "Não identificado";
     }
     return "Não autorizado";
   };
