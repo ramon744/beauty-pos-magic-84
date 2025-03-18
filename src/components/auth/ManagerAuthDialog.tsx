@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LockKeyhole, ShieldAlert } from "lucide-react";
+import { LockKeyhole, ShieldAlert, UserCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -33,6 +33,7 @@ export const ManagerAuthDialog = ({
   customContent = null,
   customFormId = "discount-form",
 }: ManagerAuthDialogProps) => {
+  const [managerId, setManagerId] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { users } = useAuth();
@@ -43,10 +44,11 @@ export const ManagerAuthDialog = ({
     setIsSubmitting(true);
 
     try {
-      // Check if the password matches any manager or admin user
+      // Check if the ID exists and the password matches any manager or admin user
       const manager = users.find(
         (user) => 
           (user.role === "manager" || user.role === "admin") && 
+          user.id === managerId &&
           user.password === password
       );
 
@@ -57,11 +59,11 @@ export const ManagerAuthDialog = ({
         });
         onConfirm(manager.id); // Pass the manager ID to the callback
         onClose();
-        setPassword("");
+        resetForm();
       } else {
         toast({
           title: "Autorização negada",
-          description: "Senha gerencial incorreta",
+          description: "ID gerencial ou senha incorretos",
           variant: "destructive",
         });
       }
@@ -71,8 +73,13 @@ export const ManagerAuthDialog = ({
   };
 
   const handleClose = () => {
-    setPassword("");
+    resetForm();
     onClose();
+  };
+
+  const resetForm = () => {
+    setManagerId("");
+    setPassword("");
   };
 
   // This function correctly passes a managerId to onConfirm
@@ -123,6 +130,21 @@ export const ManagerAuthDialog = ({
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
                 <div className="relative">
+                  <UserCircle className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="managerId"
+                    type="text"
+                    placeholder="ID do gerente"
+                    value={managerId}
+                    onChange={(e) => setManagerId(e.target.value)}
+                    className="pl-9"
+                    autoComplete="off"
+                    maxLength={6}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="relative">
                   <LockKeyhole className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="managerPassword"
@@ -145,7 +167,7 @@ export const ManagerAuthDialog = ({
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={!password || isSubmitting}>
+              <Button type="submit" disabled={(!password || !managerId) || isSubmitting}>
                 {isSubmitting ? "Verificando..." : "Autorizar"}
               </Button>
             </DialogFooter>
