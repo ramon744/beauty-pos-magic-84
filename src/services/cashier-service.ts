@@ -13,12 +13,19 @@ const initializeStorage = () => {
   }
 };
 
+// Ensure initialization runs when the module is loaded
 initializeStorage();
 
 export const cashierService = {
   // Get all cashiers
   getCashiers: (): Cashier[] => {
-    return storageService.getItem<Cashier[]>(STORAGE_KEYS.CASHIERS) || [];
+    const cashiers = storageService.getItem<Cashier[]>(STORAGE_KEYS.CASHIERS);
+    // If null is returned, initialize with empty array and return
+    if (!cashiers) {
+      storageService.setItem(STORAGE_KEYS.CASHIERS, []);
+      return [];
+    }
+    return cashiers;
   },
 
   // Get a specific cashier by ID
@@ -43,7 +50,13 @@ export const cashierService = {
       updatedAt: new Date(),
     };
     
-    storageService.setItem(STORAGE_KEYS.CASHIERS, [...cashiers, newCashier]);
+    const updatedCashiers = [...cashiers, newCashier];
+    storageService.setItem(STORAGE_KEYS.CASHIERS, updatedCashiers);
+    
+    // Add console log for debugging
+    console.log('Cashier created:', newCashier);
+    console.log('Updated cashiers:', updatedCashiers);
+    
     return newCashier;
   },
 
@@ -71,6 +84,10 @@ export const cashierService = {
     
     cashiers[index] = updatedCashier;
     storageService.setItem(STORAGE_KEYS.CASHIERS, cashiers);
+    
+    // Add console log for debugging
+    console.log('Cashier updated:', updatedCashier);
+    
     return updatedCashier;
   },
 
@@ -87,6 +104,10 @@ export const cashierService = {
     cashierService.unassignCashier(id);
     
     storageService.setItem(STORAGE_KEYS.CASHIERS, filteredCashiers);
+    
+    // Add console log for debugging
+    console.log('Cashier deleted, remaining cashiers:', filteredCashiers);
+    
     return true;
   },
 
@@ -111,6 +132,9 @@ export const cashierService = {
       isActive: true
     });
     
+    // Add console log for debugging
+    console.log(`Cashier ${cashier.name} assigned to user ${userName}`);
+    
     toast.success(`Caixa ${cashier.name} vinculado com sucesso`);
   },
 
@@ -127,6 +151,9 @@ export const cashierService = {
       assignedUserId: undefined,
       assignedUserName: undefined
     });
+    
+    // Add console log for debugging
+    console.log(`Cashier ${cashier.name} unassigned`);
   },
 
   // Get cashier assigned to a specific user
