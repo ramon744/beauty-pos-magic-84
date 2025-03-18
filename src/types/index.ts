@@ -1,3 +1,4 @@
+
 // User roles
 export type UserRole = 'admin' | 'manager' | 'employee';
 
@@ -174,4 +175,32 @@ export interface Printer {
   isNetworkPrinter: boolean;
   ipAddress?: string;
   port?: string;
+}
+
+// Cashier types
+export type CashierStatus = 'open' | 'closed';
+export type CashierOperationType = 'withdrawal' | 'deposit';
+
+export interface CashierOperation {
+  id: string;
+  cashierId: string;
+  type: CashierOperationType;
+  amount: number;
+  reason: string;
+  createdBy: string;
+  createdAt: Date;
+}
+
+export interface Cashier {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  registerNumber: string;
+  initialAmount: number;
+  currentAmount: number;
+  openedAt: Date;
+  closedAt?: Date;
+  status: CashierStatus;
+  difference?: number;
+  operations?: CashierOperation[];
 }
