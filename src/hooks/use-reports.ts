@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 import { Sale, Product, Customer } from '@/types';
@@ -176,10 +175,17 @@ const generateProductsReportData = (): ProductsReportData => {
       if (!productId) return;
       
       if (!productSales[productId]) {
+        // Fix: Correctly handle all possible item structures for the name
+        const productName = typeof item.product === 'object' 
+          ? item.product?.name 
+          : (typeof item === 'object' && 'name' in item) 
+            ? item.name 
+            : 'Produto';
+            
         productSales[productId] = {
           quantity: 0,
           revenue: 0,
-          name: typeof item.product === 'object' ? item.product?.name : item.name || 'Produto'
+          name: productName
         };
       }
       
