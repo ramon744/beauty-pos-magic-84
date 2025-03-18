@@ -1,7 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
-import { Product, Sale } from '@/types';
+import { Product, Sale, Customer } from '@/types';
 
 // Get the list of products with low stock
 export function useProductsWithLowStock() {
@@ -79,20 +79,24 @@ export function useTopSellingProducts() {
         if (!sale.items) return;
         
         sale.items.forEach(item => {
-          if (!productSales.has(item.id)) {
-            productSales.set(item.id, {
-              id: item.id,
-              name: item.name,
+          // Make sure we have the product ID
+          const productId = item.product?.id || item.id;
+          if (!productId) return;
+          
+          if (!productSales.has(productId)) {
+            productSales.set(productId, {
+              id: productId,
+              name: item.product?.name || item.name || 'Unknown Product',
               salesCount: 0,
               revenue: 0,
             });
           }
           
-          const productData = productSales.get(item.id)!;
+          const productData = productSales.get(productId)!;
           productData.salesCount += item.quantity;
-          productData.revenue += item.subtotal;
+          productData.revenue += item.price * item.quantity;
           
-          productSales.set(item.id, productData);
+          productSales.set(productId, productData);
         });
       });
       
@@ -154,14 +158,14 @@ export function useSalesSummary() {
           todaySummary.totalSales += sale.finalTotal || 0;
           todaySummary.totalItems += sale.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
           
-          if (sale.customer) {
+          if (sale.customer?.id) {
             todayCustomers.add(sale.customer.id);
           }
         } else if (isYesterday) {
           yesterdaySummary.totalSales += sale.finalTotal || 0;
           yesterdaySummary.totalItems += sale.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
           
-          if (sale.customer) {
+          if (sale.customer?.id) {
             yesterdayCustomers.add(sale.customer.id);
           }
         }
