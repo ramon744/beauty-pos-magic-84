@@ -175,12 +175,14 @@ const generateProductsReportData = (): ProductsReportData => {
       if (!productId) return;
       
       if (!productSales[productId]) {
-        // Fix: Correctly handle all possible item structures for the name
-        const productName = typeof item.product === 'object' 
-          ? item.product?.name 
-          : (typeof item === 'object' && 'name' in item) 
-            ? item.name 
-            : 'Produto';
+        // Fix: Correctly handle all possible item structures for the name with proper type casting
+        let productName = 'Produto';
+        
+        if (typeof item.product === 'object' && item.product && 'name' in item.product) {
+          productName = item.product.name as string;
+        } else if (typeof item === 'object' && 'name' in item) {
+          productName = item.name as string;
+        }
             
         productSales[productId] = {
           quantity: 0,
