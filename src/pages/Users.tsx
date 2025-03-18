@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { Users as UsersIcon, UserPlus, Pencil, Trash2 } from 'lucide-react';
+import { Users as UsersIcon, UserPlus, Pencil, Trash2, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/common/DataTable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -13,6 +14,14 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { UserRoleSelect } from '@/components/users/UserRoleSelect';
+import { StoreSelect } from '@/components/users/StoreSelect';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+// Forma de usuário com storeId
+interface UserWithStore extends User {
+  storeId: string;
+}
 
 // Form validation schema
 const userFormSchema = z.object({
@@ -24,6 +33,7 @@ const userFormSchema = z.object({
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'Senha precisa ter pelo menos 6 caracteres'),
   role: z.enum(['admin', 'manager', 'employee'] as const),
+  storeId: z.string().min(1, 'Selecione uma loja'),
 });
 
 // Edit form schema with optional password
@@ -31,16 +41,47 @@ const userEditFormSchema = userFormSchema.extend({
   password: z.string().min(6, 'Senha precisa ter pelo menos 6 caracteres').optional(),
 });
 
+// Schema para formulário de lojas
+const storeFormSchema = z.object({
+  id: z.string()
+    .min(1, 'ID é obrigatório')
+    .max(6, 'ID deve ter no máximo 6 caracteres')
+    .regex(/^\d+$/, 'ID deve conter apenas números'),
+  name: z.string().min(3, 'Nome precisa ter pelo menos 3 caracteres'),
+});
+
 type UserFormValues = z.infer<typeof userFormSchema>;
 type UserEditFormValues = z.infer<typeof userEditFormSchema>;
+type StoreFormValues = z.infer<typeof storeFormSchema>;
 
 const Users = () => {
   const { toast } = useToast();
-  const { users, addUser, updateUser, removeUser, hasPermission } = useAuth();
+  const { 
+    users, 
+    stores, 
+    addUser, 
+    updateUser, 
+    removeUser, 
+    addStore, 
+    updateStore, 
+    removeStore, 
+    hasPermission, 
+    getUsersForStore,
+    currentStore
+  } = useAuth();
+  
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserWithStore | null>(null);
+  
+  const [isAddStoreDialogOpen, setIsAddStoreDialogOpen] = useState(false);
+  const [isEditStoreDialogOpen, setIsEditStoreDialogOpen] = useState(false);
+  const [selectedStore, setSelectedStore] = useState<{id: string, name: string} | null>(null);
+  
+  const [activeTab, setActiveTab] = useState('users');
+  const [selectedStoreFilter, setSelectedStoreFilter] = useState<string>('all');
 
+  // Formulários
   const addForm = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
@@ -49,6 +90,7 @@ const Users = () => {
       email: '',
       password: '',
       role: 'employee',
+      storeId: currentStore?.id || '',
     },
   });
 
@@ -60,9 +102,32 @@ const Users = () => {
       email: '',
       password: '',
       role: 'employee',
+      storeId: '',
     },
   });
 
+  const addStoreForm = useForm<StoreFormValues>({
+    resolver: zodResolver(storeFormSchema),
+    defaultValues: {
+      id: '',
+      name: '',
+    },
+  });
+
+  const editStoreForm = useForm<StoreFormValues>({
+    resolver: zodResolver(storeFormSchema),
+    defaultValues: {
+      id: '',
+      name: '',
+    },
+  });
+
+  // Filtrar usuários conforme seleção de loja
+  const filteredUsers = selectedStoreFilter === 'all' 
+    ? users 
+    : users.filter(user => (user as UserWithStore).storeId === selectedStoreFilter);
+
+  // Manipulação de usuários
   const handleAddUser = async (data: UserFormValues) => {
     try {
       // Check if the ID already exists
@@ -81,7 +146,8 @@ const Users = () => {
         name: data.name,
         email: data.email,
         password: data.password,
-        role: data.role
+        role: data.role,
+        storeId: data.storeId
       });
       
       toast({
@@ -99,12 +165,13 @@ const Users = () => {
     }
   };
 
-  const openEditDialog = (user: User) => {
+  const openEditDialog = (user: UserWithStore) => {
     setSelectedUser(user);
     editForm.setValue('id', user.id);
     editForm.setValue('name', user.name);
     editForm.setValue('email', user.email);
     editForm.setValue('role', user.role);
+    editForm.setValue('storeId', user.storeId);
     editForm.setValue('password', ''); // Reset password field
     setIsEditDialogOpen(true);
   };
@@ -129,12 +196,14 @@ const Users = () => {
         name: string; 
         email: string; 
         role: UserRole;
+        storeId: string;
         password?: string;
       } = {
         id: data.id,
         name: data.name,
         email: data.email,
-        role: data.role
+        role: data.role,
+        storeId: data.storeId
       };
       
       // Only include password if it's not empty
@@ -169,13 +238,84 @@ const Users = () => {
     } catch (error) {
       toast({
         title: 'Erro',
-        description: 'Não foi possível remover o usuário',
+        description: error instanceof Error ? error.message : 'Não foi possível remover o usuário',
         variant: 'destructive',
       });
     }
   };
 
-  const columns: ColumnDef<User>[] = [
+  // Manipulação de lojas
+  const handleAddStore = async (data: StoreFormValues) => {
+    try {
+      await addStore({
+        id: data.id,
+        name: data.name,
+      });
+      
+      toast({
+        title: 'Loja adicionada',
+        description: `${data.name} foi adicionada com sucesso`,
+      });
+      setIsAddStoreDialogOpen(false);
+      addStoreForm.reset();
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: error instanceof Error ? error.message : 'Não foi possível adicionar a loja',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const openEditStoreDialog = (store: {id: string, name: string}) => {
+    setSelectedStore(store);
+    editStoreForm.setValue('id', store.id);
+    editStoreForm.setValue('name', store.name);
+    setIsEditStoreDialogOpen(true);
+  };
+
+  const handleEditStore = async (data: StoreFormValues) => {
+    if (!selectedStore) return;
+    
+    try {
+      await updateStore(selectedStore.id, {
+        id: data.id,
+        name: data.name,
+      });
+      
+      toast({
+        title: 'Loja atualizada',
+        description: `${data.name} foi atualizada com sucesso`,
+      });
+      setIsEditStoreDialogOpen(false);
+      editStoreForm.reset();
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: error instanceof Error ? error.message : 'Não foi possível atualizar a loja',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleRemoveStore = async (storeId: string) => {
+    try {
+      await removeStore(storeId);
+      toast({
+        title: 'Loja removida',
+        description: 'Loja removida com sucesso',
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: error instanceof Error ? error.message : 'Não foi possível remover a loja',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Colunas para tabela de usuários
+  const columns: ColumnDef<UserWithStore>[] = [
     {
       accessorKey: 'id',
       header: 'ID',
@@ -211,6 +351,15 @@ const Users = () => {
         }
         
         return <span>{displayText}</span>;
+      },
+    },
+    {
+      accessorKey: 'storeId',
+      header: 'Loja',
+      cell: ({ row }) => {
+        const storeId = row.original.storeId;
+        const store = stores.find(s => s.id === storeId);
+        return <span>{store ? store.name : 'Loja não encontrada'}</span>;
       },
     },
     {
@@ -254,27 +403,138 @@ const Users = () => {
     },
   ];
 
+  // Colunas para tabela de lojas
+  const storeColumns: ColumnDef<{id: string, name: string, createdAt: Date}>[] = [
+    {
+      accessorKey: 'id',
+      header: 'ID',
+      cell: ({ row }) => {
+        return <span className="font-medium">{row.original.id}</span>;
+      }
+    },
+    {
+      accessorKey: 'name',
+      header: 'Nome da Loja',
+    },
+    {
+      accessorKey: 'createdAt',
+      header: 'Criada em',
+      cell: ({ row }) => {
+        return new Date(row.original.createdAt).toLocaleDateString('pt-BR');
+      },
+    },
+    {
+      id: 'userCount',
+      header: 'Usuários',
+      cell: ({ row }) => {
+        const storeId = row.original.id;
+        const count = getUsersForStore(storeId).length;
+        return <span>{count}</span>;
+      },
+    },
+    {
+      id: 'actions',
+      cell: ({ row }) => {
+        const canManageStores = hasPermission(['admin']);
+        const store = row.original;
+        const hasUsers = getUsersForStore(store.id).length > 0;
+        
+        return (
+          <div className="flex justify-end gap-2">
+            {canManageStores && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => openEditStoreDialog(store)}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive hover:text-destructive/90"
+                  onClick={() => handleRemoveStore(store.id)}
+                  disabled={hasUsers || store.id === '1'}
+                  title={hasUsers ? 'Não é possível remover lojas com usuários' : ''}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+          </div>
+        );
+      },
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight flex items-center">
           <UsersIcon className="mr-2 h-8 w-8" />
-          Usuários
+          Gerenciamento
         </h2>
-        {hasPermission(['admin']) && (
-          <Button onClick={() => setIsAddDialogOpen(true)}>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Novo Usuário
-          </Button>
-        )}
       </div>
 
-      <DataTable 
-        columns={columns} 
-        data={users} 
-        searchColumn="name"
-        searchPlaceholder="Buscar usuários..."
-      />
+      <Tabs defaultValue="users" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="users">Usuários</TabsTrigger>
+          {hasPermission(['admin']) && (
+            <TabsTrigger value="stores">Lojas</TabsTrigger>
+          )}
+        </TabsList>
+
+        <TabsContent value="users" className="space-y-4">
+          <div className="flex flex-col md:flex-row justify-between gap-4">
+            {hasPermission(['admin']) && (
+              <Button onClick={() => setIsAddDialogOpen(true)}>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Novo Usuário
+              </Button>
+            )}
+            
+            <Card className="w-full md:w-auto">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-4">
+                  <div className="text-sm font-medium">Filtrar por loja:</div>
+                  <StoreSelect
+                    stores={stores}
+                    value={selectedStoreFilter}
+                    onValueChange={setSelectedStoreFilter}
+                    includeAllOption={true}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <DataTable 
+            columns={columns} 
+            data={filteredUsers as UserWithStore[]} 
+            searchColumn="name"
+            searchPlaceholder="Buscar usuários..."
+          />
+        </TabsContent>
+
+        {hasPermission(['admin']) && (
+          <TabsContent value="stores" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <Button onClick={() => setIsAddStoreDialogOpen(true)}>
+                <Store className="mr-2 h-4 w-4" />
+                Nova Loja
+              </Button>
+            </div>
+            
+            <DataTable 
+              columns={storeColumns} 
+              data={stores} 
+              searchColumn="name"
+              searchPlaceholder="Buscar lojas..."
+            />
+          </TabsContent>
+        )}
+      </Tabs>
 
       {/* Add User Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -353,6 +613,24 @@ const Users = () => {
                       <UserRoleSelect 
                         value={field.value} 
                         onValueChange={field.onChange} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={addForm.control}
+                name="storeId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Loja</FormLabel>
+                    <FormControl>
+                      <StoreSelect 
+                        stores={stores}
+                        value={field.value} 
+                        onValueChange={field.onChange} 
+                        includeAllOption={false}
                       />
                     </FormControl>
                     <FormMessage />
@@ -445,6 +723,122 @@ const Users = () => {
                         value={field.value} 
                         onValueChange={field.onChange} 
                       />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="storeId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Loja</FormLabel>
+                    <FormControl>
+                      <StoreSelect 
+                        stores={stores}
+                        value={field.value} 
+                        onValueChange={field.onChange} 
+                        includeAllOption={false}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="submit">Atualizar</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Store Dialog */}
+      <Dialog open={isAddStoreDialogOpen} onOpenChange={setIsAddStoreDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Adicionar Nova Loja</DialogTitle>
+          </DialogHeader>
+          <Form {...addStoreForm}>
+            <form onSubmit={addStoreForm.handleSubmit(handleAddStore)} className="space-y-4">
+              <FormField
+                control={addStoreForm.control}
+                name="id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>ID (máx. 6 dígitos)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="ID numérico" 
+                        {...field} 
+                        maxLength={6}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={addStoreForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome da Loja</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nome da loja" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="submit">Salvar</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Store Dialog */}
+      <Dialog open={isEditStoreDialogOpen} onOpenChange={setIsEditStoreDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Editar Loja</DialogTitle>
+          </DialogHeader>
+          <Form {...editStoreForm}>
+            <form onSubmit={editStoreForm.handleSubmit(handleEditStore)} className="space-y-4">
+              <FormField
+                control={editStoreForm.control}
+                name="id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>ID (máx. 6 dígitos)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="ID numérico" 
+                        {...field} 
+                        maxLength={6}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editStoreForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome da Loja</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nome da loja" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
