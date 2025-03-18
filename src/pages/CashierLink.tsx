@@ -120,7 +120,7 @@ const CashierLink = () => {
           </p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mb-6">
+        <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full mb-6">
           <TabsList>
             <TabsTrigger value="list" className="flex items-center">
               <List className="mr-2 h-4 w-4" />
@@ -131,88 +131,88 @@ const CashierLink = () => {
               Vinculações
             </TabsTrigger>
           </TabsList>
+
+          {error && (
+            <Alert variant="destructive" className="mb-6 mt-4">
+              <AlertCircleIcon className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <TabsContent value="list" className="space-y-6 bg-background">
+            <div className="flex justify-end">
+              <Button onClick={handleOpenCreateDialog}>
+                <PlusIcon className="mr-2 h-4 w-4" />
+                Novo Caixa
+              </Button>
+            </div>
+
+            <CashiersList
+              cashiers={cashiers}
+              onEdit={handleOpenEditDialog}
+              onDelete={handleDeleteCashier}
+              onUnassign={handleUnassignCashier}
+            />
+          </TabsContent>
+
+          <TabsContent value="assignments" className="bg-background">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Vincular Caixa</CardTitle>
+                  <CardDescription>Atribua caixas aos funcionários</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="mb-4 text-sm text-muted-foreground">
+                    Este módulo permite que administradores vinculem caixas aos funcionários.
+                  </p>
+                  <div className="flex justify-end">
+                    <Button 
+                      onClick={handleOpenAssignDialog}
+                      disabled={availableCashiers.length === 0}
+                    >
+                      Criar Vinculação
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Gerenciar Caixas</CardTitle>
+                  <CardDescription>Gerencie os caixas disponíveis</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="mb-4 text-sm text-muted-foreground">
+                    Adicione, edite ou remova caixas do sistema.
+                  </p>
+                  <div className="flex justify-end">
+                    <Button onClick={() => setActiveTab('list')}>Gerenciar</Button>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Monitoramento</CardTitle>
+                  <CardDescription>Visualize caixas ativos</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="mb-4 text-sm text-muted-foreground">
+                    Veja todos os caixas ativos e suas vinculações no momento.
+                  </p>
+                  <div className="flex justify-end">
+                    <Button onClick={() => setActiveTab('list')}>Ver Caixas</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
         </Tabs>
-
-        {error && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircleIcon className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        <TabsContent value="list" className="space-y-6">
-          <div className="flex justify-end">
-            <Button onClick={handleOpenCreateDialog}>
-              <PlusIcon className="mr-2 h-4 w-4" />
-              Novo Caixa
-            </Button>
-          </div>
-
-          <CashiersList
-            cashiers={cashiers}
-            onEdit={handleOpenEditDialog}
-            onDelete={handleDeleteCashier}
-            onUnassign={handleUnassignCashier}
-          />
-        </TabsContent>
-
-        <TabsContent value="assignments">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card>
-              <CardHeader>
-                <CardTitle>Vincular Caixa</CardTitle>
-                <CardDescription>Atribua caixas aos funcionários</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="mb-4 text-sm text-muted-foreground">
-                  Este módulo permite que administradores vinculem caixas aos funcionários.
-                </p>
-                <div className="flex justify-end">
-                  <Button 
-                    onClick={handleOpenAssignDialog}
-                    disabled={availableCashiers.length === 0}
-                  >
-                    Criar Vinculação
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Gerenciar Caixas</CardTitle>
-                <CardDescription>Gerencie os caixas disponíveis</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="mb-4 text-sm text-muted-foreground">
-                  Adicione, edite ou remova caixas do sistema.
-                </p>
-                <div className="flex justify-end">
-                  <Button onClick={() => setActiveTab('list')}>Gerenciar</Button>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Monitoramento</CardTitle>
-                <CardDescription>Visualize caixas ativos</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="mb-4 text-sm text-muted-foreground">
-                  Veja todos os caixas ativos e suas vinculações no momento.
-                </p>
-                <div className="flex justify-end">
-                  <Button onClick={() => setActiveTab('list')}>Ver Caixas</Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
 
         {/* Dialogs for create, edit, and assign operations */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[500px] bg-background">
             {dialogType === 'create' && (
               <>
                 <DialogHeader>

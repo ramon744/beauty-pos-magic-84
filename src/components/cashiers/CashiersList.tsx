@@ -31,7 +31,7 @@ export function CashiersList({ cashiers, onEdit, onDelete, onUnassign }: Cashier
   }
 
   return (
-    <div className="border rounded-md overflow-hidden">
+    <div className="border rounded-md overflow-hidden bg-background">
       <Table>
         <TableHeader>
           <TableRow>
