@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Users as UsersIcon, UserPlus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,6 +16,10 @@ import { UserRoleSelect } from '@/components/users/UserRoleSelect';
 
 // Form validation schema
 const userFormSchema = z.object({
+  id: z.string()
+    .min(1, 'ID é obrigatório')
+    .max(6, 'ID deve ter no máximo 6 caracteres')
+    .regex(/^\d+$/, 'ID deve conter apenas números'),
   name: z.string().min(3, 'Nome precisa ter pelo menos 3 caracteres'),
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'Senha precisa ter pelo menos 6 caracteres'),
@@ -41,6 +44,7 @@ const Users = () => {
   const addForm = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
+      id: '',
       name: '',
       email: '',
       password: '',
@@ -51,6 +55,7 @@ const Users = () => {
   const editForm = useForm<UserEditFormValues>({
     resolver: zodResolver(userEditFormSchema),
     defaultValues: {
+      id: '',
       name: '',
       email: '',
       password: '',
@@ -60,8 +65,19 @@ const Users = () => {
 
   const handleAddUser = async (data: UserFormValues) => {
     try {
+      // Check if the ID already exists
+      if (users.some(user => user.id === data.id)) {
+        toast({
+          title: 'Erro',
+          description: 'Este ID já está em uso',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
       // Now we're explicitly passing values with the correct type
       await addUser({
+        id: data.id,
         name: data.name,
         email: data.email,
         password: data.password,
@@ -85,6 +101,7 @@ const Users = () => {
 
   const openEditDialog = (user: User) => {
     setSelectedUser(user);
+    editForm.setValue('id', user.id);
     editForm.setValue('name', user.name);
     editForm.setValue('email', user.email);
     editForm.setValue('role', user.role);
@@ -96,13 +113,25 @@ const Users = () => {
     if (!selectedUser) return;
     
     try {
+      // Check if the ID already exists and is not the current user's ID
+      if (data.id !== selectedUser.id && users.some(user => user.id === data.id)) {
+        toast({
+          title: 'Erro',
+          description: 'Este ID já está em uso',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
       // Create update object - only include password if it was provided
       const updateData: { 
+        id: string;
         name: string; 
         email: string; 
         role: UserRole;
         password?: string;
       } = {
+        id: data.id,
         name: data.name,
         email: data.email,
         role: data.role
@@ -147,6 +176,13 @@ const Users = () => {
   };
 
   const columns: ColumnDef<User>[] = [
+    {
+      accessorKey: 'id',
+      header: 'ID',
+      cell: ({ row }) => {
+        return <span className="font-medium">{row.original.id}</span>;
+      }
+    },
     {
       accessorKey: 'name',
       header: 'Nome',
@@ -250,6 +286,26 @@ const Users = () => {
             <form onSubmit={addForm.handleSubmit(handleAddUser)} className="space-y-4">
               <FormField
                 control={addForm.control}
+                name="id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>ID (máx. 6 dígitos)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="ID numérico" 
+                        {...field} 
+                        maxLength={6}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={addForm.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
@@ -319,6 +375,26 @@ const Users = () => {
           </DialogHeader>
           <Form {...editForm}>
             <form onSubmit={editForm.handleSubmit(handleEditUser)} className="space-y-4">
+              <FormField
+                control={editForm.control}
+                name="id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>ID (máx. 6 dígitos)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="ID numérico" 
+                        {...field} 
+                        maxLength={6}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={editForm.control}
                 name="name"

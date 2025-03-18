@@ -50,8 +50,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   hasPermission: (requiredRoles: UserRole[]) => boolean;
-  addUser: (userData: { name: string; email: string; password: string; role: UserRole }) => Promise<User>;
-  updateUser: (id: string, userData: { name: string; email: string; role: UserRole; password?: string }) => Promise<User>;
+  addUser: (userData: { id: string; name: string; email: string; password: string; role: UserRole }) => Promise<User>;
+  updateUser: (id: string, userData: { id: string; name: string; email: string; role: UserRole; password?: string }) => Promise<User>;
   removeUser: (id: string) => Promise<boolean>;
 }
 
@@ -114,15 +114,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [users]);
 
   // Add a new user
-  const addUser = async (userData: { name: string; email: string; password: string; role: UserRole }): Promise<User> => {
+  const addUser = async (userData: { 
+    id: string;
+    name: string; 
+    email: string; 
+    password: string; 
+    role: UserRole 
+  }): Promise<User> => {
     // Check if email already exists
     if (users.some(u => u.email === userData.email)) {
       throw new Error('Email já está em uso');
     }
     
+    // Check if ID already exists
+    if (users.some(u => u.id === userData.id)) {
+      throw new Error('ID já está em uso');
+    }
+    
     const newUser = {
-      id: Date.now().toString(),
-      ...userData,
+      id: userData.id,
+      name: userData.name,
+      email: userData.email,
+      password: userData.password,
+      role: userData.role,
       createdAt: new Date(),
     };
     
@@ -135,6 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Update an existing user
   const updateUser = async (id: string, userData: { 
+    id: string;
     name: string; 
     email: string; 
     role: UserRole;
@@ -145,11 +160,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Email já está em uso');
     }
     
+    // Check if new ID already exists and belongs to a different user
+    if (userData.id !== id && users.some(u => u.id === userData.id)) {
+      throw new Error('ID já está em uso');
+    }
+    
     const updatedUsers = users.map(u => {
       if (u.id === id) {
-        // Create updated user object
+        // Create updated user object with new ID
         const updatedUser = { 
           ...u,
+          id: userData.id,
           name: userData.name,
           email: userData.email,
           role: userData.role
@@ -174,7 +195,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     
     setUsers(updatedUsers);
-    const updatedUser = updatedUsers.find(u => u.id === id);
+    const updatedUser = updatedUsers.find(u => u.id === userData.id);
     
     if (!updatedUser) {
       throw new Error('Usuário não encontrado');
