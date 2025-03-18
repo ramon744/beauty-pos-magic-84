@@ -1,3 +1,4 @@
+
 // User roles
 export type UserRole = 'admin' | 'manager' | 'employee';
 
@@ -74,7 +75,7 @@ export interface Customer {
 }
 
 // Payment method
-export type PaymentMethod = 'cash' | 'credit_card' | 'debit_card' | 'pix' | 'transfer';
+export type PaymentMethod = 'cash' | 'credit_card' | 'debit_card' | 'pix' | 'transfer' | 'mixed';
 
 // Payment details
 export interface PaymentDetails {
@@ -114,7 +115,7 @@ export interface Sale {
   createdAt: Date;
   appliedPromotionId?: string;
   promotionDiscountAmount?: number;
-  discountAuthorizedBy?: User;
+  discountAuthorizedBy?: string;
 }
 
 // Promotion type
