@@ -1,7 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
-import { Product } from '@/types';
+import { Product, Sale } from '@/types';
 
 // Get the list of products with low stock
 export function useProductsWithLowStock() {
@@ -24,10 +24,36 @@ export function useProductsWithLowStock() {
   });
 }
 
+// Type for top selling product
+interface TopSellingProduct {
+  id: string;
+  name: string;
+  salesCount: number;
+  revenue: number;
+}
+
+// Type for sales summary
+interface SalesSummaryItem {
+  totalSales: number;
+  totalItems: number;
+  totalCustomers: number;
+}
+
+interface SalesSummary {
+  today: SalesSummaryItem;
+  yesterday: SalesSummaryItem;
+  monthlyData: MonthlyData[];
+}
+
+interface MonthlyData {
+  month: string;
+  sales: number;
+}
+
 // Mock function to get the sales data from localStorage
 // In a real application, this would come from a backend API
-function getSalesFromStorage() {
-  const sales = storageService.getItem(STORAGE_KEYS.ORDERS) || [];
+function getSalesFromStorage(): Sale[] {
+  const sales = storageService.getItem<Sale[]>(STORAGE_KEYS.ORDERS) || [];
   return sales;
 }
 
@@ -42,11 +68,11 @@ export function useTopSellingProducts() {
       const sales = getSalesFromStorage();
       
       if (!products || products.length === 0 || !sales || sales.length === 0) {
-        return [];
+        return [] as TopSellingProduct[];
       }
       
       // Create a map to hold product sales data
-      const productSales = new Map();
+      const productSales = new Map<string, TopSellingProduct>();
       
       // Calculate product sales
       sales.forEach(sale => {
@@ -62,7 +88,7 @@ export function useTopSellingProducts() {
             });
           }
           
-          const productData = productSales.get(item.id);
+          const productData = productSales.get(item.id)!;
           productData.salesCount += item.quantity;
           productData.revenue += item.subtotal;
           
@@ -92,7 +118,7 @@ function useProducts() {
 
 // Get sales summary data by day, month, year
 export function useSalesSummary() {
-  return useQuery({
+  return useQuery<SalesSummary>({
     queryKey: ['sales', 'summary'],
     queryFn: () => {
       const sales = getSalesFromStorage();
@@ -111,12 +137,12 @@ export function useSalesSummary() {
       const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).getTime();
       
       // Initialize summary objects
-      const todaySummary = { totalSales: 0, totalItems: 0, totalCustomers: 0 };
-      const yesterdaySummary = { totalSales: 0, totalItems: 0, totalCustomers: 0 };
+      const todaySummary: SalesSummaryItem = { totalSales: 0, totalItems: 0, totalCustomers: 0 };
+      const yesterdaySummary: SalesSummaryItem = { totalSales: 0, totalItems: 0, totalCustomers: 0 };
       
       // Track unique customers
-      const todayCustomers = new Set();
-      const yesterdayCustomers = new Set();
+      const todayCustomers = new Set<string>();
+      const yesterdayCustomers = new Set<string>();
       
       // Process sales
       sales.forEach(sale => {
@@ -158,12 +184,12 @@ export function useSalesSummary() {
 }
 
 // Generate default monthly data when no sales exist
-function generateDefaultMonthlyData() {
+function generateDefaultMonthlyData(): MonthlyData[] {
   const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
   const currentMonth = new Date().getMonth();
   
   // Get the last 6 months
-  const lastSixMonths = [];
+  const lastSixMonths: MonthlyData[] = [];
   for (let i = 5; i >= 0; i--) {
     const monthIndex = (currentMonth - i + 12) % 12;
     lastSixMonths.push({
@@ -176,7 +202,7 @@ function generateDefaultMonthlyData() {
 }
 
 // Calculate monthly sales data
-function calculateMonthlyData(sales) {
+function calculateMonthlyData(sales: Sale[]): MonthlyData[] {
   const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
   const currentDate = new Date();
   const currentMonth = currentDate.getMonth();

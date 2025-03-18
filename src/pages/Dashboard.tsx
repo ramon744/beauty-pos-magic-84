@@ -17,10 +17,15 @@ import { useProducts } from '@/hooks/use-products';
 import { useStatistics } from '@/hooks/use-products';
 import { formatCurrency } from '@/lib/formatters';
 import { SalesChart } from '@/components/dashboard/SalesChart';
-import { useProductsWithLowStock } from '@/hooks/use-dashboard';
-import { useTopSellingProducts } from '@/hooks/use-dashboard';
-import { useSalesSummary } from '@/hooks/use-dashboard';
+import { useProductsWithLowStock, useTopSellingProducts, useSalesSummary } from '@/hooks/use-dashboard';
 import { Skeleton } from '@/components/ui/skeleton';
+
+// Define types for the sales trend data
+interface TrendData {
+  value: string;
+  change: string;
+  trend: 'up' | 'down';
+}
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -31,17 +36,17 @@ const Dashboard = () => {
   const { data: salesSummary, isLoading: isLoadingSales } = useSalesSummary();
   
   // Calculate the sales trend based on yesterday's sales
-  const getTrendData = (type) => {
+  const getTrendData = (type: 'sales' | 'customers' | 'items' | 'average'): TrendData => {
     if (!salesSummary) {
       return { value: '0', change: '0%', trend: 'up' };
     }
     
-    const today = salesSummary.today || {};
-    const yesterday = salesSummary.yesterday || {};
+    const today = salesSummary.today || { totalSales: 0, totalItems: 0, totalCustomers: 0 };
+    const yesterday = salesSummary.yesterday || { totalSales: 0, totalItems: 0, totalCustomers: 0 };
     
     let value = '0';
     let change = '0%';
-    let trend = 'up';
+    let trend: 'up' | 'down' = 'up';
     
     switch (type) {
       case 'sales':
