@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { User, UserRole } from '@/types';
 import { cashierService } from '@/services/cashier-service';
+import { STORAGE_KEYS } from '@/services/storage-service';
 
 // Mock users for the demo - will be replaced with DB integration in the future
 const INITIAL_USERS = [
@@ -32,15 +33,7 @@ const INITIAL_USERS = [
   },
 ];
 
-// Local storage keys - centralizing for future DB migration
-const STORAGE_KEYS = {
-  AUTH: 'beautyPosAuth',
-  USERS: 'beautyPosUsers',
-  PRODUCTS: 'beautyPosProducts',
-  CUSTOMERS: 'beautyPosCustomers',
-  SALES: 'beautyPosSales',
-  PROMOTIONS: 'beautyPosPromotions',
-};
+// Use the storage keys from the storage service
 
 interface AuthContextType {
   user: User | null;

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProductSearch } from '@/hooks/use-product-search';
@@ -9,11 +9,21 @@ import { SalesHeader } from '@/components/sales/SalesHeader';
 import { SalesContent } from '@/components/sales/SalesContent';
 import { SalesDialogs } from '@/components/sales/SalesDialogs';
 import { PrintReceiptDialog } from '@/components/sales/PrintReceiptDialog';
+import { useCashierOperations } from '@/hooks/use-cashier-operations';
+import { OpenCashierDialog } from '@/components/cashiers/OpenCashierDialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircleIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const Sales = () => {
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const { data: products = [] } = useProducts();
+  const { getUserCashierStatus } = useCashierOperations();
+  const [isOpenCashierDialogOpen, setIsOpenCashierDialogOpen] = useState(false);
+  
+  // Get cashier status
+  const { cashier, isOpen } = getUserCashierStatus();
   
   // Create a reference to the sales manager hook once to avoid multiple instances
   const salesManager = useSalesManager();
@@ -83,6 +93,57 @@ const Sales = () => {
     removePromotion,
     addProductToCart
   } = salesManager;
+
+  // Force cashier check on page load
+  useEffect(() => {
+    if (user && user.role === 'employee' && cashier && !isOpen) {
+      setIsOpenCashierDialogOpen(true);
+    }
+  }, [user, cashier, isOpen]);
+
+  // If user is an employee and has no assigned cashier, show a warning
+  if (user && user.role === 'employee' && !cashier) {
+    return (
+      <div className="flex items-center justify-center min-h-[80vh]">
+        <div className="max-w-md p-6 bg-background border rounded-lg shadow-sm">
+          <AlertCircleIcon className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-center mb-4">Caixa Não Vinculado</h2>
+          <p className="text-muted-foreground text-center mb-6">
+            Você não possui um caixa vinculado ao seu usuário. 
+            Por favor, contate um administrador para vincular um caixa.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // If user is an employee and cashier is not open, show the cashier status
+  if (user && user.role === 'employee' && cashier && !isOpen) {
+    return (
+      <div className="flex items-center justify-center min-h-[80vh]">
+        <div className="max-w-md p-6 bg-background border rounded-lg shadow-sm">
+          <AlertCircleIcon className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-center mb-4">Caixa Fechado</h2>
+          <p className="text-muted-foreground text-center mb-6">
+            O caixa {cashier.name} está fechado. Abra o caixa para iniciar as vendas.
+          </p>
+          <div className="flex justify-center">
+            <Button onClick={() => setIsOpenCashierDialogOpen(true)}>
+              Abrir Caixa
+            </Button>
+          </div>
+          
+          <OpenCashierDialog
+            isOpen={isOpenCashierDialogOpen}
+            onClose={() => setIsOpenCashierDialogOpen(false)}
+            cashierId={cashier.id}
+            cashierName={cashier.name}
+            onOpenSuccess={() => window.location.reload()}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -173,6 +234,17 @@ const Sales = () => {
         onPrint={handlePrintReceipt}
         sale={lastCompletedSale}
       />
+      
+      {/* Open Cashier Dialog */}
+      {cashier && (
+        <OpenCashierDialog
+          isOpen={isOpenCashierDialogOpen}
+          onClose={() => setIsOpenCashierDialogOpen(false)}
+          cashierId={cashier.id}
+          cashierName={cashier.name}
+          onOpenSuccess={() => window.location.reload()}
+        />
+      )}
     </div>
   );
 };
