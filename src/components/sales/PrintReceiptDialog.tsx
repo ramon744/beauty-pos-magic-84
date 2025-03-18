@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Printer, X } from 'lucide-react';
+import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 
 interface PrintReceiptDialogProps {
   isOpen: boolean;
@@ -29,6 +30,10 @@ export const PrintReceiptDialog: React.FC<PrintReceiptDialogProps> = ({
   const formatCurrency = (value: number) => {
     return `R$ ${value.toFixed(2)}`;
   };
+  
+  // Get default printer
+  const printers = storageService.getItem(STORAGE_KEYS.PRINTERS) || [];
+  const defaultPrinter = printers.find((p: any) => p.isDefault);
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -77,7 +82,20 @@ export const PrintReceiptDialog: React.FC<PrintReceiptDialogProps> = ({
             <span className="font-medium">Qtd. itens:</span>
             <span>{sale?.items.reduce((total: number, item: any) => total + item.quantity, 0)}</span>
           </div>
+          
+          {defaultPrinter && (
+            <div className="flex justify-between items-center">
+              <span className="font-medium">Impressora:</span>
+              <span>{defaultPrinter.name}</span>
+            </div>
+          )}
         </div>
+        
+        {!defaultPrinter && (
+          <div className="text-sm text-amber-600 mt-2 p-2 border border-amber-200 bg-amber-50 rounded-md">
+            Nenhuma impressora padrão configurada. Configure uma impressora nas configurações do sistema.
+          </div>
+        )}
         
         <DialogFooter className="flex space-x-2 sm:space-x-0 pt-4">
           <Button
@@ -92,6 +110,7 @@ export const PrintReceiptDialog: React.FC<PrintReceiptDialogProps> = ({
           <Button 
             onClick={onPrint}
             className="flex-1 sm:flex-none"
+            disabled={!defaultPrinter}
           >
             <Printer className="mr-2 h-4 w-4" />
             Imprimir Cupom

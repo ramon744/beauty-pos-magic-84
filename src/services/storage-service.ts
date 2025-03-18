@@ -96,6 +96,7 @@ export const STORAGE_KEYS = {
   THEME: 'theme',
   AUTH: 'auth',
   STOCKS: 'stocks',
+  PRINTERS: 'printers', // Added the PRINTERS key
 };
 
 // Future Supabase table names - can be the same as STORAGE_KEYS for simplicity
