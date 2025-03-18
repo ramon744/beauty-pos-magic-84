@@ -248,7 +248,7 @@ export const SalesHistoryList = () => {
                         </Table>
                       </div>
                       
-                      {/* Promotion section - Always display when a promotion was applied */}
+                      {/* Promotion section - Only displayed when a promotion was applied */}
                       {sale.appliedPromotionId && (
                         <div className="border-b pb-4">
                           <h4 className="font-semibold mb-2 flex items-center">
