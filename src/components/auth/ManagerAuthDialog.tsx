@@ -83,11 +83,10 @@ export const ManagerAuthDialog = ({
     setPassword("");
   };
 
-  // This function correctly passes a managerId to onConfirm
+  // This function correctly passes the managerId to onConfirm
   const handleFormSubmit = () => {
-    // For custom forms, we need to use the current manager authorization
-    // This function should only be called after successful authentication
-    onConfirm(managerId);
+    // Don't call onConfirm here as the actual auth hasn't happened yet
+    // We'll call it from the parent component after successful authentication
   };
 
   return (
@@ -117,10 +116,6 @@ export const ManagerAuthDialog = ({
                 type="submit" 
                 form={customFormId} 
                 disabled={isSubmitting}
-                onClick={(e) => {
-                  e.preventDefault(); // Prevent regular form submission
-                  handleFormSubmit(); // Call our handler that uses the correct parameter type
-                }}
               >
                 Continuar
               </Button>

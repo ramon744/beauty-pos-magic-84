@@ -10,14 +10,15 @@ import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Sale, Promotion, User as UserType } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const SalesHistoryList = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedSales, setExpandedSales] = useState<Record<string, boolean>>({});
   
+  const { users } = useAuth();
   const salesHistory = (storageService.getItem(STORAGE_KEYS.ORDERS) || []) as Sale[];
   const allPromotions = (storageService.getItem(STORAGE_KEYS.PROMOTIONS) || []) as Promotion[];
-  const allUsers = (storageService.getItem(STORAGE_KEYS.USERS) || []) as UserType[];
   
   const filteredSales = salesHistory.filter((sale: Sale) => {
     const query = searchQuery.toLowerCase();
@@ -114,7 +115,7 @@ export const SalesHistoryList = () => {
   
   const getDiscountAuthorizedByName = (sale: Sale) => {
     if (sale.discountAuthorizedBy) {
-      const manager = allUsers.find((u: UserType) => u.id === sale.discountAuthorizedBy);
+      const manager = users.find((u: UserType) => u.id === sale.discountAuthorizedBy);
       if (manager) {
         console.log("Found manager:", manager.name, "for ID:", sale.discountAuthorizedBy);
         return manager.name;
