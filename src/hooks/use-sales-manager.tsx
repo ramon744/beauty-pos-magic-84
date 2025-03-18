@@ -61,6 +61,12 @@ export const useSalesManager = () => {
     }
   });
 
+  const generateSaleId = (): string => {
+    const timestamp = Date.now();
+    const shortId = String(timestamp).slice(-5);
+    return shortId;
+  };
+
   const handleManagerAuthConfirm = (managerId?: string) => {
     console.log("Manager auth confirmed with ID:", managerId);
     setDiscountAuthorizedBy(managerId);
@@ -135,7 +141,7 @@ export const useSalesManager = () => {
   const handlePaymentConfirm = (paymentDetails: PaymentDetails | MixedPayment) => {
     console.log("Payment confirmed with discountAuthorizedBy:", discountAuthorizedBy);
     const order = {
-      id: Date.now().toString(),
+      id: generateSaleId(),
       items: cart,
       customer: linkedCustomer,
       paymentMethod: 'payments' in paymentDetails ? 'mixed' : paymentDetails.method,

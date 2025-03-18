@@ -20,6 +20,20 @@ export const SalesHistoryList = () => {
   const salesHistory = (storageService.getItem(STORAGE_KEYS.ORDERS) || []) as Sale[];
   const allPromotions = (storageService.getItem(STORAGE_KEYS.PROMOTIONS) || []) as Promotion[];
   
+  const formatSaleId = (id: string): string => {
+    if (!id) return "N/A";
+    return id.slice(-5);
+  };
+  
+  const formatCPF = (cpf: string) => {
+    if (!cpf) return "";
+    const cpfDigits = cpf.replace(/\D/g, '');
+    if (cpfDigits.length === 11) {
+      return cpfDigits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    }
+    return cpf;
+  };
+  
   const filteredSales = salesHistory.filter((sale: Sale) => {
     const query = searchQuery.toLowerCase();
     
@@ -215,7 +229,7 @@ export const SalesHistoryList = () => {
                   <div className="flex flex-col">
                     <div className="flex items-center gap-2">
                       <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-                      <h3 className="font-medium">Venda #{sale.id}</h3>
+                      <h3 className="font-medium">Venda #{formatSaleId(sale.id)}</h3>
                       
                       {sale.customer && (
                         <Badge variant="outline" className="ml-2">
@@ -296,10 +310,22 @@ export const SalesHistoryList = () => {
                               <span>{saleDate}</span>
                             </div>
                             {sale.customer && (
-                              <div className="flex justify-between text-sm">
-                                <span>Cliente:</span>
-                                <span>{sale.customer.name}</span>
-                              </div>
+                              <>
+                                <div className="flex justify-between text-sm">
+                                  <span>Cliente:</span>
+                                  <span>{sale.customer.name}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                  <span>CPF:</span>
+                                  <span>{formatCPF(sale.customer.cpf)}</span>
+                                </div>
+                                {sale.customer.phone && (
+                                  <div className="flex justify-between text-sm">
+                                    <span>Telefone:</span>
+                                    <span>{sale.customer.phone}</span>
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
                         </div>
