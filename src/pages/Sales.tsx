@@ -14,6 +14,9 @@ const Sales = () => {
   const { user } = useAuth();
   const { data: products = [] } = useProducts();
   
+  // Create a reference to the sales manager hook
+  const salesManager = useSalesManager();
+  
   const { 
     searchQuery, 
     setSearchQuery, 
@@ -21,7 +24,7 @@ const Sales = () => {
     hasSearched, 
     isScanning, 
     toggleScanner 
-  } = useProductSearch(useSalesManager().addProductToCart);
+  } = useProductSearch(salesManager.addProductToCart);
 
   const {
     // State variables
@@ -70,8 +73,11 @@ const Sales = () => {
     setIsPromotionDialogOpen,
     setIsDiscountsListOpen,
     setIsPaymentDialogOpen,
-    setDiscountReason
-  } = useSalesManager();
+    setDiscountReason,
+    removeDiscount,
+    removePromotion,
+    addProductToCart
+  } = salesManager;
 
   return (
     <div className="space-y-6">
@@ -86,7 +92,7 @@ const Sales = () => {
         hasSearched={hasSearched}
         isScanning={isScanning}
         toggleScanner={toggleScanner}
-        addProductToCart={useSalesManager().addProductToCart}
+        addProductToCart={addProductToCart}
         
         // Cart section props
         cart={cart}
@@ -106,8 +112,8 @@ const Sales = () => {
         totalDiscountAmount={totalDiscountAmount}
         cartTotal={cartTotal}
         appliedPromotionDetails={appliedPromotionDetails}
-        removeDiscount={useSalesManager().removeDiscount}
-        removePromotion={useSalesManager().removePromotion}
+        removeDiscount={removeDiscount}
+        removePromotion={removePromotion}
         finalizeSale={finalizeSale}
         handleAddDiscount={handleAddDiscount}
         handleShowDiscountsList={handleShowDiscountsList}
@@ -136,8 +142,8 @@ const Sales = () => {
         manualDiscount={manualDiscount}
         appliedPromotion={appliedPromotion}
         availablePromotions={availablePromotions}
-        onRemoveManualDiscount={useSalesManager().removeDiscount}
-        onRemovePromotion={useSalesManager().removePromotion}
+        onRemoveManualDiscount={removeDiscount}
+        onRemovePromotion={removePromotion}
         onDeleteDiscount={handleDeleteDiscount}
         onRequestAuth={requestManagerAuth}
         
