@@ -1,20 +1,29 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ShoppingBag, Search, X, Calendar, CreditCard, Tag, Percent, User, ChevronDown, ChevronUp, Gift, DollarSign } from 'lucide-react';
+import { ShoppingBag, Search, X, Calendar, CreditCard, Tag, Percent, User, ChevronDown, ChevronUp, Gift, DollarSign, CalendarIcon } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
-import { format } from 'date-fns';
+import { format, isAfter, isBefore, isValid, parseISO, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Sale, Promotion, User as UserType } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 export const SalesHistoryList = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedSales, setExpandedSales] = useState<Record<string, boolean>>({});
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [isDateFilterOpen, setIsDateFilterOpen] = useState(false);
   
   const { users } = useAuth();
   const salesHistory = (storageService.getItem(STORAGE_KEYS.ORDERS) || []) as Sale[];
@@ -34,9 +43,37 @@ export const SalesHistoryList = () => {
     return cpf;
   };
   
+  const isWithinDateRange = (saleDate: Date) => {
+    if (!startDate && !endDate) return true;
+    
+    if (startDate && !endDate) {
+      return isAfter(saleDate, startOfDay(startDate)) || saleDate.getTime() === startOfDay(startDate).getTime();
+    }
+    
+    if (!startDate && endDate) {
+      return isBefore(saleDate, endOfDay(endDate)) || saleDate.getTime() === endOfDay(endDate).getTime();
+    }
+    
+    if (startDate && endDate) {
+      return (
+        (isAfter(saleDate, startOfDay(startDate)) || saleDate.getTime() === startOfDay(startDate).getTime()) && 
+        (isBefore(saleDate, endOfDay(endDate)) || saleDate.getTime() === endOfDay(endDate).getTime())
+      );
+    }
+    
+    return true;
+  };
+  
   const filteredSales = salesHistory.filter((sale: Sale) => {
     const query = searchQuery.toLowerCase();
     
+    // First check date range
+    const saleDate = new Date(sale.createdAt);
+    if (!isWithinDateRange(saleDate)) {
+      return false;
+    }
+    
+    // Then check text search
     if (sale.id && sale.id.toString().toLowerCase().includes(query)) {
       return true;
     }
@@ -59,7 +96,7 @@ export const SalesHistoryList = () => {
       return true;
     }
     
-    return false;
+    return query === '';
   });
   
   const sortedSales = [...filteredSales].sort((a: Sale, b: Sale) => {
@@ -78,6 +115,11 @@ export const SalesHistoryList = () => {
   const clearSearch = () => {
     setSearchQuery('');
   };
+
+  const clearDateFilters = () => {
+    setStartDate(undefined);
+    setEndDate(undefined);
+  };
   
   const formatSaleDate = (dateString: string) => {
     try {
@@ -86,6 +128,11 @@ export const SalesHistoryList = () => {
     } catch (error) {
       return "Data inválida";
     }
+  };
+  
+  const formatDisplayDate = (date: Date | undefined) => {
+    if (!date) return '';
+    return format(date, 'dd/MM/yyyy', { locale: ptBR });
   };
   
   const getPaymentMethodName = (method: string): string => {
@@ -161,6 +208,8 @@ export const SalesHistoryList = () => {
       </div>
     ));
   };
+
+  const hasActiveFilters = !!startDate || !!endDate;
   
   if (sortedSales.length === 0) {
     return (
@@ -170,11 +219,22 @@ export const SalesHistoryList = () => {
             <ShoppingBag className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium">Nenhuma venda encontrada</h3>
             <p className="text-sm text-muted-foreground mt-2">
-              {searchQuery ? 
-                "Nenhuma venda corresponde à sua pesquisa. Tente outros termos." :
+              {(searchQuery || hasActiveFilters) ? 
+                "Nenhuma venda corresponde à sua pesquisa ou filtros. Tente outros termos ou datas." :
                 "O histórico de vendas será exibido aqui quando você realizar vendas."
               }
             </p>
+            
+            {hasActiveFilters && (
+              <Button 
+                variant="outline" 
+                className="mt-4" 
+                onClick={clearDateFilters}
+              >
+                <X className="mr-2 h-4 w-4" />
+                Limpar filtros de data
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -183,25 +243,137 @@ export const SalesHistoryList = () => {
   
   return (
     <div className="space-y-4">
-      <div className="relative">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          type="text"
-          placeholder="Pesquisar vendas por ID, cliente, vendedor ou produto..."
-          className="pl-8 pr-8"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        {searchQuery && (
-          <button 
-            onClick={clearSearch}
-            className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
-            aria-label="Limpar pesquisa"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Pesquisar vendas por ID, cliente, vendedor ou produto..."
+            className="pl-8 pr-8"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button 
+              onClick={clearSearch}
+              className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+              aria-label="Limpar pesquisa"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        
+        <div className="flex gap-2">
+          <Popover open={isDateFilterOpen} onOpenChange={setIsDateFilterOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Calendar className="h-4 w-4" />
+                <span>Filtrar por data</span>
+                {hasActiveFilters && (
+                  <Badge variant="default" className="text-xs h-5 px-1 py-0 bg-primary-foreground text-primary">
+                    Ativo
+                  </Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-4" align="end">
+              <div className="space-y-4">
+                <h4 className="font-medium">Filtrar por período</h4>
+                <div className="grid gap-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Data inicial</label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={`w-full justify-start text-left font-normal ${
+                              !startDate && "text-muted-foreground"
+                            }`}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {startDate ? formatDisplayDate(startDate) : <span>Selecionar</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={startDate}
+                            onSelect={setStartDate}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Data final</label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={`w-full justify-start text-left font-normal ${
+                              !endDate && "text-muted-foreground"
+                            }`}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {endDate ? formatDisplayDate(endDate) : <span>Selecionar</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={endDate}
+                            onSelect={setEndDate}
+                            initialFocus
+                            className="pointer-events-auto"
+                            disabled={(date) => startDate ? date < startDate : false}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                  <div className="flex justify-between">
+                    <Button 
+                      variant="ghost" 
+                      onClick={clearDateFilters}
+                      disabled={!startDate && !endDate}
+                    >
+                      Limpar
+                    </Button>
+                    <Button onClick={() => setIsDateFilterOpen(false)}>
+                      Aplicar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+          
+          {hasActiveFilters && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={clearDateFilters}
+              title="Limpar filtros de data"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
+      
+      {hasActiveFilters && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Calendar className="h-4 w-4" />
+          <span>
+            Filtrando por período: 
+            {startDate ? ` de ${formatDisplayDate(startDate)}` : ''} 
+            {endDate ? ` até ${formatDisplayDate(endDate)}` : ''}
+          </span>
+        </div>
+      )}
 
       <div className="space-y-4">
         {sortedSales.map((sale: Sale) => {
