@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useProductSearch } from '@/hooks/use-product-search';
 import { useProducts } from '@/hooks/use-products';
 import { useSalesManager } from '@/hooks/use-sales-manager';
-import { SalesHeader } from '@/components/sales/SalesHeader';
+import SalesHeader from '@/components/sales/SalesHeader';
 import { SalesContent } from '@/components/sales/SalesContent';
 import { SalesDialogs } from '@/components/sales/SalesDialogs';
 import { PrintReceiptDialog } from '@/components/sales/PrintReceiptDialog';

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ShoppingCart, Users, PercentCircle, ListChecks, Banknote, Calculator } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,7 +10,8 @@ import { useCashier } from '@/hooks/use-cashier';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-const SalesHeader = () => {
+// Export as a named export to match import in Sales.tsx
+export const SalesHeader = ({ user }) => {
   const { 
     cart, 
     cartTotal,
@@ -24,7 +24,6 @@ const SalesHeader = () => {
     linkCustomer
   } = useSalesManager();
   
-  const { user } = useAuth();
   const { openCashiers, openCashier } = useCashier();
   const [showCashierDialog, setShowCashierDialog] = useState(false);
   const [initialAmount, setInitialAmount] = useState<string>('200.00');
@@ -202,4 +201,5 @@ const SalesHeader = () => {
   );
 };
 
+// Also keep the default export for backward compatibility
 export default SalesHeader;
