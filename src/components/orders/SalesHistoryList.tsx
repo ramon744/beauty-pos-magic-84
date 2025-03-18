@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Table, TableBody, TableCaption, TableCell, TableHead, 
@@ -248,36 +247,6 @@ export const SalesHistoryList = () => {
                         </Table>
                       </div>
                       
-                      {/* Promotion section - Only displayed when a promotion was applied */}
-                      {sale.appliedPromotionId && (
-                        <div className="border-b pb-4">
-                          <h4 className="font-semibold mb-2 flex items-center">
-                            <Tag className="h-4 w-4 mr-2 text-green-600" />
-                            Promoção Aplicada
-                          </h4>
-                          <div className="bg-muted p-3 rounded-md">
-                            {(() => {
-                              const promotionDetails = getPromotionDetails(sale);
-                              return promotionDetails ? (
-                                <div className="text-sm">
-                                  <div><span className="font-medium">Nome:</span> {promotionDetails.name}</div>
-                                  <div><span className="font-medium">Descrição:</span> {promotionDetails.description}</div>
-                                  {sale.promotionDiscountAmount !== undefined && (
-                                    <div className="text-green-600 font-medium">
-                                      <span>Desconto aplicado:</span> {formatCurrency(sale.promotionDiscountAmount || 0)}
-                                    </div>
-                                  )}
-                                </div>
-                              ) : (
-                                <div className="text-sm text-muted-foreground">
-                                  Promoção com ID: {sale.appliedPromotionId} (detalhes não disponíveis)
-                                </div>
-                              );
-                            })()}
-                          </div>
-                        </div>
-                      )}
-                      
                       {/* Payment section */}
                       <div className="border-b pb-4">
                         <h4 className="font-semibold mb-2 flex items-center">
@@ -338,35 +307,45 @@ export const SalesHistoryList = () => {
                                 <span>{formatCurrency(sale.total || 0)}</span>
                               </div>
                               
-                              {/* Separate display for manual discount */}
-                              {(sale.discount || 0) > 0 && (
-                                <div className="flex justify-between text-red-600">
-                                  <span className="flex items-center">
-                                    <Percent className="h-3 w-3 mr-1" />
-                                    Desconto manual:
-                                  </span>
-                                  <span>-{formatCurrency(sale.discount || 0)}</span>
-                                </div>
-                              )}
-                              
-                              {/* Separate display for promotion discount */}
-                              {(sale.promotionDiscountAmount || 0) > 0 && (
+                              {/* Display for promotion discount - Only shown when promotion exists */}
+                              {sale.appliedPromotionId && (sale.promotionDiscountAmount || 0) > 0 && (
                                 <div className="flex justify-between text-green-600">
                                   <span className="flex items-center">
                                     <Tag className="h-3 w-3 mr-1" />
-                                    Desconto de promoção:
+                                    % Promoção aplicada:
                                   </span>
                                   <span>-{formatCurrency(sale.promotionDiscountAmount || 0)}</span>
                                 </div>
                               )}
                               
-                              {/* Manager authorization for manual discount - Only shown when manual discount exists */}
-                              {(sale.discount > 0) && sale.discountAuthorizedBy && (
-                                <div className="flex justify-between text-amber-600 text-xs">
-                                  <span className="flex items-center">
-                                    <Shield className="h-3 w-3 mr-1" />
-                                    Desconto autorizado por:
+                              {/* Display promotion name if it exists */}
+                              {sale.appliedPromotionId && (
+                                <div className="flex justify-between text-green-600 text-xs">
+                                  <span></span>
+                                  <span>
+                                    {(() => {
+                                      const promotionDetails = getPromotionDetails(sale);
+                                      return promotionDetails ? promotionDetails.name : `Promoção #${sale.appliedPromotionId.substring(0, 8)}`;
+                                    })()}
                                   </span>
+                                </div>
+                              )}
+                              
+                              {/* Display for manual discount - Only shown when manual discount exists */}
+                              {(sale.discount || 0) > 0 && (
+                                <div className="flex justify-between text-amber-600">
+                                  <span className="flex items-center">
+                                    <Percent className="h-3 w-3 mr-1" />
+                                    Desconto gerencial:
+                                  </span>
+                                  <span>-{formatCurrency(sale.discount || 0)}</span>
+                                </div>
+                              )}
+                              
+                              {/* Manager authorization for manual discount - Only shown when manual discount exists */}
+                              {(sale.discount || 0) > 0 && sale.discountAuthorizedBy && (
+                                <div className="flex justify-between text-amber-600 text-xs">
+                                  <span>Autorizado por:</span>
                                   <span>{getDiscountAuthorizedByName(sale)}</span>
                                 </div>
                               )}
@@ -379,6 +358,36 @@ export const SalesHistoryList = () => {
                           </div>
                         </div>
                       </div>
+                      
+                      {/* Promotion section - More detailed info in a separate section */}
+                      {sale.appliedPromotionId && (
+                        <div className="border-b pb-4">
+                          <h4 className="font-semibold mb-2 flex items-center">
+                            <Tag className="h-4 w-4 mr-2 text-green-600" />
+                            Promoção Aplicada
+                          </h4>
+                          <div className="bg-muted p-3 rounded-md">
+                            {(() => {
+                              const promotionDetails = getPromotionDetails(sale);
+                              return promotionDetails ? (
+                                <div className="text-sm">
+                                  <div><span className="font-medium">Nome:</span> {promotionDetails.name}</div>
+                                  <div><span className="font-medium">Descrição:</span> {promotionDetails.description}</div>
+                                  {sale.promotionDiscountAmount !== undefined && (
+                                    <div className="text-green-600 font-medium">
+                                      <span>Desconto aplicado:</span> {formatCurrency(sale.promotionDiscountAmount || 0)}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="text-sm text-muted-foreground">
+                                  Promoção com ID: {sale.appliedPromotionId} (detalhes não disponíveis)
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      )}
                       
                       {/* Additional information section */}
                       <div>
