@@ -80,13 +80,14 @@ export function useTopSellingProducts() {
         
         sale.items.forEach(item => {
           // Make sure we have the product ID
-          const productId = item.product?.id || item.id;
+          // Access id through the product object if available, fallback to direct property
+          const productId = item.product?.id || (item as any).id;
           if (!productId) return;
           
           if (!productSales.has(productId)) {
             productSales.set(productId, {
               id: productId,
-              name: item.product?.name || item.name || 'Unknown Product',
+              name: item.product?.name || (item as any).name || 'Unknown Product',
               salesCount: 0,
               revenue: 0,
             });
