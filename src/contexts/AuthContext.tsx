@@ -1,8 +1,8 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { User, UserRole } from '@/types';
+import { cashierService } from '@/services/cashier-service';
 
 // Mock users for the demo - will be replaced with DB integration in the future
 const INITIAL_USERS = [
@@ -53,6 +53,8 @@ interface AuthContextType {
   addUser: (userData: { id: string; name: string; email: string; password: string; role: UserRole }) => Promise<User>;
   updateUser: (id: string, userData: { id: string; name: string; email: string; role: UserRole; password?: string }) => Promise<User>;
   removeUser: (id: string) => Promise<boolean>;
+  assignCashierToUser: (userId: string, cashierId: string) => Promise<void>;
+  unassignCashierFromUser: (userId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -217,6 +219,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
+  // Assign cashier to user
+  const assignCashierToUser = async (userId: string, cashierId: string): Promise<void> => {
+    try {
+      const updatedUsers = users.map(u => {
+        if (u.id === userId) {
+          return { ...u, assignedCashierId: cashierId };
+        }
+        return u;
+      });
+      
+      setUsers(updatedUsers);
+      
+      // Update current user if it's the same user
+      if (user && user.id === userId) {
+        setUser({ ...user, assignedCashierId: cashierId });
+        localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify({ ...user, assignedCashierId: cashierId }));
+      }
+      
+      toast.success('Caixa vinculado ao usuário com sucesso');
+    } catch (error) {
+      console.error('Error assigning cashier:', error);
+      toast.error('Erro ao vincular caixa ao usuário');
+      throw error;
+    }
+  };
+
+  // Unassign cashier from user
+  const unassignCashierFromUser = async (userId: string): Promise<void> => {
+    try {
+      const updatedUsers = users.map(u => {
+        if (u.id === userId) {
+          // Create a new object without the assignedCashierId property
+          const { assignedCashierId, ...userWithoutCashier } = u;
+          return userWithoutCashier;
+        }
+        return u;
+      });
+      
+      setUsers(updatedUsers);
+      
+      // Update current user if it's the same user
+      if (user && user.id === userId) {
+        const { assignedCashierId, ...userWithoutCashier } = user;
+        setUser(userWithoutCashier);
+        localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(userWithoutCashier));
+      }
+      
+      toast.success('Caixa desvinculado do usuário com sucesso');
+    } catch (error) {
+      console.error('Error unassigning cashier:', error);
+      toast.error('Erro ao desvincular caixa do usuário');
+      throw error;
+    }
+  };
+
   // Database integration future-proofing:
   // This function can be modified to call an API endpoint in the future
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -278,6 +335,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addUser,
         updateUser,
         removeUser,
+        assignCashierToUser,
+        unassignCashierFromUser,
       }}
     >
       {children}
