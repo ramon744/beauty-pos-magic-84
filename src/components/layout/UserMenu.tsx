@@ -11,10 +11,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LogOut, Settings, User, Store } from 'lucide-react';
+import { LogOut, Settings, User } from 'lucide-react';
 
 const UserMenu: React.FC = () => {
-  const { user, logout, currentStore } = useAuth();
+  const { user, logout } = useAuth();
 
   if (!user) return null;
 
@@ -55,12 +55,6 @@ const UserMenu: React.FC = () => {
             <p className="text-sm font-medium leading-none">{user.name}</p>
             <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
             <p className="text-xs font-medium text-muted-foreground mt-1">{getRoleText(user.role)}</p>
-            {currentStore && (
-              <div className="flex items-center mt-2 text-xs font-medium text-muted-foreground">
-                <Store className="h-3 w-3 mr-1" />
-                <span>{currentStore.name}</span>
-              </div>
-            )}
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
