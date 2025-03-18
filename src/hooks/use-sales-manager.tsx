@@ -534,7 +534,7 @@ export const useSalesManager = () => {
       return;
     }
     
-    addProductToCart(product);
+    addProductToCart(product, 1);
   };
 
   return {
