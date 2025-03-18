@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ShoppingBag, Search, X, CreditCard, Tag, Percent, User, ChevronDown, ChevronUp, Gift, DollarSign, CalendarIcon } from 'lucide-react';
+import { ShoppingBag, Search, X, CreditCard, Tag, Percent, User, ChevronDown, ChevronUp, Gift, DollarSign, CalendarIcon, Printer } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 import { format, isAfter, isBefore, isValid, parseISO, startOfDay, endOfDay } from 'date-fns';
@@ -241,6 +241,215 @@ export const SalesHistoryList = () => {
     );
   }
   
+  const printReceipt = (sale: Sale) => {
+    if (!sale) return;
+    
+    const receiptContent = generateReceiptContent(sale);
+    
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Recibo de Venda #${sale.id}</title>
+            <style>
+              body {
+                font-family: monospace;
+                width: 300px;
+                margin: 0 auto;
+                padding: 10px;
+              }
+              .header {
+                text-align: center;
+                margin-bottom: 15px;
+              }
+              .divider {
+                border-top: 1px dashed #000;
+                margin: 10px 0;
+              }
+              .item-row {
+                display: flex;
+                justify-content: space-between;
+              }
+              .receipt-total {
+                font-weight: bold;
+                margin-top: 15px;
+              }
+              .center {
+                text-align: center;
+              }
+              @media print {
+                @page {
+                  size: 80mm auto; /* Point of Sale receipt width */
+                  margin: 0;
+                }
+                body {
+                  width: 100%;
+                  padding: 5px;
+                }
+              }
+            </style>
+          </head>
+          <body>
+            ${receiptContent}
+            <script>
+              window.onload = function() {
+                window.print();
+                setTimeout(function() { window.close(); }, 500);
+              };
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+  };
+  
+  const generateReceiptContent = (sale: any): string => {
+    const date = new Date(sale.createdAt);
+    const formattedDate = date.toLocaleDateString('pt-BR');
+    const formattedTime = date.toLocaleTimeString('pt-BR');
+    
+    let receipt = `
+      <div class="header">
+        <h2>Natura Essencia</h2>
+        <p>CNPJ: 12.345.678/0001-90</p>
+        <p>Rua Exemplo, 123 - Centro</p>
+        <p>Tel: (11) 9876-5432</p>
+      </div>
+      <div class="divider"></div>
+      <p><strong>RECIBO DE VENDA #${sale.id}</strong></p>
+      <p>Data: ${formattedDate} ${formattedTime}</p>
+      ${sale.customer ? `<p>Cliente: ${sale.customer.name}</p>` : ''}
+      <p>Vendedor: ${sale.seller?.name || 'Não identificado'}</p>
+      <div class="divider"></div>
+    `;
+    
+    receipt += `<p><strong>ITENS</strong></p>`;
+    sale.items.forEach((item: any) => {
+      receipt += `
+        <div class="item-row">
+          <span>${item.quantity}x ${item.name}</span>
+          <span>R$ ${item.subtotal.toFixed(2)}</span>
+        </div>
+        <div style="font-size: 0.8em; color: #666; margin-bottom: 5px;">
+          R$ ${item.price.toFixed(2)} cada
+        </div>
+      `;
+    });
+    
+    receipt += `
+      <div class="divider"></div>
+      <div class="item-row">
+        <span>Subtotal:</span>
+        <span>R$ ${sale.total.toFixed(2)}</span>
+      </div>
+    `;
+    
+    if (sale.discount > 0) {
+      receipt += `
+        <div class="item-row">
+          <span>Desconto:</span>
+          <span>-R$ ${sale.discount.toFixed(2)}</span>
+        </div>
+      `;
+      
+      if (sale.discountReason) {
+        receipt += `<p style="font-size: 0.8em;">Motivo: ${sale.discountReason}</p>`;
+      }
+    }
+    
+    receipt += `
+      <div class="item-row receipt-total">
+        <span>TOTAL:</span>
+        <span>R$ ${sale.finalTotal.toFixed(2)}</span>
+      </div>
+    `;
+    
+    receipt += `
+      <div class="divider"></div>
+      <p><strong>FORMA DE PAGAMENTO</strong></p>
+    `;
+    
+    if (sale.paymentMethod === 'mixed' && sale.paymentDetails.payments) {
+      sale.paymentDetails.payments.forEach((payment: any) => {
+        const methodNames: { [key: string]: string } = {
+          'credit_card': 'Cartão de Crédito',
+          'debit_card': 'Cartão de Débito',
+          'pix': 'PIX',
+          'cash': 'Dinheiro'
+        };
+        
+        const method = methodNames[payment.method] || payment.method;
+        
+        receipt += `
+          <div class="item-row">
+            <span>${method}:</span>
+            <span>R$ ${payment.amount.toFixed(2)}</span>
+          </div>
+        `;
+        
+        if (payment.method === 'credit_card' && payment.installments > 1) {
+          receipt += `<p style="font-size: 0.8em;">${payment.installments}x de R$ ${(payment.amount / payment.installments).toFixed(2)}</p>`;
+        }
+        
+        if (payment.method === 'cash' && payment.change) {
+          receipt += `
+            <div class="item-row" style="font-size: 0.9em;">
+              <span>Recebido:</span>
+              <span>R$ ${payment.cashReceived.toFixed(2)}</span>
+            </div>
+            <div class="item-row" style="font-size: 0.9em;">
+              <span>Troco:</span>
+              <span>R$ ${payment.change.toFixed(2)}</span>
+            </div>
+          `;
+        }
+      });
+    } else {
+      const methodNames: { [key: string]: string } = {
+        'credit_card': 'Cartão de Crédito',
+        'debit_card': 'Cartão de Débito',
+        'pix': 'PIX',
+        'cash': 'Dinheiro'
+      };
+      
+      const method = methodNames[sale.paymentMethod] || sale.paymentMethod;
+      
+      receipt += `
+        <div class="item-row">
+          <span>${method}:</span>
+          <span>R$ ${sale.finalTotal.toFixed(2)}</span>
+        </div>
+      `;
+      
+      if (sale.paymentMethod === 'credit_card' && sale.paymentDetails.installments > 1) {
+        receipt += `<p style="font-size: 0.8em;">${sale.paymentDetails.installments}x de R$ ${(sale.finalTotal / sale.paymentDetails.installments).toFixed(2)}</p>`;
+      }
+      
+      if (sale.paymentMethod === 'cash' && sale.paymentDetails.change) {
+        receipt += `
+          <div class="item-row" style="font-size: 0.9em;">
+            <span>Recebido:</span>
+            <span>R$ ${sale.paymentDetails.cashReceived.toFixed(2)}</span>
+          </div>
+          <div class="item-row" style="font-size: 0.9em;">
+            <span>Troco:</span>
+            <span>R$ ${sale.paymentDetails.change.toFixed(2)}</span>
+          </div>
+        `;
+      }
+    }
+    
+    receipt += `
+      <div class="divider"></div>
+      <p class="center">Obrigado pela preferência!</p>
+      <p class="center" style="font-size: 0.8em;">Natura Essencia - Beleza e Saúde</p>
+    `;
+    
+    return receipt;
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row gap-4">
@@ -619,12 +828,7 @@ export const SalesHistoryList = () => {
                       </div>
                     </div>
                   </div>
-                </CollapsibleContent>
-              </div>
-            </Collapsible>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
+                  
+                  <div className="col-span-1 md:col-span-2 mt-4 flex justify-end">
+                   
+
