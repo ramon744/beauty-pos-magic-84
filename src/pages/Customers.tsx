@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Customer, Sale } from '@/types';
@@ -57,6 +56,8 @@ const Customers = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isSearchingCEP, setIsSearchingCEP] = useState(false);
   const [customersWithOrderData, setCustomersWithOrderData] = useState<Customer[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
 
   const addForm = useForm<CustomerFormValues>({
     resolver: zodResolver(customerFormSchema),
@@ -107,6 +108,26 @@ const Customers = () => {
       setCustomersWithOrderData([]);
     }
   }, [customers]);
+
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setFilteredCustomers(customersWithOrderData);
+    } else {
+      const query = searchQuery.toLowerCase().trim();
+      const filtered = customersWithOrderData.filter(customer => 
+        customer.name.toLowerCase().includes(query) ||
+        (customer.email && customer.email.toLowerCase().includes(query)) ||
+        (customer.phone && customer.phone.includes(query)) ||
+        customer.cpf.includes(query) ||
+        (customer.address && customer.address.toLowerCase().includes(query))
+      );
+      setFilteredCustomers(filtered);
+    }
+  }, [searchQuery, customersWithOrderData]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
 
   const handleCEPSearchAdd = async () => {
     const cep = addForm.getValues('cep');
@@ -396,6 +417,19 @@ const Customers = () => {
           </Button>
         </div>
 
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <Search className="h-4 w-4 text-gray-500" />
+          </div>
+          <Input
+            type="text"
+            placeholder="Buscar clientes por nome, email, telefone, CPF ou endereço..."
+            value={searchQuery}
+            onChange={handleSearchChange}
+            className="pl-10 w-full"
+          />
+        </div>
+
         <Tabs defaultValue="customers">
           <TabsList>
             <TabsTrigger value="customers">Todos os Clientes</TabsTrigger>
@@ -403,7 +437,7 @@ const Customers = () => {
           <TabsContent value="customers" className="mt-6">
             <DataTable 
               columns={columns} 
-              data={customersWithOrderData} 
+              data={filteredCustomers} 
               searchColumn="name"
               searchPlaceholder="Buscar por nome..."
             />
