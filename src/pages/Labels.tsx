@@ -101,9 +101,11 @@ const Labels: React.FC = () => {
     
     // Simulação de geração de PDF
     setTimeout(() => {
-      // Criar um link de download simulado
-      const dummyPdfData = new Blob(['PDF Content'], { type: 'application/pdf' });
-      const url = URL.createObjectURL(dummyPdfData);
+      // Criar um PDF válido com conteúdo mínimo
+      const pdfContent = '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>\nendobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>\nendobj\n3 0 obj<</Type/Page/MediaBox[0 0 595 842]/Parent 2 0 R/Resources<<>>/Contents 4 0 R>>\nendobj\n4 0 obj<</Length 21>>stream\nBT /F1 12 Tf 100 700 Td (Etiquetas) Tj ET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f\n0000000010 00000 n\n0000000056 00000 n\n0000000111 00000 n\n0000000212 00000 n\ntrailer<</Size 5/Root 1 0 R>>\nstartxref\n284\n%%EOF';
+      
+      const blob = new Blob([pdfContent], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       
       // Configurar o nome do arquivo e o URL
