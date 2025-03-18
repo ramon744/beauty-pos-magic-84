@@ -308,20 +308,20 @@ export const SalesHistoryList = () => {
                               </div>
                               
                               {/* Display for promotion discount - Only shown when promotion exists */}
-                              {sale.appliedPromotionId && (sale.promotionDiscountAmount || 0) > 0 && (
+                              {sale.appliedPromotionId && sale.promotionDiscountAmount && sale.promotionDiscountAmount > 0 && (
                                 <div className="flex justify-between text-green-600">
                                   <span className="flex items-center">
                                     <Tag className="h-3 w-3 mr-1" />
-                                    % Promoção aplicada:
+                                    Desconto da Promoção:
                                   </span>
-                                  <span>-{formatCurrency(sale.promotionDiscountAmount || 0)}</span>
+                                  <span>-{formatCurrency(sale.promotionDiscountAmount)}</span>
                                 </div>
                               )}
                               
                               {/* Display promotion name if it exists */}
                               {sale.appliedPromotionId && (
                                 <div className="flex justify-between text-green-600 text-xs">
-                                  <span></span>
+                                  <span>Promoção Aplicada:</span>
                                   <span>
                                     {(() => {
                                       const promotionDetails = getPromotionDetails(sale);
@@ -332,18 +332,18 @@ export const SalesHistoryList = () => {
                               )}
                               
                               {/* Display for manual discount - Only shown when manual discount exists */}
-                              {(sale.discount || 0) > 0 && (
+                              {sale.discount && sale.discount > 0 && (
                                 <div className="flex justify-between text-amber-600">
                                   <span className="flex items-center">
                                     <Percent className="h-3 w-3 mr-1" />
-                                    Desconto gerencial:
+                                    Desconto Gerencial:
                                   </span>
-                                  <span>-{formatCurrency(sale.discount || 0)}</span>
+                                  <span>-{formatCurrency(sale.discount)}</span>
                                 </div>
                               )}
                               
                               {/* Manager authorization for manual discount - Only shown when manual discount exists */}
-                              {(sale.discount || 0) > 0 && sale.discountAuthorizedBy && (
+                              {sale.discount && sale.discount > 0 && sale.discountAuthorizedBy && (
                                 <div className="flex justify-between text-amber-600 text-xs">
                                   <span>Autorizado por:</span>
                                   <span>{getDiscountAuthorizedByName(sale)}</span>
