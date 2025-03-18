@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -77,7 +76,6 @@ const Sales = () => {
   const [discountToDelete, setDiscountToDelete] = useState<'manual' | 'promotion' | null>(null);
   const [discountReason, setDiscountReason] = useState<string>("");
   const [discountAuthorizedBy, setDiscountAuthorizedBy] = useState<string | undefined>(undefined);
-  const [managerAuthCallback, setManagerAuthCallback] = useState<() => void>(() => () => {});
 
   const discountForm = useForm<DiscountFormValues>({
     resolver: zodResolver(discountFormSchema),
@@ -114,14 +112,16 @@ const Sales = () => {
   };
 
   const requestManagerAuth = (callback: () => void) => {
-    const executeAfterAuth = (managerId?: string) => {
+    setIsManagerAuthOpen(true);
+    setProductIdToDelete("manager-request");
+    
+    const managerAuthWrapper = (managerId?: string) => {
       setDiscountAuthorizedBy(managerId);
       callback();
       setIsManagerAuthOpen(false);
     };
     
-    setManagerAuthCallback(() => executeAfterAuth);
-    setIsManagerAuthOpen(true);
+    return managerAuthWrapper;
   };
 
   const initiateRemoveFromCart = (productId: string) => {
@@ -167,7 +167,6 @@ const Sales = () => {
       paymentDetails: paymentDetails,
       seller: user,
       createdAt: new Date(),
-      // Store promotion and discount details
       appliedPromotionId: appliedPromotion?.promotionId,
       promotionDiscountAmount: promotionDiscountAmount,
       discountAuthorizedBy: discountAuthorizedBy,
@@ -323,7 +322,10 @@ const Sales = () => {
       <ManagerAuthDialog
         isOpen={isDiscountDialogOpen}
         onClose={() => setIsDiscountDialogOpen(false)}
-        onConfirm={discountForm.handleSubmit(handleSubmitDiscount)}
+        onConfirm={(managerId?: string) => {
+          setDiscountAuthorizedBy(managerId);
+          discountForm.handleSubmit(handleSubmitDiscount)();
+        }}
         title="Adicionar Desconto"
         description="Configure o tipo e valor do desconto a ser aplicado."
         customFormId="discount-form"
