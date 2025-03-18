@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -184,6 +185,10 @@ export const PaymentMethodsDialog: React.FC<PaymentMethodsDialogProps> = ({
     }
   };
   
+  const handlePaymentMethodChange = (value: string) => {
+    setPaymentMethod(value as PaymentMethod);
+  };
+  
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
@@ -198,6 +203,7 @@ export const PaymentMethodsDialog: React.FC<PaymentMethodsDialogProps> = ({
           <div className="flex justify-between items-center">
             <div className="font-medium">Tipo de Pagamento</div>
             <Button 
+              type="button"
               variant="outline" 
               size="sm" 
               onClick={() => setIsMixedPayment(!isMixedPayment)}
@@ -209,7 +215,7 @@ export const PaymentMethodsDialog: React.FC<PaymentMethodsDialogProps> = ({
           
           <RadioGroup 
             value={paymentMethod} 
-            onValueChange={(value) => setPaymentMethod(value as PaymentMethod)}
+            onValueChange={handlePaymentMethodChange}
             className="grid grid-cols-2 gap-4"
           >
             <div>
@@ -237,7 +243,10 @@ export const PaymentMethodsDialog: React.FC<PaymentMethodsDialogProps> = ({
             </div>
             
             <div>
-              <Card className={`cursor-pointer border-2 ${paymentMethod === 'pix' ? 'border-primary' : 'border-input'}`}>
+              <Card 
+                className={`cursor-pointer border-2 ${paymentMethod === 'pix' ? 'border-primary' : 'border-input'}`}
+                onClick={() => setPaymentMethod('pix')}
+              >
                 <CardContent className="flex flex-col items-center justify-center p-4">
                   <RadioGroupItem value="pix" id="pix" className="sr-only" />
                   <Label htmlFor="pix" className="flex flex-col items-center gap-2 cursor-pointer">
@@ -330,6 +339,7 @@ export const PaymentMethodsDialog: React.FC<PaymentMethodsDialogProps> = ({
             <>
               <div className="flex justify-between items-center">
                 <Button 
+                  type="button"
                   variant="outline" 
                   onClick={handleAddPayment}
                   disabled={parseFloat(paymentAmount || '0') <= 0 || parseFloat(paymentAmount || '0') > getRemainingAmount() || (paymentMethod === 'cash' && parseFloat(cashReceived || '0') < parseFloat(paymentAmount || '0'))}
@@ -358,6 +368,7 @@ export const PaymentMethodsDialog: React.FC<PaymentMethodsDialogProps> = ({
                         </div>
                       </div>
                       <Button 
+                        type="button"
                         variant="ghost" 
                         size="sm" 
                         onClick={() => handleRemovePayment(index)}
@@ -389,9 +400,10 @@ export const PaymentMethodsDialog: React.FC<PaymentMethodsDialogProps> = ({
         </div>
         
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
           {isMixedPayment ? (
             <Button 
+              type="button"
               onClick={handleMixedPaymentConfirm}
               disabled={mixedPayments.length === 0 || !isPaymentComplete()}
             >
@@ -399,6 +411,7 @@ export const PaymentMethodsDialog: React.FC<PaymentMethodsDialogProps> = ({
             </Button>
           ) : (
             <Button 
+              type="button"
               onClick={handleSinglePaymentConfirm}
               disabled={paymentMethod === 'cash' && parseFloat(cashReceived || '0') < total}
             >
