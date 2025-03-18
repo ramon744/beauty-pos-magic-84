@@ -1,45 +1,18 @@
-import React, { useState } from 'react';
-import { ShoppingCart } from 'lucide-react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { useAuth } from '@/contexts/AuthContext';
+
+import React from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useToast } from '@/hooks/use-toast';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { ManagerAuthDialog } from '@/components/auth/ManagerAuthDialog';
-import { PromotionSelectionDialog } from '@/components/sales/PromotionSelectionDialog';
-import { DiscountsList } from '@/components/sales/DiscountsList';
-import { useCart } from '@/hooks/use-cart';
+import { useAuth } from '@/contexts/AuthContext';
 import { useProductSearch } from '@/hooks/use-product-search';
-import { useDiscounts } from '@/hooks/use-discounts';
-import { ProductSearch } from '@/components/sales/ProductSearch';
-import { CartSection } from '@/components/sales/CartSection';
-import { SaleSummary } from '@/components/sales/SaleSummary';
-import { DiscountForm, discountFormSchema, DiscountFormValues } from '@/components/sales/DiscountForm';
 import { useProducts } from '@/hooks/use-products';
-import { PaymentMethodsDialog } from '@/components/sales/PaymentMethodsDialog';
-import { storageService, STORAGE_KEYS } from '@/services/storage-service';
-import { PaymentDetails, MixedPayment } from '@/types';
-import { Textarea } from '@/components/ui/textarea';
+import { useSalesManager } from '@/hooks/use-sales-manager';
+import { SalesHeader } from '@/components/sales/SalesHeader';
+import { SalesContent } from '@/components/sales/SalesContent';
+import { SalesDialogs } from '@/components/sales/SalesDialogs';
 
 const Sales = () => {
   const isMobile = useIsMobile();
   const { user } = useAuth();
-  const { toast } = useToast();
   const { data: products = [] } = useProducts();
-  
-  const { 
-    cart, 
-    cartSubtotal, 
-    linkedCustomer,
-    addProductToCart, 
-    updateCartItemQuantity, 
-    removeFromCart, 
-    clearCart, 
-    setCart,
-    linkCustomer,
-    unlinkCustomer
-  } = useCart();
   
   const { 
     searchQuery, 
@@ -48,335 +21,138 @@ const Sales = () => {
     hasSearched, 
     isScanning, 
     toggleScanner 
-  } = useProductSearch(addProductToCart);
+  } = useProductSearch(useSalesManager().addProductToCart);
 
-  const { 
-    manualDiscount, 
+  const {
+    // State variables
+    isManagerAuthOpen,
+    isDiscountDialogOpen,
+    isPromotionDialogOpen,
+    isDiscountsListOpen,
+    isPaymentDialogOpen,
+    discountReason,
+    discountForm,
+    
+    // Values from other hooks
+    cart,
+    cartSubtotal,
+    cartTotal,
+    linkedCustomer,
+    manualDiscount,
     appliedPromotion,
     availablePromotions,
     promotionDiscountAmount,
     manualDiscountAmount,
     totalDiscountAmount,
-    cartTotal,
     appliedPromotionDetails,
     selectedPromotionId,
+    
+    // Functions
+    handleManagerAuthConfirm,
+    requestManagerAuth,
+    initiateRemoveFromCart,
+    handleCartItemQuantityUpdate,
+    handleClearCart,
+    handlePaymentConfirm,
+    finalizeSale,
+    handleAddDiscount,
+    handleSubmitDiscount,
+    handleOpenPromotions,
+    handleShowDiscountsList,
+    handleDeleteDiscount,
     handleSelectPromotion,
-    removeDiscount,
-    removePromotion,
-    applyManualDiscount,
-    resetDiscounts,
-  } = useDiscounts(cart, cartSubtotal);
-
-  const [isManagerAuthOpen, setIsManagerAuthOpen] = useState(false);
-  const [productIdToDelete, setProductIdToDelete] = useState<string | null>(null);
-  const [isDiscountDialogOpen, setIsDiscountDialogOpen] = useState(false);
-  const [isPromotionDialogOpen, setIsPromotionDialogOpen] = useState(false);
-  const [isDiscountsListOpen, setIsDiscountsListOpen] = useState(false);
-  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
-  const [discountToDelete, setDiscountToDelete] = useState<'manual' | 'promotion' | null>(null);
-  const [discountReason, setDiscountReason] = useState<string>("");
-  const [discountAuthorizedBy, setDiscountAuthorizedBy] = useState<string | undefined>(undefined);
-
-  const discountForm = useForm<DiscountFormValues>({
-    resolver: zodResolver(discountFormSchema),
-    defaultValues: {
-      discountType: 'percentage',
-      discountValue: 0
-    }
-  });
-
-  const handleManagerAuthConfirm = (managerId?: string) => {
-    setDiscountAuthorizedBy(managerId);
+    linkCustomer,
+    unlinkCustomer,
     
-    if (productIdToDelete === "discount") {
-      const { discountType, discountValue } = discountForm.getValues();
-      applyManualDiscount({
-        type: discountType,
-        value: discountValue
-      });
-    } else if (productIdToDelete === "clear-all") {
-      doFinalizeSale();
-    } else if (productIdToDelete === "delete-discount") {
-      if (discountToDelete === 'manual') {
-        removeDiscount();
-      } else if (discountToDelete === 'promotion') {
-        removePromotion();
-      }
-      setDiscountToDelete(null);
-    } else if (productIdToDelete) {
-      removeFromCart(productIdToDelete);
-    }
-    
-    setProductIdToDelete(null);
-    setIsManagerAuthOpen(false);
-  };
-
-  const requestManagerAuth = (callback: () => void) => {
-    setIsManagerAuthOpen(true);
-    setProductIdToDelete("manager-request");
-    
-    const managerAuthWrapper = (managerId?: string) => {
-      setDiscountAuthorizedBy(managerId);
-      callback();
-      setIsManagerAuthOpen(false);
-    };
-    
-    return managerAuthWrapper;
-  };
-
-  const initiateRemoveFromCart = (productId: string) => {
-    setProductIdToDelete(productId);
-    setIsManagerAuthOpen(true);
-  };
-
-  const handleCartItemQuantityUpdate = (productId: string, newQuantity: number) => {
-    const result = updateCartItemQuantity(productId, newQuantity);
-    if (result) {
-      setProductIdToDelete(result);
-      setIsManagerAuthOpen(true);
-    }
-  };
-
-  const handleClearCart = () => {
-    if (cart.length > 0) {
-      setProductIdToDelete("clear-all");
-      setIsManagerAuthOpen(true);
-    }
-  };
-
-  const doFinalizeSale = () => {
-    clearCart();
-    resetDiscounts();
-    setDiscountReason("");
-    setDiscountAuthorizedBy(undefined);
-  };
-
-  const handleOpenPaymentDialog = () => {
-    setIsPaymentDialogOpen(true);
-  };
-  
-  const handlePaymentConfirm = (paymentDetails: PaymentDetails | MixedPayment) => {
-    const order = {
-      id: Date.now().toString(),
-      items: cart,
-      customer: linkedCustomer,
-      paymentMethod: 'payments' in paymentDetails ? 'mixed' : paymentDetails.method,
-      total: cartSubtotal,
-      discount: totalDiscountAmount,
-      finalTotal: cartTotal,
-      paymentDetails: paymentDetails,
-      seller: user,
-      createdAt: new Date(),
-      appliedPromotionId: appliedPromotion?.promotionId,
-      promotionDiscountAmount: promotionDiscountAmount,
-      discountAuthorizedBy: discountAuthorizedBy,
-      discountReason: discountReason
-    };
-    
-    const orders = storageService.getItem<any[]>(STORAGE_KEYS.ORDERS) || [];
-    orders.push(order);
-    storageService.setItem(STORAGE_KEYS.ORDERS, orders);
-    
-    let confirmationMessage = `Venda finalizada: R$ ${cartTotal.toFixed(2)}`;
-    
-    if ('payments' in paymentDetails) {
-      confirmationMessage += ` | Pagamento misto com ${paymentDetails.payments.length} formas`;
-    } else if (paymentDetails.method === 'credit_card' && paymentDetails.installments && paymentDetails.installments > 1) {
-      confirmationMessage += ` em ${paymentDetails.installments}x`;
-    } else if (paymentDetails.method === 'cash' && paymentDetails.change && paymentDetails.change > 0) {
-      confirmationMessage += ` | Troco: R$ ${paymentDetails.change.toFixed(2)}`;
-    }
-    
-    if (linkedCustomer) {
-      confirmationMessage += ` | Cliente: ${linkedCustomer.name}`;
-    }
-    
-    toast({
-      title: "Pagamento confirmado",
-      description: confirmationMessage
-    });
-    
-    setIsPaymentDialogOpen(false);
-    doFinalizeSale();
-  };
-
-  const finalizeSale = () => {
-    if (cart.length > 0) {
-      handleOpenPaymentDialog();
-    }
-  };
-
-  const handleAddDiscount = () => {
-    discountForm.reset({
-      discountType: 'percentage',
-      discountValue: 0
-    });
-    setIsDiscountDialogOpen(true);
-  };
-
-  const handleSubmitDiscount = (values: DiscountFormValues) => {
-    setIsDiscountDialogOpen(false);
-    setProductIdToDelete("discount");
-    setIsManagerAuthOpen(true);
-  };
-
-  const handleOpenPromotions = () => {
-    setIsPromotionDialogOpen(true);
-  };
-
-  const handleShowDiscountsList = () => {
-    setIsDiscountsListOpen(true);
-  };
-
-  const handleDeleteDiscount = (discountType: 'manual' | 'promotion', reason?: string) => {
-    setDiscountReason(reason || "");
-    setDiscountToDelete(discountType);
-    setProductIdToDelete("delete-discount");
-    setIsDiscountsListOpen(false);
-    setIsManagerAuthOpen(true);
-  };
+    // Functions for dialog control
+    setIsManagerAuthOpen,
+    setIsDiscountDialogOpen,
+    setIsPromotionDialogOpen,
+    setIsDiscountsListOpen,
+    setIsPaymentDialogOpen,
+    setDiscountReason
+  } = useSalesManager();
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-        <h2 className="text-3xl font-bold tracking-tight flex items-center">
-          <ShoppingCart className="mr-2 h-8 w-8" />
-          Nova Venda
-        </h2>
-        <p className="text-muted-foreground">
-          <span className="font-medium">Atendente: {user?.name}</span> • 
-          {new Date().toLocaleDateString('pt-BR', { 
-            day: '2-digit', 
-            month: 'long', 
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          })}
-        </p>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-5">
-        <div className={`space-y-6 ${isMobile ? 'col-span-5' : 'col-span-3'}`}>
-          <Card>
-            <CardHeader className="pb-3">
-              <ProductSearch 
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                searchResults={searchResults}
-                hasSearched={hasSearched}
-                isScanning={isScanning}
-                toggleScanner={toggleScanner}
-                addProductToCart={addProductToCart}
-              />
-            </CardHeader>
-          </Card>
-
-          <CartSection 
-            cart={cart}
-            linkedCustomer={linkedCustomer}
-            updateCartItemQuantity={handleCartItemQuantityUpdate}
-            initiateRemoveFromCart={initiateRemoveFromCart}
-            handleOpenPromotions={handleOpenPromotions}
-            availablePromotions={availablePromotions}
-            onLinkCustomer={linkCustomer}
-            onUnlinkCustomer={unlinkCustomer}
-          />
-        </div>
-
-        <div className={`space-y-6 ${isMobile ? 'col-span-5' : 'col-span-2'}`}>
-          <SaleSummary 
-            cart={cart}
-            cartSubtotal={cartSubtotal}
-            manualDiscount={manualDiscount}
-            manualDiscountAmount={manualDiscountAmount}
-            promotionDiscountAmount={promotionDiscountAmount}
-            totalDiscountAmount={totalDiscountAmount}
-            cartTotal={cartTotal}
-            appliedPromotionDetails={appliedPromotionDetails}
-            removeDiscount={removeDiscount}
-            removePromotion={removePromotion}
-            finalizeSale={finalizeSale}
-            handleAddDiscount={handleAddDiscount}
-            handleOpenPromotions={handleOpenPromotions}
-            handleShowDiscountsList={handleShowDiscountsList}
-            clearCart={handleClearCart}
-            availablePromotions={availablePromotions}
-            linkedCustomer={linkedCustomer}
-            onLinkCustomer={linkCustomer}
-            onUnlinkCustomer={unlinkCustomer}
-          />
-        </div>
-      </div>
-
-      <ManagerAuthDialog
-        isOpen={isManagerAuthOpen}
-        onClose={() => {
+      <SalesHeader user={user} />
+      
+      <SalesContent 
+        isMobile={isMobile}
+        // Product search props
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        searchResults={searchResults}
+        hasSearched={hasSearched}
+        isScanning={isScanning}
+        toggleScanner={toggleScanner}
+        addProductToCart={useSalesManager().addProductToCart}
+        
+        // Cart section props
+        cart={cart}
+        linkedCustomer={linkedCustomer}
+        updateCartItemQuantity={handleCartItemQuantityUpdate}
+        initiateRemoveFromCart={initiateRemoveFromCart}
+        handleOpenPromotions={handleOpenPromotions}
+        availablePromotions={availablePromotions}
+        onLinkCustomer={linkCustomer}
+        onUnlinkCustomer={unlinkCustomer}
+        
+        // Sale summary props
+        cartSubtotal={cartSubtotal}
+        manualDiscount={manualDiscount}
+        manualDiscountAmount={manualDiscountAmount}
+        promotionDiscountAmount={promotionDiscountAmount}
+        totalDiscountAmount={totalDiscountAmount}
+        cartTotal={cartTotal}
+        appliedPromotionDetails={appliedPromotionDetails}
+        removeDiscount={useSalesManager().removeDiscount}
+        removePromotion={useSalesManager().removePromotion}
+        finalizeSale={finalizeSale}
+        handleAddDiscount={handleAddDiscount}
+        handleShowDiscountsList={handleShowDiscountsList}
+        clearCart={handleClearCart}
+      />
+      
+      <SalesDialogs 
+        // Auth dialog props
+        isManagerAuthOpen={isManagerAuthOpen}
+        onCloseManagerAuth={() => {
           setIsManagerAuthOpen(false);
-          setProductIdToDelete(null);
         }}
-        onConfirm={handleManagerAuthConfirm}
-        title="Autenticação Gerencial"
-        description="Esta operação requer autorização de um gerente ou administrador."
-      />
-
-      <ManagerAuthDialog
-        isOpen={isDiscountDialogOpen}
-        onClose={() => setIsDiscountDialogOpen(false)}
-        onConfirm={(managerId?: string) => {
-          setDiscountAuthorizedBy(managerId);
-          discountForm.handleSubmit(handleSubmitDiscount)();
-        }}
-        title="Adicionar Desconto"
-        description="Configure o tipo e valor do desconto a ser aplicado."
-        customFormId="discount-form"
-        customContent={
-          <>
-            <DiscountForm 
-              form={discountForm} 
-              onSubmit={handleSubmitDiscount} 
-            />
-            <div className="mt-4">
-              <label htmlFor="discountReason" className="text-sm font-medium">
-                Motivo do desconto:
-              </label>
-              <Textarea
-                id="discountReason"
-                placeholder="Informe o motivo do desconto"
-                value={discountReason}
-                onChange={(e) => setDiscountReason(e.target.value)}
-                className="mt-2"
-              />
-            </div>
-          </>
-        }
-      />
-
-      <DiscountsList 
-        isOpen={isDiscountsListOpen}
-        onClose={() => setIsDiscountsListOpen(false)}
+        onManagerAuthConfirm={handleManagerAuthConfirm}
+        
+        // Discount dialog props
+        isDiscountDialogOpen={isDiscountDialogOpen}
+        onCloseDiscountDialog={() => setIsDiscountDialogOpen(false)}
+        discountForm={discountForm}
+        onSubmitDiscount={handleSubmitDiscount}
+        discountReason={discountReason}
+        onDiscountReasonChange={(value) => setDiscountReason(value)}
+        
+        // Discounts list props
+        isDiscountsListOpen={isDiscountsListOpen}
+        onCloseDiscountsList={() => setIsDiscountsListOpen(false)}
         manualDiscount={manualDiscount}
         appliedPromotion={appliedPromotion}
-        promotions={availablePromotions}
-        onRemoveManualDiscount={removeDiscount}
-        onRemovePromotion={removePromotion}
+        availablePromotions={availablePromotions}
+        onRemoveManualDiscount={useSalesManager().removeDiscount}
+        onRemovePromotion={useSalesManager().removePromotion}
         onDeleteDiscount={handleDeleteDiscount}
         onRequestAuth={requestManagerAuth}
-      />
-
-      <PromotionSelectionDialog
-        isOpen={isPromotionDialogOpen}
-        onClose={() => setIsPromotionDialogOpen(false)}
-        promotions={availablePromotions}
+        
+        // Promotion dialog props
+        isPromotionDialogOpen={isPromotionDialogOpen}
+        onClosePromotionDialog={() => setIsPromotionDialogOpen(false)}
         selectedPromotionId={selectedPromotionId}
         onSelectPromotion={handleSelectPromotion}
         products={products}
-      />
-      
-      <PaymentMethodsDialog
-        isOpen={isPaymentDialogOpen}
-        onClose={() => setIsPaymentDialogOpen(false)}
-        onConfirm={handlePaymentConfirm}
-        total={cartTotal}
+        
+        // Payment dialog props
+        isPaymentDialogOpen={isPaymentDialogOpen}
+        onClosePaymentDialog={() => setIsPaymentDialogOpen(false)}
+        onConfirmPayment={handlePaymentConfirm}
+        cartTotal={cartTotal}
       />
     </div>
   );
