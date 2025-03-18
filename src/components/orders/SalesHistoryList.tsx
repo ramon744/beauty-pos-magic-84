@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -195,6 +196,11 @@ export const SalesHistoryList = () => {
           const hasPromotionDiscount = promotionDiscountAmount > 0;
           const hasManualDiscount = manualDiscountAmount > 0;
           
+          // Get the manager name who authorized the discount
+          const managerName = sale.discountAuthorizedBy ? 
+            getDiscountAuthorizedByName(sale) : 
+            "Não autorizado";
+          
           return (
             <Collapsible
               key={sale.id}
@@ -343,7 +349,7 @@ export const SalesHistoryList = () => {
                               {sale.discountAuthorizedBy && (
                                 <div className="flex justify-between text-amber-600 text-xs mt-1">
                                   <span>Autorizado por:</span>
-                                  <span className="font-medium">{getDiscountAuthorizedByName(sale)}</span>
+                                  <span className="font-medium">{managerName}</span>
                                 </div>
                               )}
                               {sale.discountReason && (
