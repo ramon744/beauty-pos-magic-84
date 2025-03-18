@@ -1,14 +1,17 @@
 
+import { useState, useEffect, useRef } from "react";
 import { toast as sonnerToast } from "sonner";
 
-type ToastProps = {
+export type ToastProps = {
+  id?: string;
   title?: string;
   description?: string;
+  action?: React.ReactNode;
   variant?: "default" | "destructive";
   duration?: number;
 };
 
-// Compatibilidade com o toast da shadcn
+// Compatibility with the sonner toast
 const toast = ({
   title,
   description,
@@ -28,10 +31,17 @@ const toast = ({
   });
 };
 
-const useToast = () => {
+// Add empty toasts array to be compatible with shadcn/ui Toaster component
+export const useToast = () => {
+  const [toasts, setToasts] = useState<ToastProps[]>([]);
+  
   return {
     toast,
+    toasts,
+    // These functions are stubs to maintain compatibility with shadcn's useToast
+    dismiss: (toastId?: string) => {},
+    remove: (toastId?: string) => {},
   };
 };
 
-export { useToast, toast };
+export { toast };

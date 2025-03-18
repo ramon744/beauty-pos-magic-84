@@ -1,8 +1,7 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Cashier, User } from '@/types';
 import { cashierService } from '@/services/cashier-service';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 
 export function useCashiers() {
   const [cashiers, setCashiers] = useState<Cashier[]>([]);

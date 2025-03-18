@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Customer } from '@/types';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
+import { toast } from '@/hooks/use-toast';
 
 // Interface for customer data without ID and dates
 interface CustomerInput {
