@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ShoppingBag, Search, X, Calendar, CreditCard, Tag, Percent, User, ChevronDown, ChevronUp, Gift, DollarSign, CalendarIcon } from 'lucide-react';
+import { ShoppingBag, Search, X, CreditCard, Tag, Percent, User, ChevronDown, ChevronUp, Gift, DollarSign, CalendarIcon } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 import { format, isAfter, isBefore, isValid, parseISO, startOfDay, endOfDay } from 'date-fns';
@@ -268,7 +268,7 @@ export const SalesHistoryList = () => {
           <Popover open={isDateFilterOpen} onOpenChange={setIsDateFilterOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" className="gap-2">
-                <Calendar className="h-4 w-4" />
+                <CalendarIcon className="h-4 w-4" />
                 <span>Filtrar por data</span>
                 {hasActiveFilters && (
                   <Badge variant="default" className="text-xs h-5 px-1 py-0 bg-primary-foreground text-primary">
@@ -366,7 +366,7 @@ export const SalesHistoryList = () => {
       
       {hasActiveFilters && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Calendar className="h-4 w-4" />
+          <CalendarIcon className="h-4 w-4" />
           <span>
             Filtrando por período: 
             {startDate ? ` de ${formatDisplayDate(startDate)}` : ''} 
@@ -410,7 +410,7 @@ export const SalesHistoryList = () => {
                       )}
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                      <Calendar className="h-3 w-3 mr-1" />
+                      <CalendarIcon className="h-3 w-3 mr-1" />
                       <span>{saleDate}</span>
                       
                       {sale.seller && (
