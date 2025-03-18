@@ -24,8 +24,14 @@ import { formatCurrency } from '@/lib/formatters';
 import { CashierOperation } from '@/services/cashier-operations-service';
 import { FileIcon, PieChartIcon, TableIcon } from 'lucide-react';
 
-// Simulated data for payment methods
-// In a real app, this would come from an API or service
+// Default payment methods with zero values
+const DEFAULT_PAYMENT_METHODS = [
+  { method: 'Dinheiro', amount: 0, color: '#16a34a' },
+  { method: 'Cartão de Crédito', amount: 0, color: '#2563eb' },
+  { method: 'Cartão de Débito', amount: 0, color: '#9333ea' },
+  { method: 'Pix', amount: 0, color: '#eab308' },
+];
+
 interface PaymentMethodSummary {
   method: string;
   amount: number;
@@ -48,23 +54,27 @@ export const CashierDetailsDialog = ({
   operations,
 }: CashierDetailsDialogProps) => {
   const [activeTab, setActiveTab] = useState('summary');
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodSummary[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodSummary[]>(DEFAULT_PAYMENT_METHODS);
 
-  // Calculate payment methods summary (this is simulated)
+  // Initialize with default zero values when dialog opens
   useEffect(() => {
-    // In a real implementation, you would fetch this data from your payment service
-    // Here we're just creating simulated data
-    const methods: PaymentMethodSummary[] = [
-      { method: 'Dinheiro', amount: 845.50, color: '#16a34a' },
-      { method: 'Cartão de Crédito', amount: 1250.75, color: '#2563eb' },
-      { method: 'Cartão de Débito', amount: 620.25, color: '#9333ea' },
-      { method: 'Pix', amount: 980.00, color: '#eab308' },
-    ];
-    
-    setPaymentMethods(methods);
-  }, [cashierId]);
+    if (isOpen) {
+      setPaymentMethods([...DEFAULT_PAYMENT_METHODS]);
+      
+      // In a real implementation, you would fetch actual payment data as sales happen
+      // For now, we're just using the default zero values
+    }
+  }, [isOpen, cashierId]);
 
+  // Calculate total amount
   const totalAmount = paymentMethods.reduce((sum, method) => sum + method.amount, 0);
+  
+  // Find the opening balance from operations
+  const openingOperation = operations
+    .filter(op => op.cashierId === cashierId && op.operationType === 'open')
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+  
+  const openingBalance = openingOperation?.amount || 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -92,6 +102,12 @@ export const CashierDetailsDialog = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <h3 className="text-lg font-medium mb-4">Formas de Pagamento</h3>
+                    <div className="mb-4">
+                      <div className="flex justify-between items-center text-muted-foreground mb-1">
+                        <span>Valor da abertura: </span>
+                        <span className="font-semibold">{formatCurrency(openingBalance)}</span>
+                      </div>
+                    </div>
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -106,7 +122,9 @@ export const CashierDetailsDialog = ({
                             <TableCell className="font-medium">{method.method}</TableCell>
                             <TableCell>{formatCurrency(method.amount)}</TableCell>
                             <TableCell>
-                              {((method.amount / totalAmount) * 100).toFixed(1)}%
+                              {totalAmount > 0 
+                                ? ((method.amount / totalAmount) * 100).toFixed(1) 
+                                : '0.0'}%
                             </TableCell>
                           </TableRow>
                         ))}
@@ -122,29 +140,35 @@ export const CashierDetailsDialog = ({
                   <div className="flex flex-col items-center justify-center">
                     <h3 className="text-lg font-medium mb-4">Distribuição de Pagamentos</h3>
                     <div className="w-full h-[250px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={paymentMethods}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            outerRadius={80}
-                            fill="#8884d8"
-                            dataKey="amount"
-                            nameKey="method"
-                            label={({ method, percent }) => 
-                              `${method}: ${(percent * 100).toFixed(0)}%`
-                            }
-                          >
-                            {paymentMethods.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Pie>
-                          <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                          <Legend />
-                        </PieChart>
-                      </ResponsiveContainer>
+                      {totalAmount > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={paymentMethods.filter(method => method.amount > 0)}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              outerRadius={80}
+                              fill="#8884d8"
+                              dataKey="amount"
+                              nameKey="method"
+                              label={({ method, percent }) => 
+                                `${method}: ${(percent * 100).toFixed(0)}%`
+                              }
+                            >
+                              {paymentMethods.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                            <Legend />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="h-full flex items-center justify-center text-muted-foreground">
+                          Não há pagamentos registrados ainda
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
