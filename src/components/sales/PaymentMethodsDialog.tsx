@@ -11,6 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { PaymentMethod, PaymentDetails, MixedPayment } from '@/types';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface PaymentMethodsDialogProps {
   isOpen: boolean;
@@ -191,7 +192,7 @@ export const PaymentMethodsDialog: React.FC<PaymentMethodsDialogProps> = ({
   
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md flex flex-col max-h-[80vh]">
         <DialogHeader>
           <DialogTitle>Forma de Pagamento</DialogTitle>
           <DialogDescription>
@@ -199,207 +200,209 @@ export const PaymentMethodsDialog: React.FC<PaymentMethodsDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
         
-        <div className="grid gap-4 py-4">
-          <div className="flex justify-between items-center">
-            <div className="font-medium">Tipo de Pagamento</div>
-            <Button 
-              type="button"
-              variant="outline" 
-              size="sm" 
-              onClick={() => setIsMixedPayment(!isMixedPayment)}
-              className="text-xs"
-            >
-              {isMixedPayment ? "Pagamento Único" : "Dividir Pagamento"}
-            </Button>
-          </div>
-          
-          <RadioGroup 
-            value={paymentMethod} 
-            onValueChange={handlePaymentMethodChange}
-            className="grid grid-cols-2 gap-4"
-          >
-            <div>
-              <Card className={`cursor-pointer border-2 ${paymentMethod === 'credit_card' ? 'border-primary' : 'border-input'}`}>
-                <CardContent className="flex flex-col items-center justify-center p-4">
-                  <RadioGroupItem value="credit_card" id="credit_card" className="sr-only" />
-                  <Label htmlFor="credit_card" className="flex flex-col items-center gap-2 cursor-pointer">
-                    <CreditCard className="h-6 w-6 mb-1" />
-                    <span>Cartão de Crédito</span>
-                  </Label>
-                </CardContent>
-              </Card>
-            </div>
-            
-            <div>
-              <Card className={`cursor-pointer border-2 ${paymentMethod === 'debit_card' ? 'border-primary' : 'border-input'}`}>
-                <CardContent className="flex flex-col items-center justify-center p-4">
-                  <RadioGroupItem value="debit_card" id="debit_card" className="sr-only" />
-                  <Label htmlFor="debit_card" className="flex flex-col items-center gap-2 cursor-pointer">
-                    <CreditCardIcon className="h-6 w-6 mb-1" />
-                    <span>Cartão de Débito</span>
-                  </Label>
-                </CardContent>
-              </Card>
-            </div>
-            
-            <div>
-              <Card 
-                className={`cursor-pointer border-2 ${paymentMethod === 'pix' ? 'border-primary' : 'border-input'}`}
-                onClick={() => setPaymentMethod('pix')}
+        <ScrollArea className="flex-1 overflow-y-auto pr-4">
+          <div className="grid gap-4 py-4">
+            <div className="flex justify-between items-center">
+              <div className="font-medium">Tipo de Pagamento</div>
+              <Button 
+                type="button"
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsMixedPayment(!isMixedPayment)}
+                className="text-xs"
               >
-                <CardContent className="flex flex-col items-center justify-center p-4">
-                  <RadioGroupItem value="pix" id="pix" className="sr-only" />
-                  <Label htmlFor="pix" className="flex flex-col items-center gap-2 cursor-pointer">
-                    <QrCode className="h-6 w-6 mb-1" />
-                    <span>PIX</span>
-                  </Label>
-                </CardContent>
-              </Card>
+                {isMixedPayment ? "Pagamento Único" : "Dividir Pagamento"}
+              </Button>
             </div>
             
-            <div>
-              <Card className={`cursor-pointer border-2 ${paymentMethod === 'cash' ? 'border-primary' : 'border-input'}`}>
-                <CardContent className="flex flex-col items-center justify-center p-4">
-                  <RadioGroupItem value="cash" id="cash" className="sr-only" />
-                  <Label htmlFor="cash" className="flex flex-col items-center gap-2 cursor-pointer">
-                    <Banknote className="h-6 w-6 mb-1" />
-                    <span>Dinheiro</span>
-                  </Label>
-                </CardContent>
-              </Card>
-            </div>
-          </RadioGroup>
-          
-          {isMixedPayment && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="payment-amount">Valor do Pagamento</Label>
-                <Input
-                  id="payment-amount"
-                  type="text"
-                  value={paymentAmount}
-                  onChange={handlePaymentAmountChange}
-                  placeholder="0.00"
-                />
-              </div>
-            </>
-          )}
-          
-          {paymentMethod === 'credit_card' && (
-            <div className="space-y-2">
-              <Label htmlFor="installments">Parcelamento</Label>
-              <Select value={installments.toString()} onValueChange={(value) => setInstallments(parseInt(value))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o número de parcelas" />
-                </SelectTrigger>
-                <SelectContent>
-                  {installmentOptions.map((option) => (
-                    <SelectItem key={option} value={option.toString()}>
-                      {option}x {option === 1 ? 'à vista' : `de R$ ${(total / option).toFixed(2)}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          
-          {paymentMethod === 'cash' && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="cash-received">Valor Recebido</Label>
-                <Input
-                  id="cash-received"
-                  type="text"
-                  value={cashReceived}
-                  onChange={handleCashReceivedChange}
-                  placeholder="0.00"
-                />
+            <RadioGroup 
+              value={paymentMethod} 
+              onValueChange={handlePaymentMethodChange}
+              className="grid grid-cols-2 gap-4"
+            >
+              <div>
+                <Card className={`cursor-pointer border-2 ${paymentMethod === 'credit_card' ? 'border-primary' : 'border-input'}`}>
+                  <CardContent className="flex flex-col items-center justify-center p-4">
+                    <RadioGroupItem value="credit_card" id="credit_card" className="sr-only" />
+                    <Label htmlFor="credit_card" className="flex flex-col items-center gap-2 cursor-pointer">
+                      <CreditCard className="h-6 w-6 mb-1" />
+                      <span>Cartão de Crédito</span>
+                    </Label>
+                  </CardContent>
+                </Card>
               </div>
               
-              <div className="p-3 bg-gray-100 rounded-md">
-                <div className="flex justify-between">
-                  <span className="font-medium">Valor da compra:</span>
-                  <span>R$ {isMixedPayment ? paymentAmount : total.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Valor recebido:</span>
-                  <span>R$ {parseFloat(cashReceived || '0').toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between font-medium pt-2 border-t mt-2">
-                  <span>Troco:</span>
-                  <span className={calculateChange() > 0 ? 'text-green-600' : 'text-red-600'}>
-                    R$ {calculateChange().toFixed(2)}
-                  </span>
-                </div>
+              <div>
+                <Card className={`cursor-pointer border-2 ${paymentMethod === 'debit_card' ? 'border-primary' : 'border-input'}`}>
+                  <CardContent className="flex flex-col items-center justify-center p-4">
+                    <RadioGroupItem value="debit_card" id="debit_card" className="sr-only" />
+                    <Label htmlFor="debit_card" className="flex flex-col items-center gap-2 cursor-pointer">
+                      <CreditCardIcon className="h-6 w-6 mb-1" />
+                      <span>Cartão de Débito</span>
+                    </Label>
+                  </CardContent>
+                </Card>
               </div>
-            </div>
-          )}
-          
-          {isMixedPayment && (
-            <>
-              <div className="flex justify-between items-center">
-                <Button 
-                  type="button"
-                  variant="outline" 
-                  onClick={handleAddPayment}
-                  disabled={parseFloat(paymentAmount || '0') <= 0 || parseFloat(paymentAmount || '0') > getRemainingAmount() || (paymentMethod === 'cash' && parseFloat(cashReceived || '0') < parseFloat(paymentAmount || '0'))}
-                  className="w-full"
+              
+              <div>
+                <Card 
+                  className={`cursor-pointer border-2 ${paymentMethod === 'pix' ? 'border-primary' : 'border-input'}`}
+                  onClick={() => setPaymentMethod('pix')}
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Adicionar Pagamento
-                </Button>
+                  <CardContent className="flex flex-col items-center justify-center p-4">
+                    <RadioGroupItem value="pix" id="pix" className="sr-only" />
+                    <Label htmlFor="pix" className="flex flex-col items-center gap-2 cursor-pointer">
+                      <QrCode className="h-6 w-6 mb-1" />
+                      <span>PIX</span>
+                    </Label>
+                  </CardContent>
+                </Card>
               </div>
               
-              {mixedPayments.length > 0 && (
-                <div className="space-y-3 mt-2">
-                  <div className="font-medium">Pagamentos Adicionados:</div>
-                  
-                  {mixedPayments.map((payment, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 border rounded-md">
-                      <div className="flex items-center gap-2">
-                        {getPaymentMethodIcon(payment.method)}
-                        <div>
-                          <div className="font-medium">{getPaymentMethodLabel(payment.method)}</div>
-                          <div className="text-sm text-muted-foreground">
-                            R$ {payment.amount?.toFixed(2)}
-                            {payment.installments && payment.installments > 1 && ` em ${payment.installments}x`}
-                            {payment.change && payment.change > 0 && ` (Troco: R$ ${payment.change.toFixed(2)})`}
-                          </div>
-                        </div>
-                      </div>
-                      <Button 
-                        type="button"
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => handleRemovePayment(index)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Trash className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  ))}
-                  
-                  <Separator />
-                  
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="text-sm">Total a pagar: <span className="font-medium">R$ {total.toFixed(2)}</span></div>
-                      <div className="text-sm">Total pago: <span className="font-medium">R$ {totalPaid.toFixed(2)}</span></div>
-                    </div>
-                    
-                    <Badge variant={getRemainingAmount() <= 0 ? "success" : "secondary"} className="ml-auto">
-                      {getRemainingAmount() <= 0 
-                        ? "Pagamento Completo" 
-                        : `Falta: R$ ${getRemainingAmount().toFixed(2)}`}
-                    </Badge>
+              <div>
+                <Card className={`cursor-pointer border-2 ${paymentMethod === 'cash' ? 'border-primary' : 'border-input'}`}>
+                  <CardContent className="flex flex-col items-center justify-center p-4">
+                    <RadioGroupItem value="cash" id="cash" className="sr-only" />
+                    <Label htmlFor="cash" className="flex flex-col items-center gap-2 cursor-pointer">
+                      <Banknote className="h-6 w-6 mb-1" />
+                      <span>Dinheiro</span>
+                    </Label>
+                  </CardContent>
+                </Card>
+              </div>
+            </RadioGroup>
+            
+            {isMixedPayment && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="payment-amount">Valor do Pagamento</Label>
+                  <Input
+                    id="payment-amount"
+                    type="text"
+                    value={paymentAmount}
+                    onChange={handlePaymentAmountChange}
+                    placeholder="0.00"
+                  />
+                </div>
+              </>
+            )}
+            
+            {paymentMethod === 'credit_card' && (
+              <div className="space-y-2">
+                <Label htmlFor="installments">Parcelamento</Label>
+                <Select value={installments.toString()} onValueChange={(value) => setInstallments(parseInt(value))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o número de parcelas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {installmentOptions.map((option) => (
+                      <SelectItem key={option} value={option.toString()}>
+                        {option}x {option === 1 ? 'à vista' : `de R$ ${(total / option).toFixed(2)}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            
+            {paymentMethod === 'cash' && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cash-received">Valor Recebido</Label>
+                  <Input
+                    id="cash-received"
+                    type="text"
+                    value={cashReceived}
+                    onChange={handleCashReceivedChange}
+                    placeholder="0.00"
+                  />
+                </div>
+                
+                <div className="p-3 bg-gray-100 rounded-md">
+                  <div className="flex justify-between">
+                    <span className="font-medium">Valor da compra:</span>
+                    <span>R$ {isMixedPayment ? paymentAmount : total.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Valor recebido:</span>
+                    <span>R$ {parseFloat(cashReceived || '0').toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between font-medium pt-2 border-t mt-2">
+                    <span>Troco:</span>
+                    <span className={calculateChange() > 0 ? 'text-green-600' : 'text-red-600'}>
+                      R$ {calculateChange().toFixed(2)}
+                    </span>
                   </div>
                 </div>
-              )}
-            </>
-          )}
-        </div>
+              </div>
+            )}
+            
+            {isMixedPayment && (
+              <>
+                <div className="flex justify-between items-center">
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    onClick={handleAddPayment}
+                    disabled={parseFloat(paymentAmount || '0') <= 0 || parseFloat(paymentAmount || '0') > getRemainingAmount() || (paymentMethod === 'cash' && parseFloat(cashReceived || '0') < parseFloat(paymentAmount || '0'))}
+                    className="w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar Pagamento
+                  </Button>
+                </div>
+                
+                {mixedPayments.length > 0 && (
+                  <div className="space-y-3 mt-2">
+                    <div className="font-medium">Pagamentos Adicionados:</div>
+                    
+                    {mixedPayments.map((payment, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 border rounded-md">
+                        <div className="flex items-center gap-2">
+                          {getPaymentMethodIcon(payment.method)}
+                          <div>
+                            <div className="font-medium">{getPaymentMethodLabel(payment.method)}</div>
+                            <div className="text-sm text-muted-foreground">
+                              R$ {payment.amount?.toFixed(2)}
+                              {payment.installments && payment.installments > 1 && ` em ${payment.installments}x`}
+                              {payment.change && payment.change > 0 && ` (Troco: R$ ${payment.change.toFixed(2)})`}
+                            </div>
+                          </div>
+                        </div>
+                        <Button 
+                          type="button"
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleRemovePayment(index)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Trash className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    ))}
+                    
+                    <Separator />
+                    
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="text-sm">Total a pagar: <span className="font-medium">R$ {total.toFixed(2)}</span></div>
+                        <div className="text-sm">Total pago: <span className="font-medium">R$ {totalPaid.toFixed(2)}</span></div>
+                      </div>
+                      
+                      <Badge variant={getRemainingAmount() <= 0 ? "success" : "secondary"} className="ml-auto">
+                        {getRemainingAmount() <= 0 
+                          ? "Pagamento Completo" 
+                          : `Falta: R$ ${getRemainingAmount().toFixed(2)}`}
+                      </Badge>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </ScrollArea>
         
-        <DialogFooter>
+        <DialogFooter className="mt-4 pt-4 border-t">
           <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
           {isMixedPayment ? (
             <Button 
