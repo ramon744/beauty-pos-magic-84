@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,6 +24,7 @@ import { useCashiers } from '@/hooks/use-cashiers';
 import { useCashierOperations } from '@/hooks/use-cashier-operations';
 import { OpenCashierDialog } from '@/components/cashiers/OpenCashierDialog';
 import { CloseCashierDialog } from '@/components/cashiers/CloseCashierDialog';
+import { CashierDetailsDialog } from '@/components/cashiers/CashierDetailsDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -37,25 +37,22 @@ const Cashiers = () => {
   const { operations, getUserCashierStatus, isCashierOpen, getCashierBalance } = useCashierOperations();
   const { users } = useAuth();
   
-  // Dialog states
   const [isOpenCashierDialogOpen, setIsOpenCashierDialogOpen] = useState(false);
   const [isCloseCashierDialogOpen, setIsCloseCashierDialogOpen] = useState(false);
   const [isManagerAuthOpen, setIsManagerAuthOpen] = useState(false);
   const [selectedCashierId, setSelectedCashierId] = useState<string | null>(null);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   
-  // Operation states
   const [withdrawalAmount, setWithdrawalAmount] = useState('');
   const [withdrawalReason, setWithdrawalReason] = useState('');
   const [depositAmount, setDepositAmount] = useState('');
   const [depositReason, setDepositReason] = useState('');
   const [selectedCashierForOperation, setSelectedCashierForOperation] = useState('');
   
-  // Get open cashiers
   const openCashiers = cashiers.filter(cashier => 
     cashier.isActive && isCashierOpen(cashier.id)
   );
   
-  // Get closed cashiers (those that have operations but are currently closed)
   const closedCashiers = cashiers.filter(cashier => 
     !isCashierOpen(cashier.id) && operations.some(op => op.cashierId === cashier.id)
   );
@@ -70,13 +67,16 @@ const Cashiers = () => {
     setIsCloseCashierDialogOpen(true);
   };
   
+  const handleViewDetails = (cashierId: string) => {
+    setSelectedCashierId(cashierId);
+    setIsDetailsDialogOpen(true);
+  };
+  
   const handleWithdrawal = () => {
-    // To be implemented
     toast.info("Funcionalidade de sangria será implementada em breve");
   };
   
   const handleDeposit = () => {
-    // To be implemented
     toast.info("Funcionalidade de suprimento será implementada em breve");
   };
   
@@ -162,7 +162,11 @@ const Cashiers = () => {
                           <TableCell>{formatCurrency(currentBalance)}</TableCell>
                           <TableCell>
                             <div className="flex gap-2">
-                              <Button variant="outline" size="sm">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleViewDetails(cashier.id)}
+                              >
                                 <Eye size={16} className="mr-1" /> Detalhes
                               </Button>
                               <Button 
@@ -239,7 +243,6 @@ const Cashiers = () => {
                     </TableRow>
                   ) : (
                     closedCashiers.map(cashier => {
-                      // To be implemented with actual data
                       return (
                         <TableRow key={cashier.id}>
                           <TableCell>{getAssignedUserName(cashier.assignedUserId)}</TableCell>
@@ -250,7 +253,11 @@ const Cashiers = () => {
                           <TableCell>R$ 3.542,75</TableCell>
                           <TableCell>R$ 0,00</TableCell>
                           <TableCell>
-                            <Button variant="outline" size="sm">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleViewDetails(cashier.id)}
+                            >
                               <Eye size={16} className="mr-1" /> Detalhes
                             </Button>
                           </TableCell>
@@ -387,7 +394,6 @@ const Cashiers = () => {
         </TabsContent>
       </Tabs>
       
-      {/* Dialogs */}
       {selectedCashierId && (
         <>
           <OpenCashierDialog
@@ -418,6 +424,17 @@ const Cashiers = () => {
               window.location.reload();
             }}
           />
+          
+          <CashierDetailsDialog
+            isOpen={isDetailsDialogOpen}
+            onClose={() => {
+              setIsDetailsDialogOpen(false);
+              setSelectedCashierId(null);
+            }}
+            cashierId={selectedCashierId}
+            cashierName={cashiers.find(c => c.id === selectedCashierId)?.name || ""}
+            operations={operations.filter(op => op.cashierId === selectedCashierId)}
+          />
         </>
       )}
       
@@ -425,7 +442,6 @@ const Cashiers = () => {
         isOpen={isManagerAuthOpen}
         onClose={() => setIsManagerAuthOpen(false)}
         onConfirm={() => {
-          // Handle manager auth confirmation
           setIsManagerAuthOpen(false);
         }}
         title="Autorização Gerencial"
