@@ -1,3 +1,4 @@
+
 // User roles
 export type UserRole = 'admin' | 'manager' | 'employee';
 
@@ -9,6 +10,7 @@ export interface User {
   role: UserRole;
   createdAt: Date;
   password?: string; // Add optional password field
+  assignedCashierId?: string; // Added for cashier linking
 }
 
 // Authentication state
@@ -116,6 +118,7 @@ export interface Sale {
   promotionDiscountAmount?: number;
   discountAuthorizedBy?: string;
   discountReason?: string;  // Reason for discount application
+  cashierId?: string; // Added for cashier linking
 }
 
 // Promotion type
@@ -174,4 +177,17 @@ export interface Printer {
   isNetworkPrinter: boolean;
   ipAddress?: string;
   port?: string;
+}
+
+// Added Cashier interface for linking
+export interface Cashier {
+  id: string;
+  name: string;
+  registerNumber: string;
+  location: string;
+  isActive: boolean;
+  assignedUserId?: string;
+  assignedUserName?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }

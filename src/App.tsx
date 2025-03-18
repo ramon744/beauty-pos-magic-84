@@ -20,6 +20,7 @@ import HistoryPage from "./pages/History";
 import Printers from "./pages/Printers";
 import Labels from "./pages/Labels";
 import Cashiers from "./pages/Cashiers";
+import CashierLink from "./pages/CashierLink";
 import MainLayout from "./components/layout/MainLayout";
 
 const queryClient = new QueryClient();
@@ -49,6 +50,7 @@ const App = () => (
               <Route path="/printers" element={<Printers />} />
               <Route path="/labels" element={<Labels />} />
               <Route path="/cashiers" element={<Cashiers />} />
+              <Route path="/cashiers/link" element={<CashierLink />} />
             </Route>
             
             {/* Catch-all route */}

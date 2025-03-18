@@ -19,6 +19,7 @@ import {
   Printer,
   Tag,
   Wallet,
+  LinkIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UserRole } from '@/types';
@@ -57,6 +58,37 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, label, requiredRoles = ['ad
         {icon}
       </div>
       <span className="menu-text">
+        {label}
+      </span>
+    </NavLink>
+  );
+};
+
+interface SubNavItemProps {
+  to: string;
+  label: string;
+  requiredRoles?: UserRole[];
+}
+
+const SubNavItem: React.FC<SubNavItemProps> = ({ to, label, requiredRoles = ['admin', 'manager', 'employee'] }) => {
+  const { hasPermission } = useAuth();
+  
+  if (!hasPermission(requiredRoles)) return null;
+  
+  return (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        cn(
+          "flex items-center gap-3 rounded-lg transition-colors pl-12",
+          "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+          isActive 
+            ? "bg-sidebar-accent text-sidebar-primary font-medium" 
+            : "text-sidebar-foreground"
+        )
+      }
+    >
+      <span className="menu-text text-sm">
         {label}
       </span>
     </NavLink>
@@ -108,6 +140,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle }) => {
             label="Caixa" 
             requiredRoles={['admin', 'manager']}
           />
+          {isOpen && (
+            <SubNavItem
+              to="/cashiers/link"
+              label="Vincular Caixa"
+              requiredRoles={['admin']}
+            />
+          )}
           <NavItem 
             to="/products" 
             icon={<PackageSearch size={20} />} 
