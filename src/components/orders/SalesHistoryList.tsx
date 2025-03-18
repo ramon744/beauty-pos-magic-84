@@ -5,21 +5,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ShoppingBag, Search, X, Calendar, CreditCard, Tag, Percent, User, ChevronDown, ChevronUp } from 'lucide-react';
+import { ShoppingBag, Search, X, Calendar, CreditCard, Tag, Percent, User, ChevronDown, ChevronUp, Gift } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Sale, Promotion } from '@/types';
 
 export const SalesHistoryList = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedSales, setExpandedSales] = useState<Record<string, boolean>>({});
   
   // Get sales history from storage
-  const salesHistory = storageService.getItem(STORAGE_KEYS.ORDERS) || [];
+  const salesHistory = (storageService.getItem(STORAGE_KEYS.ORDERS) || []) as Sale[];
   
   // Filter sales based on search query
-  const filteredSales = salesHistory.filter((sale: any) => {
+  const filteredSales = salesHistory.filter((sale: Sale) => {
     const query = searchQuery.toLowerCase();
     
     // Search by sale ID
@@ -53,7 +54,7 @@ export const SalesHistoryList = () => {
   });
   
   // Sort sales in descending order by creation date
-  const sortedSales = [...filteredSales].sort((a: any, b: any) => {
+  const sortedSales = [...filteredSales].sort((a: Sale, b: Sale) => {
     const dateA = new Date(a.createdAt).getTime();
     const dateB = new Date(b.createdAt).getTime();
     return dateB - dateA;
@@ -107,13 +108,13 @@ export const SalesHistoryList = () => {
   };
   
   // Get promotion details by ID
-  const getPromotionDetails = (sale: any) => {
+  const getPromotionDetails = (sale: Sale) => {
     // Get all promotions from storage
-    const promotions = storageService.getItem(STORAGE_KEYS.PROMOTIONS) || [];
+    const promotions = (storageService.getItem(STORAGE_KEYS.PROMOTIONS) || []) as Promotion[];
     
     // Find the promotion that matches the ID in the sale
     if (sale.appliedPromotionId) {
-      const promotion = promotions.find((p: any) => p.id === sale.appliedPromotionId);
+      const promotion = promotions.find((p: Promotion) => p.id === sale.appliedPromotionId);
       if (promotion) {
         return promotion;
       }
@@ -123,10 +124,10 @@ export const SalesHistoryList = () => {
   };
   
   // Get discount authorized by manager name
-  const getDiscountAuthorizedByName = (sale: any) => {
+  const getDiscountAuthorizedByName = (sale: Sale) => {
     if (sale.discountAuthorizedBy) {
       // Get all users from storage
-      const users = storageService.getItem(STORAGE_KEYS.USERS) || [];
+      const users = (storageService.getItem(STORAGE_KEYS.USERS) || []) as any[];
       
       // Find the user that matches the ID in the sale
       const user = users.find((u: any) => u.id === sale.discountAuthorizedBy);
@@ -197,10 +198,17 @@ export const SalesHistoryList = () => {
       </div>
 
       <div className="space-y-4">
-        {sortedSales.map((sale: any, index: number) => {
+        {sortedSales.map((sale: Sale) => {
           const isExpanded = expandedSales[sale.id];
-          const saleDate = formatSaleDate(sale.createdAt);
+          const saleDate = formatSaleDate(sale.createdAt.toString());
           const promotionDetails = getPromotionDetails(sale);
+          const hasManualDiscount = !!(sale.discount && sale.discount > 0 && (!sale.promotionDiscountAmount || sale.discount > sale.promotionDiscountAmount));
+          const hasPromotionDiscount = !!(sale.promotionDiscountAmount && sale.promotionDiscountAmount > 0);
+          
+          // Calculate what portion of the discount was manual vs promotion
+          const manualDiscountAmount = hasManualDiscount 
+            ? (sale.promotionDiscountAmount ? sale.discount - sale.promotionDiscountAmount : sale.discount) 
+            : 0;
           
           return (
             <Collapsible
@@ -286,40 +294,30 @@ export const SalesHistoryList = () => {
                             <span>{formatCurrency(sale.total)}</span>
                           </div>
                           
-                          {/* Display for promotion discount - Only shown when promotion exists */}
-                          {sale.appliedPromotionId && sale.promotionDiscountAmount && sale.promotionDiscountAmount > 0 && (
+                          {/* Display for promotion discount */}
+                          {hasPromotionDiscount && (
                             <div className="flex justify-between text-green-600">
                               <span className="flex items-center">
-                                <Tag className="h-3 w-3 mr-1" />
-                                Desconto da Promoção:
+                                <Gift className="h-3 w-3 mr-1" />
+                                Promoção: {promotionDetails ? promotionDetails.name : ""}
                               </span>
-                              <span>-{formatCurrency(sale.promotionDiscountAmount)}</span>
+                              <span>-{formatCurrency(sale.promotionDiscountAmount || 0)}</span>
                             </div>
                           )}
                           
-                          {/* Display promotion name if it exists */}
-                          {sale.appliedPromotionId && (
-                            <div className="flex justify-between text-green-600 text-xs">
-                              <span>Promoção Aplicada:</span>
-                              <span>
-                                {promotionDetails ? promotionDetails.name : "Promoção desconhecida"}
-                              </span>
-                            </div>
-                          )}
-                          
-                          {/* Display for manual discount - Only shown when manual discount exists */}
-                          {sale.discount && sale.discount > 0 && (
+                          {/* Display for manual discount */}
+                          {hasManualDiscount && (
                             <div className="flex justify-between text-amber-600">
                               <span className="flex items-center">
                                 <Percent className="h-3 w-3 mr-1" />
                                 Desconto Gerencial:
                               </span>
-                              <span>-{formatCurrency(sale.discount)}</span>
+                              <span>-{formatCurrency(manualDiscountAmount)}</span>
                             </div>
                           )}
                           
-                          {/* Manager authorization for manual discount - Only shown when manual discount exists */}
-                          {sale.discount && sale.discount > 0 && sale.discountAuthorizedBy && (
+                          {/* Manager authorization for manual discount */}
+                          {hasManualDiscount && sale.discountAuthorizedBy && (
                             <div className="flex justify-between text-amber-600 text-xs">
                               <span>Autorizado por:</span>
                               <span>{getDiscountAuthorizedByName(sale)}</span>
