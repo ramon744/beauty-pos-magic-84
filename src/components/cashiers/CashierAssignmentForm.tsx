@@ -52,9 +52,9 @@ export function CashierAssignmentForm({
   });
 
   useEffect(() => {
-    // Only include users that are employees or managers (not admins)
+    // Include all user roles (employees, managers, and admins)
+    // but only those without an assigned cashier
     const eligibleUsers = users.filter(user => 
-      (user.role === 'employee' || user.role === 'manager') && 
       !user.assignedCashierId // Only show users without an assigned cashier
     );
     setFilteredUsers(eligibleUsers);
@@ -105,17 +105,17 @@ export function CashierAssignmentForm({
           name="userId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Funcionário</FormLabel>
+              <FormLabel>Usuário</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione um funcionário" />
+                    <SelectValue placeholder="Selecione um usuário" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
                   {filteredUsers.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
-                      {user.name} ({user.role === 'employee' ? 'Atendente' : 'Gerente'})
+                      {user.name} ({user.role === 'employee' ? 'Atendente' : user.role === 'manager' ? 'Gerente' : 'Administrador'})
                     </SelectItem>
                   ))}
                 </SelectContent>
