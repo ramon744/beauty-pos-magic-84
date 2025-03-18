@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,11 +10,10 @@ import { SalesContent } from '@/components/sales/SalesContent';
 import { SalesDialogs } from '@/components/sales/SalesDialogs';
 import { PrintReceiptDialog } from '@/components/sales/PrintReceiptDialog';
 import { useCashierOperations } from '@/hooks/use-cashier-operations';
-import { OpenCashierDialog } from '@/components/cashiers/OpenCashierDialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircleIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { toast as sonnerToast } from '@/components/ui/use-toast';
+import { sonnerToast } from '@/components/ui/use-toast';
 
 const Sales = () => {
   const isMobile = useIsMobile();

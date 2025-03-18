@@ -1,3 +1,4 @@
+
 import * as React from "react"
 
 import type {
@@ -166,6 +167,22 @@ function toast({ ...props }: Toast) {
     dismiss,
     update,
   }
+}
+
+// Add convenience methods to toast
+toast.error = (message: string, options?: Omit<Toast, "variant" | "description">) => {
+  return toast({
+    variant: "destructive",
+    description: message,
+    ...options,
+  })
+}
+
+toast.success = (message: string, options?: Omit<Toast, "variant" | "description">) => {
+  return toast({
+    description: message,
+    ...options,
+  })
 }
 
 function useToast() {
