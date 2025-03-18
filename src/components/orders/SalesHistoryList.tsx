@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -119,9 +118,8 @@ export const SalesHistoryList = () => {
       if (manager) {
         return manager.name;
       }
-      return "Não identificado";
     }
-    return "Não autorizado";
+    return "Não identificado";
   };
 
   const getManualDiscountAmount = (sale: Sale) => {
@@ -196,10 +194,7 @@ export const SalesHistoryList = () => {
           const hasPromotionDiscount = promotionDiscountAmount > 0;
           const hasManualDiscount = manualDiscountAmount > 0;
           
-          // Get the manager name who authorized the discount
-          const managerName = sale.discountAuthorizedBy ? 
-            getDiscountAuthorizedByName(sale) : 
-            "Não autorizado";
+          const managerName = getDiscountAuthorizedByName(sale);
           
           return (
             <Collapsible
