@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Cashier, User } from '@/types';
 import { cashierService } from '@/services/cashier-service';

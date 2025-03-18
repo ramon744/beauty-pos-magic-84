@@ -96,13 +96,13 @@ const Sales = () => {
 
   // Force cashier check on page load
   useEffect(() => {
-    if (user && user.role === 'employee' && cashier && !isOpen) {
+    if (user && cashier && !isOpen) {
       setIsOpenCashierDialogOpen(true);
     }
   }, [user, cashier, isOpen]);
 
-  // If user is an employee and has no assigned cashier, show a warning
-  if (user && user.role === 'employee' && !cashier) {
+  // If user has no assigned cashier, show a warning
+  if (user && !cashier) {
     return (
       <div className="flex items-center justify-center min-h-[80vh]">
         <div className="max-w-md p-6 bg-background border rounded-lg shadow-sm">
@@ -117,8 +117,8 @@ const Sales = () => {
     );
   }
 
-  // If user is an employee and cashier is not open, show the cashier status
-  if (user && user.role === 'employee' && cashier && !isOpen) {
+  // If cashier is not open, show the cashier status
+  if (user && cashier && !isOpen) {
     return (
       <div className="flex items-center justify-center min-h-[80vh]">
         <div className="max-w-md p-6 bg-background border rounded-lg shadow-sm">

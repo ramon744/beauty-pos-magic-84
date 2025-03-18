@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { cashierOperationsService, CashierOperation } from '@/services/cashier-operations-service';
 import { useAuth } from '@/contexts/AuthContext';
 import { cashierService } from '@/services/cashier-service';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 
 export function useCashierOperations() {
   const [operations, setOperations] = useState<CashierOperation[]>([]);
@@ -46,7 +46,7 @@ export function useCashierOperations() {
   // Open a cashier
   const openCashier = useCallback(async (cashierId: string, initialAmount: number) => {
     if (!user) {
-      toast.error('Usuário não autenticado');
+      toast({ title: 'Usuário não autenticado', variant: 'destructive' });
       return null;
     }
     
@@ -66,7 +66,7 @@ export function useCashierOperations() {
   // Close a cashier
   const closeCashier = useCallback(async (cashierId: string, finalAmount: number) => {
     if (!user) {
-      toast.error('Usuário não autenticado');
+      toast({ title: 'Usuário não autenticado', variant: 'destructive' });
       return null;
     }
     
@@ -86,7 +86,7 @@ export function useCashierOperations() {
   // Add deposit to cashier
   const addDeposit = useCallback(async (cashierId: string, amount: number, reason?: string) => {
     if (!user) {
-      toast.error('Usuário não autenticado');
+      toast({ title: 'Usuário não autenticado', variant: 'destructive' });
       return null;
     }
     
@@ -106,7 +106,7 @@ export function useCashierOperations() {
   // Add withdrawal from cashier
   const addWithdrawal = useCallback(async (cashierId: string, amount: number, reason?: string) => {
     if (!user) {
-      toast.error('Usuário não autenticado');
+      toast({ title: 'Usuário não autenticado', variant: 'destructive' });
       return null;
     }
     
