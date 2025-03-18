@@ -14,7 +14,7 @@ const Sales = () => {
   const { user } = useAuth();
   const { data: products = [] } = useProducts();
   
-  // Create a reference to the sales manager hook
+  // Create a reference to the sales manager hook once to avoid multiple instances
   const salesManager = useSalesManager();
   
   const { 

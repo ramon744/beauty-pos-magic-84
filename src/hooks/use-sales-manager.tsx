@@ -261,6 +261,11 @@ export const useSalesManager = () => {
     setIsPromotionDialogOpen,
     setIsDiscountsListOpen,
     setIsPaymentDialogOpen,
-    setDiscountReason
+    setDiscountReason,
+    
+    // Make sure to explicitly include these properties that are being used
+    removeDiscount,
+    removePromotion,
+    addProductToCart
   };
 };
