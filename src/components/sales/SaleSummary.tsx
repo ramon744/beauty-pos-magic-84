@@ -7,8 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Promotion, Customer } from '@/types';
 import { formatPromotionBadge } from '@/utils/promotions-utils';
 import { CustomerLinking } from './CustomerLinking';
-import { useAuth } from '@/contexts/AuthContext';
-import { useCashierOperations } from '@/hooks/use-cashier-operations';
 
 interface SaleSummaryProps {
   cart: any[];
@@ -53,15 +51,6 @@ export const SaleSummary: React.FC<SaleSummaryProps> = ({
   onLinkCustomer,
   onUnlinkCustomer,
 }) => {
-  const { user } = useAuth();
-  const { getUserCashierStatus } = useCashierOperations();
-  
-  // Get cashier status to disable buttons if cashier is closed for employees
-  const { cashier, isOpen } = getUserCashierStatus();
-  
-  // Determine if actions should be disabled due to closed cashier
-  const isDisabled = user && user.role === 'employee' && (!cashier || !isOpen);
-  
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -96,7 +85,6 @@ export const SaleSummary: React.FC<SaleSummaryProps> = ({
                   size="icon" 
                   className="h-6 w-6 ml-1 text-green-600"
                   onClick={removePromotion}
-                  disabled={isDisabled}
                 >
                   <X className="h-3 w-3" />
                 </Button>
@@ -115,7 +103,6 @@ export const SaleSummary: React.FC<SaleSummaryProps> = ({
                   size="icon" 
                   className="h-6 w-6 ml-1 text-destructive"
                   onClick={removeDiscount}
-                  disabled={isDisabled}
                 >
                   <X className="h-3 w-3" />
                 </Button>
@@ -141,7 +128,7 @@ export const SaleSummary: React.FC<SaleSummaryProps> = ({
         <Button 
           className="w-full" 
           size="lg" 
-          disabled={cart.length === 0 || isDisabled}
+          disabled={cart.length === 0}
           onClick={finalizeSale}
         >
           <CreditCard className="mr-2 h-5 w-5" />
@@ -152,7 +139,7 @@ export const SaleSummary: React.FC<SaleSummaryProps> = ({
           <Button 
             variant="outline" 
             className="flex-1"
-            disabled={cart.length === 0 || isDisabled}
+            disabled={cart.length === 0}
             onClick={handleAddDiscount}
           >
             <Percent className="mr-1 h-4 w-4" />
@@ -162,7 +149,7 @@ export const SaleSummary: React.FC<SaleSummaryProps> = ({
           <Button 
             variant={availablePromotions.length > 0 ? "outline" : "ghost"} 
             className={`flex-1 ${availablePromotions.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
-            disabled={availablePromotions.length === 0 || isDisabled}
+            disabled={availablePromotions.length === 0}
             onClick={handleOpenPromotions}
           >
             <Gift className="mr-1 h-4 w-4" />
@@ -180,7 +167,6 @@ export const SaleSummary: React.FC<SaleSummaryProps> = ({
             variant="outline" 
             className="flex-1"
             onClick={handleShowDiscountsList}
-            disabled={isDisabled}
           >
             <List className="mr-1 h-4 w-4" />
             Listar
@@ -189,7 +175,7 @@ export const SaleSummary: React.FC<SaleSummaryProps> = ({
           <Button 
             variant="outline" 
             className="flex-1"
-            disabled={cart.length === 0 || isDisabled}
+            disabled={cart.length === 0}
             onClick={clearCart}
           >
             <Trash2 className="mr-1 h-4 w-4" />

@@ -16,7 +16,7 @@ export function useCashiers() {
       setError(null);
       const data = cashierService.getCashiers();
       console.log('Loaded cashiers:', data); // Add debugging log
-      setCashiers(data || []);
+      setCashiers(data);
     } catch (err) {
       setError('Erro ao carregar lista de caixas');
       toast.error('Erro ao carregar caixas');

@@ -1,20 +1,11 @@
 
 export const storageService = {
   getItem: <T>(key: string): T | null => {
-    try {
-      const value = localStorage.getItem(key);
-      return value ? JSON.parse(value) : null;
-    } catch (error) {
-      console.error(`Error getting item from storage: ${key}`, error);
-      return null;
-    }
+    const value = localStorage.getItem(key);
+    return value ? JSON.parse(value) : null;
   },
   setItem: <T>(key: string, value: T): void => {
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-      console.error(`Error setting item in storage: ${key}`, error);
-    }
+    localStorage.setItem(key, JSON.stringify(value));
   },
   removeItem: (key: string): void => {
     localStorage.removeItem(key);

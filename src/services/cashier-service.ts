@@ -6,11 +6,9 @@ import { toast } from 'sonner';
 // Initialize storage if empty
 const initializeStorage = () => {
   if (!storageService.getItem<Cashier[]>(STORAGE_KEYS.CASHIERS)) {
-    console.log('Initializing cashiers storage with empty array');
     storageService.setItem(STORAGE_KEYS.CASHIERS, []);
   }
   if (!storageService.getItem(STORAGE_KEYS.CASHIER_ASSIGNMENTS)) {
-    console.log('Initializing cashier assignments storage with empty object');
     storageService.setItem(STORAGE_KEYS.CASHIER_ASSIGNMENTS, {});
   }
 };
@@ -24,11 +22,9 @@ export const cashierService = {
     const cashiers = storageService.getItem<Cashier[]>(STORAGE_KEYS.CASHIERS);
     // If null is returned, initialize with empty array and return
     if (!cashiers) {
-      console.log('No cashiers found in storage, initializing with empty array');
       storageService.setItem(STORAGE_KEYS.CASHIERS, []);
       return [];
     }
-    console.log('Loaded cashiers from storage:', cashiers);
     return cashiers;
   },
 
@@ -40,7 +36,7 @@ export const cashierService = {
 
   // Create a new cashier
   createCashier: (cashier: Omit<Cashier, 'id' | 'createdAt' | 'updatedAt'>): Cashier => {
-    const cashiers = cashierService.getCashiers() || [];
+    const cashiers = cashierService.getCashiers();
     
     // Check if a cashier with the same register number already exists
     if (cashiers.some(c => c.registerNumber === cashier.registerNumber)) {
@@ -66,7 +62,7 @@ export const cashierService = {
 
   // Update an existing cashier
   updateCashier: (id: string, updates: Partial<Omit<Cashier, 'id' | 'createdAt'>>): Cashier => {
-    const cashiers = cashierService.getCashiers() || [];
+    const cashiers = cashierService.getCashiers();
     const index = cashiers.findIndex(c => c.id === id);
     
     if (index === -1) {
@@ -97,7 +93,7 @@ export const cashierService = {
 
   // Delete a cashier
   deleteCashier: (id: string): boolean => {
-    const cashiers = cashierService.getCashiers() || [];
+    const cashiers = cashierService.getCashiers();
     const filteredCashiers = cashiers.filter(c => c.id !== id);
     
     if (filteredCashiers.length === cashiers.length) {
@@ -117,7 +113,7 @@ export const cashierService = {
 
   // Assign a cashier to a user
   assignCashierToUser: (cashierId: string, userId: string, userName: string): void => {
-    const cashiers = cashierService.getCashiers() || [];
+    const cashiers = cashierService.getCashiers();
     const cashier = cashiers.find(c => c.id === cashierId);
     
     if (!cashier) {
@@ -144,7 +140,7 @@ export const cashierService = {
 
   // Unassign a cashier from any user
   unassignCashier: (cashierId: string): void => {
-    const cashiers = cashierService.getCashiers() || [];
+    const cashiers = cashierService.getCashiers();
     const cashier = cashiers.find(c => c.id === cashierId);
     
     if (!cashier) {
@@ -162,13 +158,13 @@ export const cashierService = {
 
   // Get cashier assigned to a specific user
   getUserCashier: (userId: string): Cashier | undefined => {
-    const cashiers = cashierService.getCashiers() || [];
+    const cashiers = cashierService.getCashiers();
     return cashiers.find(c => c.assignedUserId === userId);
   },
 
   // Get all available (unassigned) cashiers
   getAvailableCashiers: (): Cashier[] => {
-    const cashiers = cashierService.getCashiers() || [];
+    const cashiers = cashierService.getCashiers();
     return cashiers.filter(c => !c.assignedUserId);
   }
 };

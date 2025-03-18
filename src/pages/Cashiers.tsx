@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +20,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Wallet, ArrowUpRight, ArrowDownLeft, Eye, AlertCircle } from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, Eye } from 'lucide-react';
 import { useCashiers } from '@/hooks/use-cashiers';
 import { useCashierOperations } from '@/hooks/use-cashier-operations';
 import { OpenCashierDialog } from '@/components/cashiers/OpenCashierDialog';
@@ -34,7 +35,7 @@ const Cashiers = () => {
   const [activeTab, setActiveTab] = useState('open');
   const { cashiers, isLoading } = useCashiers();
   const { operations, getUserCashierStatus, isCashierOpen, getCashierBalance } = useCashierOperations();
-  const { user, users } = useAuth();
+  const { users } = useAuth();
   
   // Dialog states
   const [isOpenCashierDialogOpen, setIsOpenCashierDialogOpen] = useState(false);
@@ -48,9 +49,6 @@ const Cashiers = () => {
   const [depositAmount, setDepositAmount] = useState('');
   const [depositReason, setDepositReason] = useState('');
   const [selectedCashierForOperation, setSelectedCashierForOperation] = useState('');
-  
-  // Get user's assigned cashier
-  const userCashier = user ? cashiers.find(c => c.assignedUserId === user.id) : null;
   
   // Get open cashiers
   const openCashiers = cashiers.filter(cashier => 
@@ -70,14 +68,6 @@ const Cashiers = () => {
   const handleCloseCashier = (cashierId: string) => {
     setSelectedCashierId(cashierId);
     setIsCloseCashierDialogOpen(true);
-  };
-  
-  const handleOpenUserCashier = () => {
-    if (userCashier) {
-      handleOpenCashier(userCashier.id);
-    } else {
-      toast.error("Você não tem um caixa vinculado");
-    }
   };
   
   const handleWithdrawal = () => {
@@ -106,9 +96,6 @@ const Cashiers = () => {
     const user = users.find(u => u.id === userId);
     return user ? user.name : "Usuário desconhecido";
   };
-
-  // Check if user can open cashiers (admin or manager) or only their assigned cashier
-  const canManageAllCashiers = user && ['admin', 'manager'].includes(user.role);
   
   return (
     <div className="container p-6 space-y-6">
@@ -129,29 +116,8 @@ const Cashiers = () => {
         <TabsContent value="open" className="space-y-4">
           <div className="flex justify-between">
             <h2 className="text-xl font-semibold">Caixas Abertos</h2>
-            {canManageAllCashiers ? (
-              <Button onClick={() => setIsOpenCashierDialogOpen(true)}>Abrir Novo Caixa</Button>
-            ) : (
-              <Button 
-                onClick={handleOpenUserCashier}
-                disabled={!userCashier || (userCashier && isCashierOpen(userCashier.id))}
-              >
-                Abrir Caixa
-              </Button>
-            )}
+            <Button onClick={() => setIsOpenCashierDialogOpen(true)}>Abrir Novo Caixa</Button>
           </div>
-          
-          {!canManageAllCashiers && !userCashier && (
-            <div className="bg-amber-50 border border-amber-200 rounded-md p-4 flex items-start gap-3 mb-4">
-              <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
-              <div>
-                <h3 className="font-medium text-amber-800">Nenhum caixa vinculado</h3>
-                <p className="text-amber-700 text-sm">
-                  Você não possui um caixa vinculado ao seu usuário. Por favor, contate um administrador para vincular um caixa.
-                </p>
-              </div>
-            </div>
-          )}
           
           <Card>
             <CardContent className="p-6">
@@ -175,11 +141,6 @@ const Cashiers = () => {
                     </TableRow>
                   ) : (
                     openCashiers.map(cashier => {
-                      // Only show user's assigned cashier if they're an employee
-                      if (!canManageAllCashiers && cashier.assignedUserId !== user?.id) {
-                        return null;
-                      }
-                      
                       const latestOperation = operations.filter(op => 
                         op.cashierId === cashier.id && op.operationType === 'open'
                       ).sort((a, b) => 
@@ -458,16 +419,6 @@ const Cashiers = () => {
             }}
           />
         </>
-      )}
-      
-      {userCashier && !selectedCashierId && (
-        <OpenCashierDialog
-          isOpen={isOpenCashierDialogOpen}
-          onClose={() => setIsOpenCashierDialogOpen(false)}
-          cashierId={userCashier.id}
-          cashierName={userCashier.name}
-          onOpenSuccess={() => window.location.reload()}
-        />
       )}
       
       <ManagerAuthDialog
