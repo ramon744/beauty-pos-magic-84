@@ -94,14 +94,14 @@ export const PrintReceiptDialog: React.FC<PrintReceiptDialogProps> = ({
             
             {/* Receipt Items */}
             <p className="font-bold">ITENS</p>
-            {sale.items.map((item: any, index: number) => (
+            {sale.items && sale.items.map((item: any, index: number) => (
               <div key={index} className="my-1">
                 <div className="flex justify-between">
-                  <span>{item.quantity}x {item.product.name}</span>
-                  <span>{formatCurrency(item.price * item.quantity)}</span>
+                  <span>{item.quantity}x {item.product?.name || item.name}</span>
+                  <span>{formatCurrency((item.price || 0) * (item.quantity || 1))}</span>
                 </div>
                 <p className="text-xs text-gray-600">
-                  {formatCurrency(item.price)} cada
+                  {formatCurrency(item.price || 0)} cada
                 </p>
               </div>
             ))}
@@ -111,7 +111,7 @@ export const PrintReceiptDialog: React.FC<PrintReceiptDialogProps> = ({
             {/* Receipt Totals */}
             <div className="flex justify-between">
               <span>Subtotal:</span>
-              <span>{formatCurrency(sale.total)}</span>
+              <span>{formatCurrency(sale.total || 0)}</span>
             </div>
             
             {sale.discount > 0 && (
@@ -127,7 +127,7 @@ export const PrintReceiptDialog: React.FC<PrintReceiptDialogProps> = ({
             
             <div className="flex justify-between font-bold mt-2">
               <span>TOTAL:</span>
-              <span>{formatCurrency(sale.finalTotal)}</span>
+              <span>{formatCurrency(sale.finalTotal || 0)}</span>
             </div>
             
             <div className="border-t border-dashed my-3"></div>
@@ -135,18 +135,18 @@ export const PrintReceiptDialog: React.FC<PrintReceiptDialogProps> = ({
             {/* Payment Method */}
             <p className="font-bold">FORMA DE PAGAMENTO</p>
             
-            {sale.paymentMethod === 'mixed' && sale.paymentDetails.payments ? (
+            {sale.paymentMethod === 'mixed' && sale.paymentDetails?.payments ? (
               <>
                 {sale.paymentDetails.payments.map((payment: any, idx: number) => (
                   <div key={idx}>
                     <div className="flex justify-between">
                       <span>{getPaymentMethodName(payment.method)}:</span>
-                      <span>{formatCurrency(payment.amount)}</span>
+                      <span>{formatCurrency(payment.amount || 0)}</span>
                     </div>
                     
                     {payment.method === 'credit_card' && payment.installments > 1 && (
                       <p className="text-xs">
-                        {payment.installments}x de {formatCurrency(payment.amount / payment.installments)}
+                        {payment.installments}x de {formatCurrency((payment.amount || 0) / payment.installments)}
                       </p>
                     )}
                     
@@ -154,11 +154,11 @@ export const PrintReceiptDialog: React.FC<PrintReceiptDialogProps> = ({
                       <>
                         <div className="flex justify-between text-xs">
                           <span>Recebido:</span>
-                          <span>{formatCurrency(payment.cashReceived)}</span>
+                          <span>{formatCurrency(payment.cashReceived || 0)}</span>
                         </div>
                         <div className="flex justify-between text-xs">
                           <span>Troco:</span>
-                          <span>{formatCurrency(payment.change)}</span>
+                          <span>{formatCurrency(payment.change || 0)}</span>
                         </div>
                       </>
                     )}
@@ -169,13 +169,13 @@ export const PrintReceiptDialog: React.FC<PrintReceiptDialogProps> = ({
               <>
                 <div className="flex justify-between">
                   <span>{getPaymentMethodName(sale.paymentMethod)}:</span>
-                  <span>{formatCurrency(sale.finalTotal)}</span>
+                  <span>{formatCurrency(sale.finalTotal || 0)}</span>
                 </div>
                 
                 {sale.paymentMethod === 'credit_card' && 
                  sale.paymentDetails?.installments > 1 && (
                   <p className="text-xs">
-                    {sale.paymentDetails.installments}x de {formatCurrency(sale.finalTotal / sale.paymentDetails.installments)}
+                    {sale.paymentDetails.installments}x de {formatCurrency((sale.finalTotal || 0) / sale.paymentDetails.installments)}
                   </p>
                 )}
                 
@@ -184,11 +184,11 @@ export const PrintReceiptDialog: React.FC<PrintReceiptDialogProps> = ({
                   <>
                     <div className="flex justify-between text-xs">
                       <span>Recebido:</span>
-                      <span>{formatCurrency(sale.paymentDetails.cashReceived)}</span>
+                      <span>{formatCurrency(sale.paymentDetails.cashReceived || 0)}</span>
                     </div>
                     <div className="flex justify-between text-xs">
                       <span>Troco:</span>
-                      <span>{formatCurrency(sale.paymentDetails.change)}</span>
+                      <span>{formatCurrency(sale.paymentDetails.change || 0)}</span>
                     </div>
                   </>
                 )}
