@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ShoppingCart, Users, PercentCircle, ListChecks, Banknote, Calculator } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -98,7 +99,7 @@ export const SalesHeader = ({ user }) => {
         </Button>
       
         <Button 
-          onClick={() => linkCustomer()} 
+          onClick={() => linkCustomer(null)} 
           variant="outline"
           size="sm"
         >
