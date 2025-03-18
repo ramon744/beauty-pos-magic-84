@@ -1,4 +1,3 @@
-
 // User roles
 export type UserRole = 'admin' | 'manager' | 'employee';
 
@@ -10,6 +9,7 @@ export interface User {
   role: UserRole;
   createdAt: Date;
   password?: string; // Add optional password field
+  cashierLinked?: boolean; // Flag to indicate if user needs to open cashier before sales
 }
 
 // Authentication state

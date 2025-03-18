@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -27,15 +27,25 @@ const CloseCashierDialog: React.FC<CloseCashierDialogProps> = ({
 }) => {
   const [finalAmount, setFinalAmount] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [difference, setDifference] = useState<number>(0);
   
   const { closeCashier, formatCurrency } = useCashier();
   
   // Resetar o valor ao abrir o diálogo
-  React.useEffect(() => {
+  useEffect(() => {
     if (open && cashier) {
       setFinalAmount(cashier.currentAmount.toString());
+      setDifference(0);
     }
   }, [open, cashier]);
+  
+  // Calcular diferença quando o valor final muda
+  useEffect(() => {
+    if (cashier && finalAmount) {
+      const amountValue = parseFloat(finalAmount.replace(',', '.'));
+      setDifference(amountValue - cashier.currentAmount);
+    }
+  }, [finalAmount, cashier]);
   
   const handleCloseCashier = async () => {
     if (!cashier) return;
@@ -90,6 +100,15 @@ const CloseCashierDialog: React.FC<CloseCashierDialogProps> = ({
               onChange={(e) => setFinalAmount(e.target.value)}
               className="col-span-3"
             />
+          </div>
+          
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="difference" className="text-right">
+              Diferença
+            </Label>
+            <div className={`col-span-3 font-semibold ${difference < 0 ? 'text-red-500' : difference > 0 ? 'text-green-500' : ''}`}>
+              {formatCurrency(difference)}
+            </div>
           </div>
         </div>
         

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCashier } from '@/hooks/use-cashier';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface OpenCashierDialogProps {
   open: boolean;
@@ -24,6 +25,14 @@ const OpenCashierDialog: React.FC<OpenCashierDialogProps> = ({ open, onOpenChang
   const [loading, setLoading] = useState(false);
   
   const { openCashier } = useCashier();
+  const { user } = useAuth();
+  
+  // Definir o número do caixa com base no nome do usuário quando o diálogo é aberto
+  useEffect(() => {
+    if (open && user) {
+      setRegisterNumber(`Caixa ${user.name.split(' ')[0]}`);
+    }
+  }, [open, user]);
   
   const handleOpenCashier = async () => {
     setLoading(true);

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -50,8 +49,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   hasPermission: (requiredRoles: UserRole[]) => boolean;
-  addUser: (userData: { id: string; name: string; email: string; password: string; role: UserRole }) => Promise<User>;
-  updateUser: (id: string, userData: { id: string; name: string; email: string; role: UserRole; password?: string }) => Promise<User>;
+  addUser: (userData: { id: string; name: string; email: string; password: string; role: UserRole; cashierLinked?: boolean }) => Promise<User>;
+  updateUser: (id: string, userData: { id: string; name: string; email: string; role: UserRole; password?: string; cashierLinked?: boolean }) => Promise<User>;
   removeUser: (id: string) => Promise<boolean>;
 }
 
@@ -119,7 +118,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     name: string; 
     email: string; 
     password: string; 
-    role: UserRole 
+    role: UserRole;
+    cashierLinked?: boolean;
   }): Promise<User> => {
     // Check if email already exists
     if (users.some(u => u.email === userData.email)) {
@@ -137,6 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email: userData.email,
       password: userData.password,
       role: userData.role,
+      cashierLinked: userData.cashierLinked || false,
       createdAt: new Date(),
     };
     
@@ -153,7 +154,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     name: string; 
     email: string; 
     role: UserRole;
-    password?: string 
+    password?: string;
+    cashierLinked?: boolean;
   }): Promise<User> => {
     // Check if email already exists and belongs to a different user
     if (users.some(u => u.email === userData.email && u.id !== id)) {
@@ -173,7 +175,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: userData.id,
           name: userData.name,
           email: userData.email,
-          role: userData.role
+          role: userData.role,
+          cashierLinked: userData.cashierLinked !== undefined ? userData.cashierLinked : u.cashierLinked
         };
         
         // Update password only if it was provided
