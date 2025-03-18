@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,34 +15,27 @@ export const SalesHistoryList = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedSales, setExpandedSales] = useState<Record<string, boolean>>({});
   
-  // Get sales history from storage
   const salesHistory = (storageService.getItem(STORAGE_KEYS.ORDERS) || []) as Sale[];
   
-  // Filter sales based on search query
   const filteredSales = salesHistory.filter((sale: Sale) => {
     const query = searchQuery.toLowerCase();
     
-    // Search by sale ID
     if (sale.id && sale.id.toString().toLowerCase().includes(query)) {
       return true;
     }
     
-    // Search by customer name
     if (sale.customer && sale.customer.name && sale.customer.name.toLowerCase().includes(query)) {
       return true;
     }
     
-    // Search by payment method
     if (sale.paymentMethod && sale.paymentMethod.toLowerCase().includes(query)) {
       return true;
     }
     
-    // Search by seller name
     if (sale.seller && sale.seller.name && sale.seller.name.toLowerCase().includes(query)) {
       return true;
     }
     
-    // Search by product names in items
     if (sale.items && sale.items.some((item: any) => 
       item.product && item.product.name && item.product.name.toLowerCase().includes(query)
     )) {
@@ -53,14 +45,12 @@ export const SalesHistoryList = () => {
     return false;
   });
   
-  // Sort sales in descending order by creation date
   const sortedSales = [...filteredSales].sort((a: Sale, b: Sale) => {
     const dateA = new Date(a.createdAt).getTime();
     const dateB = new Date(b.createdAt).getTime();
     return dateB - dateA;
   });
   
-  // Toggle sale expansion
   const toggleSaleExpansion = (saleId: string) => {
     setExpandedSales(prev => ({
       ...prev,
@@ -68,12 +58,10 @@ export const SalesHistoryList = () => {
     }));
   };
   
-  // Clear search query
   const clearSearch = () => {
     setSearchQuery('');
   };
   
-  // Format date
   const formatSaleDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
@@ -83,7 +71,6 @@ export const SalesHistoryList = () => {
     }
   };
   
-  // Get payment method translated name
   const getPaymentMethodName = (method: string): string => {
     const methodMap: Record<string, string> = {
       'cash': 'Dinheiro',
@@ -97,7 +84,6 @@ export const SalesHistoryList = () => {
     return methodMap[method] || method;
   };
   
-  // Get payment method icon
   const getPaymentMethodIcon = (method: string) => {
     switch (method) {
       case 'credit_card':
@@ -116,12 +102,9 @@ export const SalesHistoryList = () => {
     }
   };
   
-  // Get promotion details by ID
   const getPromotionDetails = (sale: Sale) => {
-    // Get all promotions from storage
     const promotions = (storageService.getItem(STORAGE_KEYS.PROMOTIONS) || []) as Promotion[];
     
-    // Find the promotion that matches the ID in the sale
     if (sale.appliedPromotionId) {
       const promotion = promotions.find((p: Promotion) => p.id === sale.appliedPromotionId);
       if (promotion) {
@@ -132,33 +115,27 @@ export const SalesHistoryList = () => {
     return null;
   };
   
-  // Get discount authorized by manager name
   const getDiscountAuthorizedByName = (sale: Sale) => {
     if (sale.discountAuthorizedBy) {
-      // Get all users from storage
       const users = (storageService.getItem(STORAGE_KEYS.USERS) || []) as any[];
       
-      // Find the user that matches the ID in the sale
       const user = users.find((u: any) => u.id === sale.discountAuthorizedBy);
       if (user) {
         return user.name;
       }
       
-      // If we can't find the user, return the ID
       return sale.discountAuthorizedBy;
     }
     
     return "Não autorizado";
   };
 
-  // Calculate manual discount (total discount minus promotion discount)
   const getManualDiscountAmount = (sale: Sale) => {
     const totalDiscount = sale.discount || 0;
     const promotionDiscount = sale.promotionDiscountAmount || 0;
     return Math.max(0, totalDiscount - promotionDiscount);
   };
   
-  // Format mixed payment details
   const formatMixedPayment = (payment: any) => {
     if (!payment.payments || !Array.isArray(payment.payments)) {
       return "Detalhes não disponíveis";
@@ -233,7 +210,6 @@ export const SalesHistoryList = () => {
               className="border rounded-md overflow-hidden"
             >
               <div className="bg-card">
-                {/* Sale header - always visible */}
                 <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex flex-col">
                     <div className="flex items-center gap-2">
@@ -280,11 +256,9 @@ export const SalesHistoryList = () => {
                   </div>
                 </div>
                 
-                {/* Sale details - visible when expanded */}
                 <CollapsibleContent>
                   <div className="px-4 pb-4 border-t pt-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Left column - Items */}
                       <div>
                         <h4 className="font-medium mb-2 text-base flex items-center">
                           <Tag className="h-4 w-4 mr-1" />
@@ -330,7 +304,6 @@ export const SalesHistoryList = () => {
                         </div>
                       </div>
                       
-                      {/* Right column - Summary and Payment */}
                       <div>
                         <h4 className="font-medium mb-2 text-base flex items-center">
                           <DollarSign className="h-4 w-4 mr-1" />
@@ -342,33 +315,49 @@ export const SalesHistoryList = () => {
                             <span>{formatCurrency(sale.total)}</span>
                           </div>
                           
-                          {/* Display for promotion discount */}
                           {hasPromotionDiscount && (
-                            <div className="flex justify-between text-green-600">
-                              <span className="flex items-center">
-                                <Gift className="h-3 w-3 mr-1" />
-                                Promoção: {promotionDetails ? promotionDetails.name : "Desconto Promocional"}
-                              </span>
-                              <span>-{formatCurrency(promotionDiscountAmount)}</span>
+                            <div className="border-t pt-2 mt-2">
+                              <div className="flex justify-between text-green-600 font-medium">
+                                <span className="flex items-center">
+                                  <Gift className="h-3 w-3 mr-1" />
+                                  Desconto por Promoção:
+                                </span>
+                                <span>-{formatCurrency(promotionDiscountAmount)}</span>
+                              </div>
+                              {promotionDetails && (
+                                <div className="flex justify-between text-green-600 text-xs mt-1">
+                                  <span>Nome da Promoção:</span>
+                                  <span className="font-medium">{promotionDetails.name}</span>
+                                </div>
+                              )}
+                              {promotionDetails && promotionDetails.description && (
+                                <div className="text-green-600 text-xs mt-1">
+                                  <span>{promotionDetails.description}</span>
+                                </div>
+                              )}
                             </div>
                           )}
                           
-                          {/* Display for manual discount */}
                           {hasManualDiscount && (
-                            <div className="flex justify-between text-amber-600">
-                              <span className="flex items-center">
-                                <Percent className="h-3 w-3 mr-1" />
-                                Desconto Gerencial
-                              </span>
-                              <span>-{formatCurrency(manualDiscountAmount)}</span>
-                            </div>
-                          )}
-                          
-                          {/* Manager authorization for manual discount */}
-                          {hasManualDiscount && sale.discountAuthorizedBy && (
-                            <div className="flex justify-between text-amber-600 text-xs">
-                              <span>Autorizado por:</span>
-                              <span>{getDiscountAuthorizedByName(sale)}</span>
+                            <div className={`${hasPromotionDiscount ? 'mt-2' : 'border-t pt-2 mt-2'}`}>
+                              <div className="flex justify-between text-amber-600 font-medium">
+                                <span className="flex items-center">
+                                  <Percent className="h-3 w-3 mr-1" />
+                                  Desconto Gerencial:
+                                </span>
+                                <span>-{formatCurrency(manualDiscountAmount)}</span>
+                              </div>
+                              {sale.discountAuthorizedBy && (
+                                <div className="flex justify-between text-amber-600 text-xs mt-1">
+                                  <span>Autorizado por:</span>
+                                  <span className="font-medium">{getDiscountAuthorizedByName(sale)}</span>
+                                </div>
+                              )}
+                              {sale.discountReason && (
+                                <div className="text-amber-600 text-xs mt-1">
+                                  <span>Motivo: {sale.discountReason}</span>
+                                </div>
+                              )}
                             </div>
                           )}
                           
@@ -376,9 +365,15 @@ export const SalesHistoryList = () => {
                             <span>Total:</span>
                             <span>{formatCurrency(sale.finalTotal)}</span>
                           </div>
+                          
+                          {(hasPromotionDiscount || hasManualDiscount) && (
+                            <div className="flex justify-between text-sm text-green-600">
+                              <span>Economia Total:</span>
+                              <span>{formatCurrency(promotionDiscountAmount + manualDiscountAmount)}</span>
+                            </div>
+                          )}
                         </div>
                         
-                        {/* Payment details */}
                         <div className="mt-4">
                           <h4 className="font-medium mb-2 text-base flex items-center">
                             <CreditCard className="h-4 w-4 mr-1" />
