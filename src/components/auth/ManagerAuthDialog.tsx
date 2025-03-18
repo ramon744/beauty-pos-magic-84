@@ -75,6 +75,13 @@ export const ManagerAuthDialog = ({
     onClose();
   };
 
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // For custom forms, pass the manager ID directly to onConfirm
+    // This prevents type errors with form event vs string parameter
+    onConfirm(undefined);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
@@ -98,7 +105,12 @@ export const ManagerAuthDialog = ({
               >
                 Cancelar
               </Button>
-              <Button type="submit" form={customFormId} disabled={isSubmitting}>
+              <Button 
+                type="submit" 
+                form={customFormId} 
+                disabled={isSubmitting}
+                onClick={handleFormSubmit}
+              >
                 Continuar
               </Button>
             </DialogFooter>
