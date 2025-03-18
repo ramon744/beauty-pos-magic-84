@@ -353,10 +353,6 @@ export const SalesHistoryList = () => {
           <span>-R$ ${sale.discount.toFixed(2)}</span>
         </div>
       `;
-      
-      if (sale.discountReason) {
-        receipt += `<p style="font-size: 0.8em;">Motivo: ${sale.discountReason}</p>`;
-      }
     }
     
     receipt += `
@@ -848,4 +844,3 @@ export const SalesHistoryList = () => {
     </div>
   );
 };
-

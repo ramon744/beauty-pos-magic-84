@@ -121,9 +121,7 @@ export const PrintReceiptDialog: React.FC<PrintReceiptDialogProps> = ({
               </div>
             )}
             
-            {sale.discountReason && (
-              <p className="text-xs">Motivo: {sale.discountReason}</p>
-            )}
+            {/* Removed discount reason display */}
             
             <div className="flex justify-between font-bold mt-2">
               <span>TOTAL:</span>
