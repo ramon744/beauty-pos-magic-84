@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '@/hooks/use-cart';
 import { useDiscounts } from '@/hooks/use-discounts';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
