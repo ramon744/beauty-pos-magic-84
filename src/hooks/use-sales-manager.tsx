@@ -528,7 +528,9 @@ export const useSalesManager = () => {
 
   const safeAddProductToCart = (product: any) => {
     if (!checkCashierStatus()) {
-      sonnerToast.error("Não é possível adicionar produtos com o caixa fechado");
+      sonnerToast.error("Não é possível adicionar produtos com o caixa fechado", {
+        id: "cart-error",
+      });
       return;
     }
     
