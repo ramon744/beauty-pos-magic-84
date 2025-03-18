@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useFetchProducts } from '@/hooks/use-products';
 import { LabelsProductSearch } from '@/components/labels/LabelsProductSearch';
 import { LabelPreview } from '@/components/labels/LabelPreview';
+import { LabelPrintOptionsDialog } from '@/components/labels/LabelPrintOptionsDialog';
 
 interface SelectedProduct {
   id: string;
@@ -18,6 +19,7 @@ interface SelectedProduct {
 
 const Labels: React.FC = () => {
   const [selectedProducts, setSelectedProducts] = useState<SelectedProduct[]>([]);
+  const [printDialogOpen, setPrintDialogOpen] = useState(false);
   const { toast } = useToast();
   const { data: products = [] } = useFetchProducts();
 
@@ -68,7 +70,7 @@ const Labels: React.FC = () => {
     setSelectedProducts(updatedProducts);
   };
 
-  const printLabels = () => {
+  const handlePrintLabels = () => {
     if (selectedProducts.length === 0) {
       toast({
         title: "Nenhum produto selecionado",
@@ -78,15 +80,34 @@ const Labels: React.FC = () => {
       return;
     }
 
-    // Aqui iria a lógica para impressão das etiquetas
+    setPrintDialogOpen(true);
+  };
+
+  const handleDirectPrint = () => {
     toast({
-      title: "Enviando para impressão",
+      title: "Enviando para impressora",
       description: `${selectedProducts.reduce((acc, p) => acc + p.quantity, 0)} etiquetas serão impressas`
     });
-    
-    // Reset após impressão
-    // setSelectedProducts([]);
+    setPrintDialogOpen(false);
+    // A lógica de impressão direta seria implementada aqui
   };
+
+  const handleDownloadPdf = () => {
+    toast({
+      title: "Gerando PDF",
+      description: "O arquivo PDF com suas etiquetas está sendo gerado"
+    });
+    setPrintDialogOpen(false);
+    // A lógica de geração e download do PDF seria implementada aqui
+    setTimeout(() => {
+      toast({
+        title: "PDF Gerado",
+        description: "O arquivo PDF com suas etiquetas está pronto para download"
+      });
+    }, 1500);
+  };
+
+  const totalLabelCount = selectedProducts.reduce((acc, p) => acc + p.quantity, 0);
 
   return (
     <div className="container p-4 mx-auto space-y-4">
@@ -98,7 +119,7 @@ const Labels: React.FC = () => {
           </p>
         </div>
         <Button 
-          onClick={printLabels} 
+          onClick={handlePrintLabels} 
           disabled={selectedProducts.length === 0} 
           className="w-full md:w-auto"
         >
@@ -144,6 +165,14 @@ const Labels: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      <LabelPrintOptionsDialog 
+        open={printDialogOpen}
+        onOpenChange={setPrintDialogOpen}
+        onPrint={handleDirectPrint}
+        onDownloadPdf={handleDownloadPdf}
+        labelCount={totalLabelCount}
+      />
     </div>
   );
 };
