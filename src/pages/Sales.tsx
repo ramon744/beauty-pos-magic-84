@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -20,6 +21,7 @@ import { useProducts } from '@/hooks/use-products';
 import { PaymentMethodsDialog } from '@/components/sales/PaymentMethodsDialog';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 import { PaymentDetails, MixedPayment } from '@/types';
+import { Textarea } from '@/components/ui/textarea';
 
 const Sales = () => {
   const isMobile = useIsMobile();
@@ -73,6 +75,8 @@ const Sales = () => {
   const [isDiscountsListOpen, setIsDiscountsListOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [discountToDelete, setDiscountToDelete] = useState<'manual' | 'promotion' | null>(null);
+  const [discountReason, setDiscountReason] = useState<string>("");
+  const [discountAuthorizedBy, setDiscountAuthorizedBy] = useState<string | undefined>(undefined);
   const [managerAuthCallback, setManagerAuthCallback] = useState<() => void>(() => () => {});
 
   const discountForm = useForm<DiscountFormValues>({
@@ -83,7 +87,9 @@ const Sales = () => {
     }
   });
 
-  const handleManagerAuthConfirm = () => {
+  const handleManagerAuthConfirm = (managerId?: string) => {
+    setDiscountAuthorizedBy(managerId);
+    
     if (productIdToDelete === "discount") {
       const { discountType, discountValue } = discountForm.getValues();
       applyManualDiscount({
@@ -108,7 +114,8 @@ const Sales = () => {
   };
 
   const requestManagerAuth = (callback: () => void) => {
-    const executeAfterAuth = () => {
+    const executeAfterAuth = (managerId?: string) => {
+      setDiscountAuthorizedBy(managerId);
       callback();
       setIsManagerAuthOpen(false);
     };
@@ -140,6 +147,8 @@ const Sales = () => {
   const doFinalizeSale = () => {
     clearCart();
     resetDiscounts();
+    setDiscountReason("");
+    setDiscountAuthorizedBy(undefined);
   };
 
   const handleOpenPaymentDialog = () => {
@@ -157,7 +166,12 @@ const Sales = () => {
       finalTotal: cartTotal,
       paymentDetails: paymentDetails,
       seller: user,
-      createdAt: new Date()
+      createdAt: new Date(),
+      // Store promotion and discount details
+      appliedPromotionId: appliedPromotion?.promotionId,
+      promotionDiscountAmount: promotionDiscountAmount,
+      discountAuthorizedBy: discountAuthorizedBy,
+      discountReason: discountReason
     };
     
     const orders = storageService.getItem<any[]>(STORAGE_KEYS.ORDERS) || [];
@@ -215,7 +229,8 @@ const Sales = () => {
     setIsDiscountsListOpen(true);
   };
 
-  const handleDeleteDiscount = (discountType: 'manual' | 'promotion') => {
+  const handleDeleteDiscount = (discountType: 'manual' | 'promotion', reason?: string) => {
+    setDiscountReason(reason || "");
     setDiscountToDelete(discountType);
     setProductIdToDelete("delete-discount");
     setIsDiscountsListOpen(false);
@@ -313,10 +328,24 @@ const Sales = () => {
         description="Configure o tipo e valor do desconto a ser aplicado."
         customFormId="discount-form"
         customContent={
-          <DiscountForm 
-            form={discountForm} 
-            onSubmit={handleSubmitDiscount} 
-          />
+          <>
+            <DiscountForm 
+              form={discountForm} 
+              onSubmit={handleSubmitDiscount} 
+            />
+            <div className="mt-4">
+              <label htmlFor="discountReason" className="text-sm font-medium">
+                Motivo do desconto:
+              </label>
+              <Textarea
+                id="discountReason"
+                placeholder="Informe o motivo do desconto"
+                value={discountReason}
+                onChange={(e) => setDiscountReason(e.target.value)}
+                className="mt-2"
+              />
+            </div>
+          </>
         }
       />
 

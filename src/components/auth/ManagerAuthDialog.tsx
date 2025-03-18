@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 interface ManagerAuthDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (managerId?: string) => void;
   title?: string;
   description?: string;
   customContent?: React.ReactNode;
@@ -44,18 +44,18 @@ export const ManagerAuthDialog = ({
 
     try {
       // Check if the password matches any manager or admin user
-      const managerExists = users.some(
+      const manager = users.find(
         (user) => 
           (user.role === "manager" || user.role === "admin") && 
           user.password === password
       );
 
-      if (managerExists) {
+      if (manager) {
         toast({
           title: "Autorização confirmada",
           description: "Operação permitida",
         });
-        onConfirm();
+        onConfirm(manager.id); // Pass the manager ID to the callback
         onClose();
         setPassword("");
       } else {

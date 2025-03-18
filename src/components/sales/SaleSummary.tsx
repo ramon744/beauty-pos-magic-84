@@ -57,7 +57,7 @@ export const SaleSummary: React.FC<SaleSummaryProps> = ({
         <CardTitle className="text-lg">Resumo da Venda</CardTitle>
       </CardHeader>
       <CardContent>
-        {/* Customer linking component moved here */}
+        {/* Customer linking component */}
         <CustomerLinking 
           linkedCustomer={linkedCustomer}
           onLinkCustomer={onLinkCustomer}

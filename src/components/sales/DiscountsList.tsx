@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { AppliedPromotion } from "@/utils/promotions-utils";
 import { Promotion } from "@/types";
+import { Textarea } from "@/components/ui/textarea";
 
 interface DiscountsListProps {
   isOpen: boolean;
@@ -23,7 +24,7 @@ interface DiscountsListProps {
   promotions: Promotion[];
   onRemoveManualDiscount: () => void;
   onRemovePromotion: () => void;
-  onDeleteDiscount: (discountType: 'manual' | 'promotion') => void;
+  onDeleteDiscount: (discountType: 'manual' | 'promotion', reason?: string) => void;
   onRequestAuth: (action: () => void) => void;
 }
 
@@ -39,6 +40,9 @@ export const DiscountsList = ({
   onRequestAuth,
 }: DiscountsListProps) => {
   const { toast } = useToast();
+  const [discountReason, setDiscountReason] = useState("");
+  const [showReasonInput, setShowReasonInput] = useState(false);
+  const [discountTypeToDelete, setDiscountTypeToDelete] = useState<'manual' | 'promotion' | null>(null);
 
   // Find promotion details safely
   const appliedPromotionDetails = appliedPromotion && promotions
@@ -63,20 +67,33 @@ export const DiscountsList = ({
     });
   };
 
-  const handleDeleteAll = () => {
-    if (manualDiscount) {
-      onDeleteDiscount('manual');
-      toast({
-        title: "Desconto excluído",
-        description: "Desconto manual excluído da venda"
-      });
-    } else if (appliedPromotion) {
-      onDeleteDiscount('promotion');
-      toast({
-        title: "Promoção excluída",
-        description: "Promoção automática excluída da venda"
+  const promptForReason = (discountType: 'manual' | 'promotion') => {
+    setDiscountTypeToDelete(discountType);
+    setShowReasonInput(true);
+  };
+
+  const handleDeleteWithReason = () => {
+    if (discountTypeToDelete) {
+      onRequestAuth(() => {
+        onDeleteDiscount(discountTypeToDelete, discountReason);
+        setShowReasonInput(false);
+        setDiscountReason("");
+        setDiscountTypeToDelete(null);
+        
+        toast({
+          title: "Desconto excluído",
+          description: discountTypeToDelete === 'manual' 
+            ? "Desconto manual excluído da venda" 
+            : "Promoção automática excluída da venda"
+        });
       });
     }
+  };
+
+  const cancelDeleteWithReason = () => {
+    setShowReasonInput(false);
+    setDiscountReason("");
+    setDiscountTypeToDelete(null);
   };
 
   // Helper function to safely format values
@@ -100,83 +117,116 @@ export const DiscountsList = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4">
-          {!hasDiscounts ? (
-            <div className="text-center py-6 text-muted-foreground">
-              Nenhum desconto aplicado na venda atual.
+        {showReasonInput ? (
+          <div className="py-4">
+            <h3 className="text-sm font-medium mb-2">
+              Motivo da remoção do desconto:
+            </h3>
+            <Textarea
+              value={discountReason}
+              onChange={(e) => setDiscountReason(e.target.value)}
+              placeholder="Informe o motivo da remoção do desconto"
+              className="mb-4"
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={cancelDeleteWithReason}>
+                Cancelar
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={handleDeleteWithReason}
+              >
+                Confirmar Exclusão
+              </Button>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {manualDiscount && (
-                <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="bg-destructive/10 text-destructive hover:bg-destructive/20">
-                      <Percent className="h-3 w-3 mr-1" />
-                      Manual
-                    </Badge>
-                    <span className="font-medium">
-                      {manualDiscount.type === 'percentage'
-                        ? `${formatValue(manualDiscount.value)}%`
-                        : `R$ ${formatValue(manualDiscount.value)}`}
-                    </span>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground"
-                      onClick={handleRemoveManualDiscount}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {appliedPromotionDetails && (
-                <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200">
-                      <Gift className="h-3 w-3 mr-1" />
-                      Promoção
-                    </Badge>
-                    <span className="font-medium">{appliedPromotionDetails.name}</span>
-                    {appliedPromotion && (
-                      <span className="text-sm text-muted-foreground">
-                        (R$ {formatValue(appliedPromotion.discountAmount)})
+          </div>
+        ) : (
+          <div className="py-4">
+            {!hasDiscounts ? (
+              <div className="text-center py-6 text-muted-foreground">
+                Nenhum desconto aplicado na venda atual.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {manualDiscount && (
+                  <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-destructive/10 text-destructive hover:bg-destructive/20">
+                        <Percent className="h-3 w-3 mr-1" />
+                        Manual
+                      </Badge>
+                      <span className="font-medium">
+                        {manualDiscount.type === 'percentage'
+                          ? `${formatValue(manualDiscount.value)}%`
+                          : `R$ ${formatValue(manualDiscount.value)}`}
                       </span>
-                    )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground"
+                        onClick={handleRemoveManualDiscount}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground"
-                      onClick={handleRemovePromotion}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                )}
+
+                {appliedPromotionDetails && (
+                  <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200">
+                        <Gift className="h-3 w-3 mr-1" />
+                        Promoção
+                      </Badge>
+                      <span className="font-medium">{appliedPromotionDetails.name}</span>
+                      {appliedPromotion && (
+                        <span className="text-sm text-muted-foreground">
+                          (R$ {formatValue(appliedPromotion.discountAmount)})
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground"
+                        onClick={handleRemovePromotion}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <DialogFooter className="gap-2 sm:gap-0">
-          {hasDiscounts && (
+          {hasDiscounts && !showReasonInput && (
             <Button
               variant="destructive"
               className="sm:mr-auto"
-              onClick={handleDeleteAll}
+              onClick={() => {
+                if (manualDiscount) {
+                  promptForReason('manual');
+                } else if (appliedPromotion) {
+                  promptForReason('promotion');
+                }
+              }}
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              Excluir Todos
+              Excluir
             </Button>
           )}
-          <Button variant="outline" onClick={onClose}>
-            Fechar
-          </Button>
+          {!showReasonInput && (
+            <Button variant="outline" onClick={onClose}>
+              Fechar
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

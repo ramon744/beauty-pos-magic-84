@@ -1,3 +1,4 @@
+
 // User roles
 export type UserRole = 'admin' | 'manager' | 'employee';
 
@@ -115,7 +116,7 @@ export interface Sale {
   appliedPromotionId?: string;
   promotionDiscountAmount?: number;
   discountAuthorizedBy?: string;
-  discountReason?: string;  // Added the missing discountReason property
+  discountReason?: string;  // Reason for discount application
 }
 
 // Promotion type

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,13 +9,15 @@ import { formatCurrency } from '@/lib/formatters';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Sale, Promotion } from '@/types';
+import { Sale, Promotion, User as UserType } from '@/types';
 
 export const SalesHistoryList = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedSales, setExpandedSales] = useState<Record<string, boolean>>({});
   
   const salesHistory = (storageService.getItem(STORAGE_KEYS.ORDERS) || []) as Sale[];
+  const allPromotions = (storageService.getItem(STORAGE_KEYS.PROMOTIONS) || []) as Promotion[];
+  const allUsers = (storageService.getItem(STORAGE_KEYS.USERS) || []) as UserType[];
   
   const filteredSales = salesHistory.filter((sale: Sale) => {
     const query = searchQuery.toLowerCase();
@@ -104,30 +105,18 @@ export const SalesHistoryList = () => {
   };
   
   const getPromotionDetails = (sale: Sale) => {
-    const promotions = (storageService.getItem(STORAGE_KEYS.PROMOTIONS) || []) as Promotion[];
-    
     if (sale.appliedPromotionId) {
-      const promotion = promotions.find((p: Promotion) => p.id === sale.appliedPromotionId);
-      if (promotion) {
-        return promotion;
-      }
+      const promotion = allPromotions.find((p: Promotion) => p.id === sale.appliedPromotionId);
+      return promotion || null;
     }
-    
     return null;
   };
   
   const getDiscountAuthorizedByName = (sale: Sale) => {
     if (sale.discountAuthorizedBy) {
-      const users = (storageService.getItem(STORAGE_KEYS.USERS) || []) as any[];
-      
-      const user = users.find((u: any) => u.id === sale.discountAuthorizedBy);
-      if (user) {
-        return user.name;
-      }
-      
-      return sale.discountAuthorizedBy;
+      const user = allUsers.find((u: UserType) => u.id === sale.discountAuthorizedBy);
+      return user ? user.name : sale.discountAuthorizedBy;
     }
-    
     return "Não autorizado";
   };
 
@@ -327,13 +316,13 @@ export const SalesHistoryList = () => {
                               </div>
                               {promotionDetails && (
                                 <div className="flex justify-between text-green-600 text-xs mt-1">
-                                  <span>Nome da Promoção:</span>
+                                  <span>Promoção:</span>
                                   <span className="font-medium">{promotionDetails.name}</span>
                                 </div>
                               )}
                               {promotionDetails && promotionDetails.description && (
                                 <div className="text-green-600 text-xs mt-1">
-                                  <span>{promotionDetails.description}</span>
+                                  <span>Descrição: {promotionDetails.description}</span>
                                 </div>
                               )}
                             </div>
