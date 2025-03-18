@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import PageTransition from '@/components/ui/PageTransition';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LinkIcon, PlusIcon, List, ListChecksIcon } from 'lucide-react';
+import { LinkIcon, PlusIcon, List, ListChecksIcon, ActivityIcon } from 'lucide-react';
 import { CashierForm } from '@/components/cashiers/CashierForm';
 import { CashierAssignmentForm } from '@/components/cashiers/CashierAssignmentForm';
 import { CashiersList } from '@/components/cashiers/CashiersList';
@@ -46,6 +46,7 @@ const CashierLink = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<'create' | 'edit' | 'assign'>('create');
   const [selectedCashier, setSelectedCashier] = useState<Cashier | null>(null);
+  const [viewMode, setViewMode] = useState<'all' | 'active' | 'unassigned'>('all');
 
   // Redirect if not admin
   React.useEffect(() => {
@@ -105,7 +106,24 @@ const CashierLink = () => {
     }
   };
 
+  const getFilteredCashiers = () => {
+    switch (viewMode) {
+      case 'active':
+        return cashiers.filter(c => c.isActive && c.assignedUserId);
+      case 'unassigned':
+        return cashiers.filter(c => !c.assignedUserId);
+      default:
+        return cashiers;
+    }
+  };
+
   const availableCashiers = getAvailableCashiers();
+  const filteredCashiers = getFilteredCashiers();
+  
+  // Contadores para monitoramento
+  const activeCashiers = cashiers.filter(c => c.isActive && c.assignedUserId).length;
+  const totalCashiers = cashiers.length;
+  const unassignedCashiers = cashiers.filter(c => !c.assignedUserId).length;
 
   return (
     <PageTransition>
@@ -130,6 +148,10 @@ const CashierLink = () => {
               <ListChecksIcon className="mr-2 h-4 w-4" />
               Vinculações
             </TabsTrigger>
+            <TabsTrigger value="monitoring" className="flex items-center">
+              <ActivityIcon className="mr-2 h-4 w-4" />
+              Monitoramento
+            </TabsTrigger>
           </TabsList>
 
           {error && (
@@ -140,7 +162,27 @@ const CashierLink = () => {
           )}
 
           <TabsContent value="list" className="space-y-6 bg-background">
-            <div className="flex justify-end">
+            <div className="flex justify-between items-center">
+              <div className="flex gap-2">
+                <Button 
+                  variant={viewMode === 'all' ? "default" : "outline"} 
+                  onClick={() => setViewMode('all')}
+                >
+                  Todos
+                </Button>
+                <Button 
+                  variant={viewMode === 'active' ? "default" : "outline"} 
+                  onClick={() => setViewMode('active')}
+                >
+                  Ativos
+                </Button>
+                <Button 
+                  variant={viewMode === 'unassigned' ? "default" : "outline"} 
+                  onClick={() => setViewMode('unassigned')}
+                >
+                  Não Vinculados
+                </Button>
+              </div>
               <Button onClick={handleOpenCreateDialog}>
                 <PlusIcon className="mr-2 h-4 w-4" />
                 Novo Caixa
@@ -148,7 +190,7 @@ const CashierLink = () => {
             </div>
 
             <CashiersList
-              cashiers={cashiers}
+              cashiers={filteredCashiers}
               onEdit={handleOpenEditDialog}
               onDelete={handleDeleteCashier}
               onUnassign={handleUnassignCashier}
@@ -202,11 +244,70 @@ const CashierLink = () => {
                     Veja todos os caixas ativos e suas vinculações no momento.
                   </p>
                   <div className="flex justify-end">
-                    <Button onClick={() => setActiveTab('list')}>Ver Caixas</Button>
+                    <Button onClick={() => setActiveTab('monitoring')}>Ver Caixas</Button>
                   </div>
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="monitoring" className="bg-background">
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold mb-4">Monitoramento de Caixas</h3>
+              
+              <div className="grid gap-6 md:grid-cols-3">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-4xl">{activeCashiers}</CardTitle>
+                    <CardDescription>Caixas Ativos</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      Caixas vinculados e operacionais
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-4xl">{unassignedCashiers}</CardTitle>
+                    <CardDescription>Caixas Não Vinculados</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      Caixas disponíveis para vinculação
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-4xl">{totalCashiers}</CardTitle>
+                    <CardDescription>Total de Caixas</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      Número total de caixas no sistema
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Caixas Ativos</CardTitle>
+                <CardDescription>Lista de todos os caixas atualmente vinculados</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <CashiersList
+                  cashiers={cashiers.filter(c => c.isActive && c.assignedUserId)}
+                  onEdit={handleOpenEditDialog}
+                  onDelete={handleDeleteCashier}
+                  onUnassign={handleUnassignCashier}
+                />
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
 
