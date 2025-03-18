@@ -23,6 +23,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recha
 import { formatCurrency } from '@/lib/formatters';
 import { CashierOperation } from '@/services/cashier-operations-service';
 import { FileIcon, PieChartIcon, TableIcon } from 'lucide-react';
+import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 
 // Default payment methods with zero values
 const DEFAULT_PAYMENT_METHODS = [
@@ -56,15 +57,81 @@ export const CashierDetailsDialog = ({
   const [activeTab, setActiveTab] = useState('summary');
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodSummary[]>(DEFAULT_PAYMENT_METHODS);
 
-  // Initialize with default zero values when dialog opens
+  // Load payment data when dialog opens
   useEffect(() => {
     if (isOpen) {
-      setPaymentMethods([...DEFAULT_PAYMENT_METHODS]);
+      // Start with default zero values
+      const methodsMap = new Map<string, PaymentMethodSummary>();
       
-      // In a real implementation, you would fetch actual payment data as sales happen
-      // For now, we're just using the default zero values
+      DEFAULT_PAYMENT_METHODS.forEach(method => {
+        methodsMap.set(method.method, {...method, amount: 0});
+      });
+      
+      // Get all orders from storage
+      const orders = storageService.getItem<any[]>(STORAGE_KEYS.ORDERS) || [];
+      
+      // Find orders associated with this cashier
+      const latestOpenOp = operations
+        .filter(op => op.cashierId === cashierId && op.operationType === 'open')
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+      
+      if (latestOpenOp) {
+        const openTimestamp = new Date(latestOpenOp.timestamp).getTime();
+        
+        // Get orders created after the cashier was opened
+        const cashierOrders = orders.filter(order => {
+          const orderDate = new Date(order.createdAt).getTime();
+          return orderDate >= openTimestamp;
+        });
+        
+        // Process each order's payment data
+        cashierOrders.forEach(order => {
+          if (order.paymentMethod === 'mixed' && order.paymentDetails.payments) {
+            // Handle mixed payments
+            order.paymentDetails.payments.forEach((payment: any) => {
+              const methodName = getMethodDisplayName(payment.method);
+              if (methodsMap.has(methodName)) {
+                const current = methodsMap.get(methodName)!;
+                methodsMap.set(methodName, {
+                  ...current,
+                  amount: current.amount + payment.amount
+                });
+              }
+            });
+          } else {
+            // Handle single payment method
+            const methodName = getMethodDisplayName(order.paymentMethod);
+            if (methodsMap.has(methodName)) {
+              const current = methodsMap.get(methodName)!;
+              methodsMap.set(methodName, {
+                ...current,
+                amount: current.amount + order.finalTotal
+              });
+            }
+          }
+        });
+      }
+      
+      // Convert map back to array
+      setPaymentMethods(Array.from(methodsMap.values()));
     }
-  }, [isOpen, cashierId]);
+  }, [isOpen, cashierId, operations]);
+
+  // Helper function to convert payment method codes to display names
+  const getMethodDisplayName = (methodCode: string): string => {
+    switch (methodCode) {
+      case 'cash':
+        return 'Dinheiro';
+      case 'credit_card':
+        return 'Cartão de Crédito';
+      case 'debit_card':
+        return 'Cartão de Débito';
+      case 'pix':
+        return 'Pix';
+      default:
+        return methodCode;
+    }
+  };
 
   // Calculate total amount
   const totalAmount = paymentMethods.reduce((sum, method) => sum + method.amount, 0);

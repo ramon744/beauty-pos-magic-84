@@ -34,7 +34,14 @@ import { ManagerAuthDialog } from '@/components/auth/ManagerAuthDialog';
 const Cashiers = () => {
   const [activeTab, setActiveTab] = useState('open');
   const { cashiers, isLoading } = useCashiers();
-  const { operations, getUserCashierStatus, isCashierOpen, getCashierBalance } = useCashierOperations();
+  const { 
+    operations, 
+    getUserCashierStatus, 
+    isCashierOpen, 
+    getCashierBalance,
+    addDeposit,
+    addWithdrawal
+  } = useCashierOperations();
   const { users } = useAuth();
   
   const [isOpenCashierDialogOpen, setIsOpenCashierDialogOpen] = useState(false);
@@ -72,12 +79,46 @@ const Cashiers = () => {
     setIsDetailsDialogOpen(true);
   };
   
-  const handleWithdrawal = () => {
-    toast.info("Funcionalidade de sangria será implementada em breve");
+  const handleWithdrawal = async () => {
+    if (!selectedCashierForOperation || !withdrawalAmount || parseFloat(withdrawalAmount) <= 0) {
+      toast.error("Informe um valor válido para a sangria");
+      return;
+    }
+    
+    try {
+      const amount = parseFloat(withdrawalAmount);
+      const result = await addWithdrawal(selectedCashierForOperation, amount, withdrawalReason);
+      
+      if (result) {
+        toast.success("Sangria realizada com sucesso");
+        setWithdrawalAmount('');
+        setWithdrawalReason('');
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Erro ao realizar sangria";
+      toast.error(errorMsg);
+    }
   };
   
-  const handleDeposit = () => {
-    toast.info("Funcionalidade de suprimento será implementada em breve");
+  const handleDeposit = async () => {
+    if (!selectedCashierForOperation || !depositAmount || parseFloat(depositAmount) <= 0) {
+      toast.error("Informe um valor válido para o suprimento");
+      return;
+    }
+    
+    try {
+      const amount = parseFloat(depositAmount);
+      const result = await addDeposit(selectedCashierForOperation, amount, depositReason);
+      
+      if (result) {
+        toast.success("Suprimento adicionado com sucesso");
+        setDepositAmount('');
+        setDepositReason('');
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Erro ao adicionar suprimento";
+      toast.error(errorMsg);
+    }
   };
   
   const formatCurrency = (value: number) => {

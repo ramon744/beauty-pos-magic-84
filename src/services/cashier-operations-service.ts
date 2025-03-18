@@ -60,25 +60,76 @@ export const cashierOperationsService = {
     return latestOperation?.operationType === 'open';
   },
   
-  // Get current balance for a cashier
+  // Get current balance for a cashier, including sales
   getCashierBalance: (cashierId: string): number => {
     const operations = cashierOperationsService.getCashierOperations(cashierId);
     
+    // If no operations, return 0
+    if (operations.length === 0) return 0;
+    
+    // Sort operations by timestamp
+    const sortedOperations = operations.sort((a, b) => 
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+    
+    // Find the most recent 'open' operation
+    const openOperationIndex = sortedOperations
+      .map(op => op.operationType)
+      .lastIndexOf('open');
+    
+    // If no open operation, return 0
+    if (openOperationIndex === -1) return 0;
+    
     let balance = 0;
-    for (const op of operations) {
+    
+    // Calculate balance from operations after the last 'open'
+    for (let i = openOperationIndex; i < sortedOperations.length; i++) {
+      const op = sortedOperations[i];
+      
       switch (op.operationType) {
         case 'open':
           balance = op.amount;
           break;
         case 'close':
-          balance = 0;
-          break;
+          return 0; // After close, balance is 0
         case 'deposit':
           balance += op.amount;
           break;
         case 'withdrawal':
           balance -= op.amount;
           break;
+      }
+    }
+    
+    // If cashier is open, add sales amounts
+    if (cashierOperationsService.isCashierOpen(cashierId)) {
+      // Get the timestamp of the last open operation
+      const lastOpenOp = operations
+        .filter(op => op.operationType === 'open')
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+      
+      if (lastOpenOp) {
+        const openTime = new Date(lastOpenOp.timestamp).getTime();
+        const orders = storageService.getItem<any[]>(STORAGE_KEYS.ORDERS) || [];
+        
+        // Only consider cash payments to affect the cash balance
+        orders.forEach(order => {
+          const orderTime = new Date(order.createdAt).getTime();
+          if (orderTime >= openTime) {
+            // For mixed payments, only add cash portion
+            if (order.paymentMethod === 'mixed' && order.paymentDetails.payments) {
+              order.paymentDetails.payments.forEach((payment: any) => {
+                if (payment.method === 'cash') {
+                  balance += payment.amount;
+                }
+              });
+            } 
+            // For single cash payment
+            else if (order.paymentMethod === 'cash') {
+              balance += order.finalTotal;
+            }
+          }
+        });
       }
     }
     

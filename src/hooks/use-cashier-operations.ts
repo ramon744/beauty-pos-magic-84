@@ -4,6 +4,7 @@ import { cashierOperationsService, CashierOperation } from '@/services/cashier-o
 import { useAuth } from '@/contexts/AuthContext';
 import { cashierService } from '@/services/cashier-service';
 import { toast } from '@/hooks/use-toast';
+import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 
 export function useCashierOperations() {
   const [operations, setOperations] = useState<CashierOperation[]>([]);
@@ -136,6 +137,75 @@ export function useCashierOperations() {
     return { cashier, isOpen, balance };
   }, [user]);
 
+  // Calculate total sales for a cashier
+  const getCashierSalesTotal = useCallback((cashierId: string): number => {
+    // Get all orders
+    const orders = storageService.getItem<any[]>(STORAGE_KEYS.ORDERS) || [];
+    
+    // Find the latest opening operation for this cashier
+    const latestOpenOp = operations
+      .filter(op => op.cashierId === cashierId && op.operationType === 'open')
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+    
+    if (!latestOpenOp) return 0;
+    
+    const openingTimestamp = new Date(latestOpenOp.timestamp).getTime();
+    
+    // Calculate total sales since the cashier was opened
+    let totalSales = 0;
+    
+    orders.forEach(order => {
+      const orderDate = new Date(order.createdAt).getTime();
+      if (orderDate >= openingTimestamp) {
+        totalSales += order.finalTotal;
+      }
+    });
+    
+    return totalSales;
+  }, [operations]);
+
+  // Get payment method breakdown
+  const getCashierPaymentBreakdown = useCallback((cashierId: string) => {
+    // Define default payment methods
+    const methodsMap = new Map<string, number>();
+    methodsMap.set('cash', 0);
+    methodsMap.set('credit_card', 0);
+    methodsMap.set('debit_card', 0);
+    methodsMap.set('pix', 0);
+    
+    // Get all orders
+    const orders = storageService.getItem<any[]>(STORAGE_KEYS.ORDERS) || [];
+    
+    // Find latest open operation
+    const latestOpenOp = operations
+      .filter(op => op.cashierId === cashierId && op.operationType === 'open')
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+    
+    if (!latestOpenOp) return Object.fromEntries(methodsMap);
+    
+    const openingTimestamp = new Date(latestOpenOp.timestamp).getTime();
+    
+    // Process each order
+    orders.forEach(order => {
+      const orderDate = new Date(order.createdAt).getTime();
+      if (orderDate >= openingTimestamp) {
+        if (order.paymentMethod === 'mixed' && order.paymentDetails.payments) {
+          // Handle mixed payments
+          order.paymentDetails.payments.forEach((payment: any) => {
+            const method = payment.method;
+            methodsMap.set(method, (methodsMap.get(method) || 0) + payment.amount);
+          });
+        } else {
+          // Handle single payment method
+          const method = order.paymentMethod;
+          methodsMap.set(method, (methodsMap.get(method) || 0) + order.finalTotal);
+        }
+      }
+    });
+    
+    return Object.fromEntries(methodsMap);
+  }, [operations]);
+
   // Load operations on component mount
   useEffect(() => {
     loadOperations();
@@ -152,6 +222,8 @@ export function useCashierOperations() {
     loadOperations,
     loadUserOperations,
     getUserCashierStatus,
+    getCashierSalesTotal,
+    getCashierPaymentBreakdown,
     isCashierOpen: cashierOperationsService.isCashierOpen,
     getCashierBalance: cashierOperationsService.getCashierBalance,
     getLatestCashierOperation: cashierOperationsService.getLatestCashierOperation
