@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Users as UsersIcon, UserPlus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,7 +13,6 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { UserRoleSelect } from '@/components/users/UserRoleSelect';
-import { Switch } from '@/components/ui/switch';
 
 // Form validation schema
 const userFormSchema = z.object({
@@ -26,7 +24,6 @@ const userFormSchema = z.object({
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'Senha precisa ter pelo menos 6 caracteres'),
   role: z.enum(['admin', 'manager', 'employee'] as const),
-  cashierLinked: z.boolean().default(false),
 });
 
 // Edit form schema with optional password
@@ -52,7 +49,6 @@ const Users = () => {
       email: '',
       password: '',
       role: 'employee',
-      cashierLinked: false,
     },
   });
 
@@ -64,7 +60,6 @@ const Users = () => {
       email: '',
       password: '',
       role: 'employee',
-      cashierLinked: false,
     },
   });
 
@@ -86,8 +81,7 @@ const Users = () => {
         name: data.name,
         email: data.email,
         password: data.password,
-        role: data.role,
-        cashierLinked: data.cashierLinked
+        role: data.role
       });
       
       toast({
@@ -112,7 +106,6 @@ const Users = () => {
     editForm.setValue('email', user.email);
     editForm.setValue('role', user.role);
     editForm.setValue('password', ''); // Reset password field
-    editForm.setValue('cashierLinked', user.cashierLinked || false);
     setIsEditDialogOpen(true);
   };
 
@@ -137,13 +130,11 @@ const Users = () => {
         email: string; 
         role: UserRole;
         password?: string;
-        cashierLinked: boolean;
       } = {
         id: data.id,
         name: data.name,
         email: data.email,
-        role: data.role,
-        cashierLinked: data.cashierLinked
+        role: data.role
       };
       
       // Only include password if it's not empty
@@ -220,13 +211,6 @@ const Users = () => {
         }
         
         return <span>{displayText}</span>;
-      },
-    },
-    {
-      accessorKey: 'cashierLinked',
-      header: 'Caixa Vinculado',
-      cell: ({ row }) => {
-        return <span>{row.original.cashierLinked ? 'Sim' : 'Não'}</span>;
       },
     },
     {
@@ -375,26 +359,6 @@ const Users = () => {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={addForm.control}
-                name="cashierLinked"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between space-x-2 space-y-0 rounded-md border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel>Vincular Caixa</FormLabel>
-                      <div className="text-sm text-muted-foreground">
-                        Usuário precisa abrir caixa antes de vender
-                      </div>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
               <DialogFooter>
                 <Button type="submit">Salvar</Button>
               </DialogFooter>
@@ -483,26 +447,6 @@ const Users = () => {
                       />
                     </FormControl>
                     <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={editForm.control}
-                name="cashierLinked"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between space-x-2 space-y-0 rounded-md border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel>Vincular Caixa</FormLabel>
-                      <div className="text-sm text-muted-foreground">
-                        Usuário precisa abrir caixa antes de vender
-                      </div>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
                   </FormItem>
                 )}
               />

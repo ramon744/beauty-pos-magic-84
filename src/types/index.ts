@@ -9,7 +9,6 @@ export interface User {
   role: UserRole;
   createdAt: Date;
   password?: string; // Add optional password field
-  cashierLinked?: boolean; // Flag to indicate if user needs to open cashier before sales
 }
 
 // Authentication state
@@ -175,32 +174,4 @@ export interface Printer {
   isNetworkPrinter: boolean;
   ipAddress?: string;
   port?: string;
-}
-
-// Cashier types
-export type CashierStatus = 'open' | 'closed';
-export type CashierOperationType = 'withdrawal' | 'deposit';
-
-export interface CashierOperation {
-  id: string;
-  cashierId: string;
-  type: CashierOperationType;
-  amount: number;
-  reason: string;
-  createdBy: string;
-  createdAt: Date;
-}
-
-export interface Cashier {
-  id: string;
-  employeeId: string;
-  employeeName: string;
-  registerNumber: string;
-  initialAmount: number;
-  currentAmount: number;
-  openedAt: Date;
-  closedAt?: Date;
-  status: CashierStatus;
-  difference?: number;
-  operations?: CashierOperation[];
 }

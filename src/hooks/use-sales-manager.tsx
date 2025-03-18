@@ -186,47 +186,6 @@ export const useSalesManager = () => {
     
     console.log("Saving order with discountAuthorizedBy:", order.discountAuthorizedBy);
     
-    if (user?.cashierLinked) {
-      const openCashiers = storageService.getItem<any[]>(STORAGE_KEYS.CASHIERS) || [];
-      const userCashier = openCashiers.find(cashier => 
-        cashier.status === 'open' && cashier.employeeId === user.id
-      );
-      
-      if (!userCashier) {
-        toast({
-          title: "Erro",
-          description: "Você precisa abrir um caixa antes de realizar vendas.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      const updatedCashiers = openCashiers.map(cashier => {
-        if (cashier.id === userCashier.id) {
-          return {
-            ...cashier,
-            currentAmount: cashier.currentAmount + cartTotal
-          };
-        }
-        return cashier;
-      });
-      
-      storageService.setItem(STORAGE_KEYS.CASHIERS, updatedCashiers);
-      
-      const cashierOperations = storageService.getItem<any[]>(STORAGE_KEYS.CASHIER_OPERATIONS) || [];
-      cashierOperations.push({
-        id: crypto.randomUUID(),
-        cashierId: userCashier.id,
-        type: 'deposit',
-        amount: cartTotal,
-        reason: `Venda #${order.id}`,
-        createdBy: user.id,
-        createdAt: new Date()
-      });
-      
-      storageService.setItem(STORAGE_KEYS.CASHIER_OPERATIONS, cashierOperations);
-    }
-    
     const orders = storageService.getItem<any[]>(STORAGE_KEYS.ORDERS) || [];
     orders.push(order);
     storageService.setItem(STORAGE_KEYS.ORDERS, orders);
