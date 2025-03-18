@@ -17,6 +17,7 @@ import {
   Truck,
   ShoppingBag,
   Printer,
+  Tag,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UserRole } from '@/types';
@@ -134,6 +135,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle }) => {
             icon={<BarChart3 size={20} />} 
             label="Relatórios" 
             requiredRoles={['admin', 'manager']}
+          />
+          <NavItem 
+            to="/labels" 
+            icon={<Tag size={20} />} 
+            label="Etiquetas" 
           />
           <NavItem 
             to="/printers" 
