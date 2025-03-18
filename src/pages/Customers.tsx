@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Customer, Sale } from '@/types';
@@ -50,7 +51,7 @@ type CustomerFormValues = z.infer<typeof customerFormSchema>;
 
 const Customers = () => {
   const { toast } = useToast();
-  const { customers, addCustomer, updateCustomer, removeCustomer, searchAddressByCEP } = useCustomers();
+  const { customers, addCustomer, updateCustomer, removeCustomer, searchAddressByCEP, validateCPF } = useCustomers();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -175,6 +176,18 @@ const Customers = () => {
 
   const onAddSubmit = async (data: CustomerFormValues) => {
     try {
+      const cleanCpf = data.cpf.replace(/\D/g, '');
+      
+      // Validate CPF before proceeding
+      if (!validateCPF(cleanCpf)) {
+        toast({
+          title: 'CPF inválido',
+          description: 'Por favor, verifique o CPF informado.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
       await addCustomer({
         name: data.name,
         email: data.email || '',
@@ -219,6 +232,18 @@ const Customers = () => {
     if (!selectedCustomer) return;
     
     try {
+      const cleanCpf = data.cpf.replace(/\D/g, '');
+      
+      // Validate CPF before proceeding
+      if (!validateCPF(cleanCpf)) {
+        toast({
+          title: 'CPF inválido',
+          description: 'Por favor, verifique o CPF informado.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
       await updateCustomer(selectedCustomer.id, {
         name: data.name,
         email: data.email || '',

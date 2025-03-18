@@ -181,6 +181,7 @@ export const useCustomers = () => {
     addCustomer,
     updateCustomer,
     removeCustomer,
-    searchAddressByCEP
+    searchAddressByCEP,
+    validateCPF // Expose the validation function
   };
 };

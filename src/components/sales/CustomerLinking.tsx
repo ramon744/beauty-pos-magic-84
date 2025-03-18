@@ -39,7 +39,7 @@ export const CustomerLinking: React.FC<CustomerLinkingProps> = ({
   onLinkCustomer,
   onUnlinkCustomer
 }) => {
-  const { customers, addCustomer } = useCustomers();
+  const { customers, addCustomer, validateCPF } = useCustomers();
   const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
   const [isQuickRegisterOpen, setIsQuickRegisterOpen] = useState(false);
   const [searchResult, setSearchResult] = useState<Customer | null>(null);
@@ -75,6 +75,14 @@ export const CustomerLinking: React.FC<CustomerLinkingProps> = ({
   // Busca cliente por CPF
   const handleSearchCustomer = (data: CpfSearchFormValues) => {
     const cleanCpf = data.cpf.replace(/\D/g, '');
+    
+    // Validar CPF antes de prosseguir
+    if (!validateCPF(cleanCpf)) {
+      setSearchResult(null);
+      setSearchError('CPF inválido');
+      return;
+    }
+    
     const foundCustomer = customers.find(customer => customer.cpf.replace(/\D/g, '') === cleanCpf);
     
     if (foundCustomer) {
@@ -91,6 +99,13 @@ export const CustomerLinking: React.FC<CustomerLinkingProps> = ({
   // Realiza o cadastro rápido do cliente
   const handleQuickRegister = async (data: QuickCustomerFormValues) => {
     try {
+      const cleanCpf = data.cpf.replace(/\D/g, '');
+      
+      // Validar CPF antes de prosseguir
+      if (!validateCPF(cleanCpf)) {
+        throw new Error('CPF inválido');
+      }
+      
       const newCustomer = await addCustomer({
         name: data.name,
         cpf: data.cpf,
