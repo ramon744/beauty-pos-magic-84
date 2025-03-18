@@ -14,6 +14,7 @@ import { OpenCashierDialog } from '@/components/cashiers/OpenCashierDialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircleIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 const Sales = () => {
   const isMobile = useIsMobile();
@@ -28,6 +29,15 @@ const Sales = () => {
   // Create a reference to the sales manager hook once to avoid multiple instances
   const salesManager = useSalesManager();
   
+  // Create a wrapped addProductToCart function that checks cashier status
+  const handleAddProduct = (product: any) => {
+    if (user && user.role === 'employee' && (!cashier || !isOpen)) {
+      toast.error("Você não pode adicionar produtos com o caixa fechado");
+      return;
+    }
+    salesManager.addProductToCart(product);
+  };
+  
   const { 
     searchQuery, 
     setSearchQuery, 
@@ -35,7 +45,7 @@ const Sales = () => {
     hasSearched, 
     isScanning, 
     toggleScanner 
-  } = useProductSearch(salesManager.addProductToCart);
+  } = useProductSearch(handleAddProduct);
 
   const {
     // State variables
@@ -158,7 +168,7 @@ const Sales = () => {
         hasSearched={hasSearched}
         isScanning={isScanning}
         toggleScanner={toggleScanner}
-        addProductToCart={addProductToCart}
+        addProductToCart={handleAddProduct}
         
         // Cart section props
         cart={cart}

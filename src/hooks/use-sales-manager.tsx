@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCart } from '@/hooks/use-cart';
 import { useDiscounts } from '@/hooks/use-discounts';
 import { useToast } from '@/hooks/use-toast';
@@ -8,10 +8,13 @@ import { PaymentDetails, MixedPayment } from '@/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { DiscountFormValues, discountFormSchema } from '@/components/sales/DiscountForm';
+import { useCashierOperations } from '@/hooks/use-cashier-operations';
+import { toast } from 'sonner';
 
 export const useSalesManager = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { getUserCashierStatus } = useCashierOperations();
   
   const [isManagerAuthOpen, setIsManagerAuthOpen] = useState(false);
   const [productIdToDelete, setProductIdToDelete] = useState<string | null>(null);
@@ -63,6 +66,13 @@ export const useSalesManager = () => {
     }
   });
 
+  const checkCashierStatus = () => {
+    if (!user || user.role === 'admin') return true; // Admin can bypass the check
+    
+    const { cashier, isOpen } = getUserCashierStatus();
+    return cashier && isOpen;
+  };
+
   const generateSaleId = (): string => {
     const timestamp = Date.now();
     const shortId = String(timestamp).slice(-5);
@@ -110,11 +120,21 @@ export const useSalesManager = () => {
   };
 
   const initiateRemoveFromCart = (productId: string) => {
+    if (!checkCashierStatus()) {
+      toast.error("Não é possível realizar operações com o caixa fechado");
+      return;
+    }
+    
     setProductIdToDelete(productId);
     setIsManagerAuthOpen(true);
   };
 
   const handleCartItemQuantityUpdate = (productId: string, newQuantity: number) => {
+    if (!checkCashierStatus()) {
+      toast.error("Não é possível realizar operações com o caixa fechado");
+      return;
+    }
+    
     const result = updateCartItemQuantity(productId, newQuantity);
     if (result) {
       setProductIdToDelete(result);
@@ -123,6 +143,11 @@ export const useSalesManager = () => {
   };
 
   const handleClearCart = () => {
+    if (!checkCashierStatus()) {
+      toast.error("Não é possível realizar operações com o caixa fechado");
+      return;
+    }
+    
     if (cart.length > 0) {
       setProductIdToDelete("clear-all");
       setIsManagerAuthOpen(true);
@@ -137,6 +162,11 @@ export const useSalesManager = () => {
   };
 
   const handleOpenPaymentDialog = () => {
+    if (!checkCashierStatus()) {
+      toast.error("Não é possível finalizar vendas com o caixa fechado");
+      return;
+    }
+    
     setIsPaymentDialogOpen(true);
   };
   
@@ -166,6 +196,12 @@ export const useSalesManager = () => {
   };
 
   const handlePaymentConfirm = (paymentDetails: PaymentDetails | MixedPayment) => {
+    if (!checkCashierStatus()) {
+      toast.error("Não é possível finalizar vendas com o caixa fechado");
+      setIsPaymentDialogOpen(false);
+      return;
+    }
+    
     console.log("Payment confirmed with discountAuthorizedBy:", discountAuthorizedBy);
     const order = {
       id: generateSaleId(),
@@ -217,12 +253,22 @@ export const useSalesManager = () => {
   };
 
   const finalizeSale = () => {
+    if (!checkCashierStatus()) {
+      toast.error("Não é possível finalizar vendas com o caixa fechado");
+      return;
+    }
+    
     if (cart.length > 0) {
       handleOpenPaymentDialog();
     }
   };
 
   const handleAddDiscount = () => {
+    if (!checkCashierStatus()) {
+      toast.error("Não é possível aplicar descontos com o caixa fechado");
+      return;
+    }
+    
     discountForm.reset({
       discountType: 'percentage',
       discountValue: 0
@@ -231,12 +277,23 @@ export const useSalesManager = () => {
   };
 
   const handleSubmitDiscount = (values: DiscountFormValues) => {
+    if (!checkCashierStatus()) {
+      toast.error("Não é possível aplicar descontos com o caixa fechado");
+      setIsDiscountDialogOpen(false);
+      return;
+    }
+    
     setIsDiscountDialogOpen(false);
     setProductIdToDelete("discount");
     setIsManagerAuthOpen(true);
   };
 
   const handleOpenPromotions = () => {
+    if (!checkCashierStatus()) {
+      toast.error("Não é possível aplicar promoções com o caixa fechado");
+      return;
+    }
+    
     setIsPromotionDialogOpen(true);
   };
 
@@ -245,6 +302,11 @@ export const useSalesManager = () => {
   };
 
   const handleDeleteDiscount = (discountType: 'manual' | 'promotion', reason?: string) => {
+    if (!checkCashierStatus()) {
+      toast.error("Não é possível remover descontos com o caixa fechado");
+      return;
+    }
+    
     setDiscountReason(reason || "");
     setDiscountToDelete(discountType);
     setProductIdToDelete("delete-discount");
@@ -464,6 +526,15 @@ export const useSalesManager = () => {
     return receipt;
   };
 
+  const safeAddProductToCart = (product: any) => {
+    if (!checkCashierStatus()) {
+      toast.error("Não é possível adicionar produtos com o caixa fechado");
+      return;
+    }
+    
+    addProductToCart(product);
+  };
+
   return {
     isManagerAuthOpen,
     isDiscountDialogOpen,
@@ -516,6 +587,6 @@ export const useSalesManager = () => {
     
     removeDiscount,
     removePromotion,
-    addProductToCart
+    addProductToCart: safeAddProductToCart
   };
 };
