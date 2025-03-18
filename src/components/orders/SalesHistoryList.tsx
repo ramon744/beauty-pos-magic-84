@@ -263,7 +263,9 @@ export const SalesHistoryList = () => {
                                   <div><span className="font-medium">Nome:</span> {promotionDetails.name}</div>
                                   <div><span className="font-medium">Descrição:</span> {promotionDetails.description}</div>
                                   {sale.promotionDiscountAmount !== undefined && (
-                                    <div><span className="font-medium">Desconto aplicado:</span> {formatCurrency(sale.promotionDiscountAmount || 0)}</div>
+                                    <div className="text-green-600 font-medium">
+                                      <span>Desconto aplicado:</span> {formatCurrency(sale.promotionDiscountAmount || 0)}
+                                    </div>
                                   )}
                                 </div>
                               ) : (
@@ -358,9 +360,9 @@ export const SalesHistoryList = () => {
                                 </div>
                               )}
                               
-                              {/* Manager authorization for manual discount */}
+                              {/* Manager authorization for manual discount - Only shown when manual discount exists */}
                               {(sale.discount > 0) && sale.discountAuthorizedBy && (
-                                <div className="flex justify-between text-amber-600 text-xs italic">
+                                <div className="flex justify-between text-amber-600 text-xs">
                                   <span className="flex items-center">
                                     <Shield className="h-3 w-3 mr-1" />
                                     Desconto autorizado por:
