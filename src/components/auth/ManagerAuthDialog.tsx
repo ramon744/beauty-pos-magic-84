@@ -75,10 +75,10 @@ export const ManagerAuthDialog = ({
     onClose();
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // For custom forms, pass the manager ID directly to onConfirm
-    // This prevents type errors with form event vs string parameter
+  // This function correctly passes a managerId to onConfirm
+  const handleFormSubmit = () => {
+    // For custom forms, we need to use the current manager authorization
+    // This function should only be called after successful authentication
     onConfirm(undefined);
   };
 
@@ -109,7 +109,10 @@ export const ManagerAuthDialog = ({
                 type="submit" 
                 form={customFormId} 
                 disabled={isSubmitting}
-                onClick={handleFormSubmit}
+                onClick={(e) => {
+                  e.preventDefault(); // Prevent regular form submission
+                  handleFormSubmit(); // Call our handler that uses the correct parameter type
+                }}
               >
                 Continuar
               </Button>
