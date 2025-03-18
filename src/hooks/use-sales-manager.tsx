@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useCart } from '@/hooks/use-cart';
 import { useDiscounts } from '@/hooks/use-discounts';
@@ -141,6 +140,31 @@ export const useSalesManager = () => {
     setIsPaymentDialogOpen(true);
   };
   
+  const updateProductStock = (saleItems: any[]) => {
+    const products = storageService.getItem<any[]>(STORAGE_KEYS.PRODUCTS) || [];
+    
+    saleItems.forEach(item => {
+      const productIndex = products.findIndex(p => p.id === item.id);
+      if (productIndex !== -1) {
+        products[productIndex].stock -= item.quantity;
+        products[productIndex].updatedAt = new Date();
+        
+        const stockHistory = storageService.getItem<any[]>(STORAGE_KEYS.STOCKS) || [];
+        stockHistory.push({
+          id: crypto.randomUUID(),
+          productId: item.id,
+          date: new Date(),
+          quantity: -item.quantity,
+          type: 'decrease',
+          reason: 'Venda finalizada'
+        });
+        storageService.setItem(STORAGE_KEYS.STOCKS, stockHistory);
+      }
+    });
+    
+    storageService.setItem(STORAGE_KEYS.PRODUCTS, products);
+  };
+
   const handlePaymentConfirm = (paymentDetails: PaymentDetails | MixedPayment) => {
     console.log("Payment confirmed with discountAuthorizedBy:", discountAuthorizedBy);
     const order = {
@@ -165,6 +189,8 @@ export const useSalesManager = () => {
     const orders = storageService.getItem<any[]>(STORAGE_KEYS.ORDERS) || [];
     orders.push(order);
     storageService.setItem(STORAGE_KEYS.ORDERS, orders);
+    
+    updateProductStock(cart);
     
     let confirmationMessage = `Venda finalizada: R$ ${cartTotal.toFixed(2)}`;
     
@@ -233,10 +259,8 @@ export const useSalesManager = () => {
 
   const handlePrintReceipt = () => {
     if (lastCompletedSale) {
-      // Generate the receipt content as a string
       const receiptContent = generateReceiptContent(lastCompletedSale);
       
-      // Create a printable window
       const printWindow = window.open('', '_blank');
       if (printWindow) {
         printWindow.document.write(`
@@ -304,7 +328,6 @@ export const useSalesManager = () => {
     const formattedDate = date.toLocaleDateString('pt-BR');
     const formattedTime = date.toLocaleTimeString('pt-BR');
     
-    // Generate header section
     let receipt = `
       <div class="header">
         <h2>Natura Essencia</h2>
@@ -320,7 +343,6 @@ export const useSalesManager = () => {
       <div class="divider"></div>
     `;
     
-    // Generate items section
     receipt += `<p><strong>ITENS</strong></p>`;
     sale.items.forEach((item: any) => {
       receipt += `
@@ -334,7 +356,6 @@ export const useSalesManager = () => {
       `;
     });
     
-    // Generate totals section
     receipt += `
       <div class="divider"></div>
       <div class="item-row">
@@ -363,7 +384,6 @@ export const useSalesManager = () => {
       </div>
     `;
     
-    // Payment method section
     receipt += `
       <div class="divider"></div>
       <p><strong>FORMA DE PAGAMENTO</strong></p>
@@ -439,7 +459,6 @@ export const useSalesManager = () => {
       }
     }
     
-    // Footer
     receipt += `
       <div class="divider"></div>
       <p class="center">Obrigado pela preferência!</p>
