@@ -64,7 +64,7 @@ export const SalesHeader = ({ user }) => {
         return;
       }
       
-      const result = openCashier(user, amountValue, registerNumber);
+      const result = openCashier(amountValue, registerNumber);
       
       if (result) {
         // Fechar diálogo
