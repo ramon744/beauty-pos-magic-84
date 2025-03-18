@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ShoppingCart, Users, PercentCircle, ListChecks, Banknote, Calculator } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -59,7 +60,12 @@ export const SalesHeader = ({ user }) => {
       const amountValue = parseFloat(initialAmount.replace(',', '.'));
       
       // Abrir caixa
-      const result = openCashier(amountValue, registerNumber);
+      if (!user) {
+        console.error('Usuário não encontrado');
+        return;
+      }
+      
+      const result = openCashier(user, amountValue, registerNumber);
       
       if (result) {
         // Fechar diálogo
