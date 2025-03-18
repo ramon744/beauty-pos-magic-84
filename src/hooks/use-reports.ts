@@ -171,14 +171,15 @@ const generateProductsReportData = (): ProductsReportData => {
   // Processa vendas para encontrar produtos mais vendidos
   sales.forEach(sale => {
     sale.items?.forEach(item => {
-      const productId = typeof item.product === 'object' ? item.product?.id : item.id;
+      // Fix: Access product ID correctly based on the structure
+      const productId = typeof item.product === 'object' ? item.product?.id : item.product;
       if (!productId) return;
       
       if (!productSales[productId]) {
         productSales[productId] = {
           quantity: 0,
           revenue: 0,
-          name: typeof item.product === 'object' ? item.product?.name : item.name
+          name: typeof item.product === 'object' ? item.product?.name : item.name || 'Produto'
         };
       }
       
@@ -201,8 +202,9 @@ const generateProductsReportData = (): ProductsReportData => {
   // Distribuição por categoria
   const categories: { [category: string]: number } = {};
   products.forEach(product => {
-    const category = product.category || 'Sem Categoria';
-    categories[category] = (categories[category] || 0) + 1;
+    // Fix: Correctly access the category name
+    const categoryName = typeof product.category === 'object' ? product.category?.name : product.category || 'Sem Categoria';
+    categories[categoryName] = (categories[categoryName] || 0) + 1;
   });
   
   const categoryDistribution = Object.entries(categories)
