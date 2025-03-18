@@ -101,6 +101,7 @@ export const SalesDialogs: React.FC<SalesDialogsProps> = ({
         isOpen={isDiscountDialogOpen}
         onClose={onCloseDiscountDialog}
         onConfirm={(managerId?: string) => {
+          console.log("Discount dialog confirmed with manager ID:", managerId);
           onManagerAuthConfirm(managerId);
           discountForm.handleSubmit(onSubmitDiscount)();
         }}

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useCart } from '@/hooks/use-cart';
 import { useDiscounts } from '@/hooks/use-discounts';
@@ -63,6 +62,7 @@ export const useSalesManager = () => {
   });
 
   const handleManagerAuthConfirm = (managerId?: string) => {
+    console.log("Manager auth confirmed with ID:", managerId);
     setDiscountAuthorizedBy(managerId);
     
     if (productIdToDelete === "discount") {
@@ -133,6 +133,7 @@ export const useSalesManager = () => {
   };
   
   const handlePaymentConfirm = (paymentDetails: PaymentDetails | MixedPayment) => {
+    console.log("Payment confirmed with discountAuthorizedBy:", discountAuthorizedBy);
     const order = {
       id: Date.now().toString(),
       items: cart,
@@ -149,6 +150,8 @@ export const useSalesManager = () => {
       discountAuthorizedBy: discountAuthorizedBy,
       discountReason: discountReason
     };
+    
+    console.log("Saving order with discountAuthorizedBy:", order.discountAuthorizedBy);
     
     const orders = storageService.getItem<any[]>(STORAGE_KEYS.ORDERS) || [];
     orders.push(order);
@@ -214,7 +217,6 @@ export const useSalesManager = () => {
   };
 
   return {
-    // State variables
     isManagerAuthOpen,
     isDiscountDialogOpen,
     isPromotionDialogOpen,
@@ -224,7 +226,6 @@ export const useSalesManager = () => {
     discountAuthorizedBy,
     discountForm,
     
-    // Values from other hooks
     cart,
     cartSubtotal,
     cartTotal,
@@ -238,7 +239,6 @@ export const useSalesManager = () => {
     appliedPromotionDetails,
     selectedPromotionId,
     
-    // Functions
     handleManagerAuthConfirm,
     requestManagerAuth,
     initiateRemoveFromCart,
@@ -255,7 +255,6 @@ export const useSalesManager = () => {
     linkCustomer,
     unlinkCustomer,
     
-    // Functions for dialog control
     setIsManagerAuthOpen,
     setIsDiscountDialogOpen,
     setIsPromotionDialogOpen,
@@ -263,7 +262,6 @@ export const useSalesManager = () => {
     setIsPaymentDialogOpen,
     setDiscountReason,
     
-    // Make sure to explicitly include these properties that are being used
     removeDiscount,
     removePromotion,
     addProductToCart

@@ -53,6 +53,7 @@ export const ManagerAuthDialog = ({
       );
 
       if (manager) {
+        console.log("Manager authentication successful for:", manager.id, manager.name);
         toast({
           title: "Autorização confirmada",
           description: "Operação permitida",
@@ -86,7 +87,7 @@ export const ManagerAuthDialog = ({
   const handleFormSubmit = () => {
     // For custom forms, we need to use the current manager authorization
     // This function should only be called after successful authentication
-    onConfirm(undefined);
+    onConfirm(managerId);
   };
 
   return (

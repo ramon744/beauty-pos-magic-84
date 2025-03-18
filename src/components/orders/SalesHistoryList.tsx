@@ -116,9 +116,15 @@ export const SalesHistoryList = () => {
     if (sale.discountAuthorizedBy) {
       const manager = allUsers.find((u: UserType) => u.id === sale.discountAuthorizedBy);
       if (manager) {
+        console.log("Found manager:", manager.name, "for ID:", sale.discountAuthorizedBy);
         return manager.name;
+      } else {
+        console.log("Manager not found for ID:", sale.discountAuthorizedBy);
       }
+    } else {
+      console.log("No discountAuthorizedBy in the sale:", sale);
     }
+    
     return "Não identificado";
   };
 
