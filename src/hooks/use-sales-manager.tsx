@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useCart } from '@/hooks/use-cart';
 import { useDiscounts } from '@/hooks/use-discounts';
@@ -22,6 +23,8 @@ export const useSalesManager = () => {
   const [discountToDelete, setDiscountToDelete] = useState<'manual' | 'promotion' | null>(null);
   const [discountReason, setDiscountReason] = useState<string>("");
   const [discountAuthorizedBy, setDiscountAuthorizedBy] = useState<string | undefined>(undefined);
+  const [lastCompletedSale, setLastCompletedSale] = useState<any | null>(null);
+  const [isPrintReceiptDialogOpen, setIsPrintReceiptDialogOpen] = useState(false);
 
   const { 
     cart, 
@@ -183,7 +186,8 @@ export const useSalesManager = () => {
     });
     
     setIsPaymentDialogOpen(false);
-    doFinalizeSale();
+    setLastCompletedSale(order);
+    setIsPrintReceiptDialogOpen(true);
   };
 
   const finalizeSale = () => {
@@ -222,15 +226,240 @@ export const useSalesManager = () => {
     setIsManagerAuthOpen(true);
   };
 
+  const handleClosePrintDialog = () => {
+    setIsPrintReceiptDialogOpen(false);
+    doFinalizeSale();
+  };
+
+  const handlePrintReceipt = () => {
+    if (lastCompletedSale) {
+      // Generate the receipt content as a string
+      const receiptContent = generateReceiptContent(lastCompletedSale);
+      
+      // Create a printable window
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Recibo de Venda #${lastCompletedSale.id}</title>
+              <style>
+                body {
+                  font-family: monospace;
+                  width: 300px;
+                  margin: 0 auto;
+                  padding: 10px;
+                }
+                .header {
+                  text-align: center;
+                  margin-bottom: 15px;
+                }
+                .divider {
+                  border-top: 1px dashed #000;
+                  margin: 10px 0;
+                }
+                .item-row {
+                  display: flex;
+                  justify-content: space-between;
+                }
+                .receipt-total {
+                  font-weight: bold;
+                  margin-top: 15px;
+                }
+                .center {
+                  text-align: center;
+                }
+                @media print {
+                  @page {
+                    size: 80mm auto; /* Point of Sale receipt width */
+                    margin: 0;
+                  }
+                  body {
+                    width: 100%;
+                    padding: 5px;
+                  }
+                }
+              </style>
+            </head>
+            <body>
+              ${receiptContent}
+              <script>
+                window.onload = function() {
+                  window.print();
+                  setTimeout(function() { window.close(); }, 500);
+                };
+              </script>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+      }
+    }
+    
+    handleClosePrintDialog();
+  };
+
+  const generateReceiptContent = (sale: any): string => {
+    const date = new Date(sale.createdAt);
+    const formattedDate = date.toLocaleDateString('pt-BR');
+    const formattedTime = date.toLocaleTimeString('pt-BR');
+    
+    // Generate header section
+    let receipt = `
+      <div class="header">
+        <h2>Natura Essencia</h2>
+        <p>CNPJ: 12.345.678/0001-90</p>
+        <p>Rua Exemplo, 123 - Centro</p>
+        <p>Tel: (11) 9876-5432</p>
+      </div>
+      <div class="divider"></div>
+      <p><strong>RECIBO DE VENDA #${sale.id}</strong></p>
+      <p>Data: ${formattedDate} ${formattedTime}</p>
+      ${sale.customer ? `<p>Cliente: ${sale.customer.name}</p>` : ''}
+      <p>Vendedor: ${sale.seller?.name || 'Não identificado'}</p>
+      <div class="divider"></div>
+    `;
+    
+    // Generate items section
+    receipt += `<p><strong>ITENS</strong></p>`;
+    sale.items.forEach((item: any) => {
+      receipt += `
+        <div class="item-row">
+          <span>${item.quantity}x ${item.name}</span>
+          <span>R$ ${item.subtotal.toFixed(2)}</span>
+        </div>
+        <div style="font-size: 0.8em; color: #666; margin-bottom: 5px;">
+          R$ ${item.price.toFixed(2)} cada
+        </div>
+      `;
+    });
+    
+    // Generate totals section
+    receipt += `
+      <div class="divider"></div>
+      <div class="item-row">
+        <span>Subtotal:</span>
+        <span>R$ ${sale.total.toFixed(2)}</span>
+      </div>
+    `;
+    
+    if (sale.discount > 0) {
+      receipt += `
+        <div class="item-row">
+          <span>Desconto:</span>
+          <span>-R$ ${sale.discount.toFixed(2)}</span>
+        </div>
+      `;
+      
+      if (sale.discountReason) {
+        receipt += `<p style="font-size: 0.8em;">Motivo: ${sale.discountReason}</p>`;
+      }
+    }
+    
+    receipt += `
+      <div class="item-row receipt-total">
+        <span>TOTAL:</span>
+        <span>R$ ${sale.finalTotal.toFixed(2)}</span>
+      </div>
+    `;
+    
+    // Payment method section
+    receipt += `
+      <div class="divider"></div>
+      <p><strong>FORMA DE PAGAMENTO</strong></p>
+    `;
+    
+    if (sale.paymentMethod === 'mixed' && sale.paymentDetails.payments) {
+      sale.paymentDetails.payments.forEach((payment: any) => {
+        const methodNames: { [key: string]: string } = {
+          'credit_card': 'Cartão de Crédito',
+          'debit_card': 'Cartão de Débito',
+          'pix': 'PIX',
+          'cash': 'Dinheiro'
+        };
+        
+        const method = methodNames[payment.method] || payment.method;
+        
+        receipt += `
+          <div class="item-row">
+            <span>${method}:</span>
+            <span>R$ ${payment.amount.toFixed(2)}</span>
+          </div>
+        `;
+        
+        if (payment.method === 'credit_card' && payment.installments > 1) {
+          receipt += `<p style="font-size: 0.8em;">${payment.installments}x de R$ ${(payment.amount / payment.installments).toFixed(2)}</p>`;
+        }
+        
+        if (payment.method === 'cash' && payment.change) {
+          receipt += `
+            <div class="item-row" style="font-size: 0.9em;">
+              <span>Recebido:</span>
+              <span>R$ ${payment.cashReceived.toFixed(2)}</span>
+            </div>
+            <div class="item-row" style="font-size: 0.9em;">
+              <span>Troco:</span>
+              <span>R$ ${payment.change.toFixed(2)}</span>
+            </div>
+          `;
+        }
+      });
+    } else {
+      const methodNames: { [key: string]: string } = {
+        'credit_card': 'Cartão de Crédito',
+        'debit_card': 'Cartão de Débito',
+        'pix': 'PIX',
+        'cash': 'Dinheiro'
+      };
+      
+      const method = methodNames[sale.paymentMethod] || sale.paymentMethod;
+      
+      receipt += `
+        <div class="item-row">
+          <span>${method}:</span>
+          <span>R$ ${sale.finalTotal.toFixed(2)}</span>
+        </div>
+      `;
+      
+      if (sale.paymentMethod === 'credit_card' && sale.paymentDetails.installments > 1) {
+        receipt += `<p style="font-size: 0.8em;">${sale.paymentDetails.installments}x de R$ ${(sale.finalTotal / sale.paymentDetails.installments).toFixed(2)}</p>`;
+      }
+      
+      if (sale.paymentMethod === 'cash' && sale.paymentDetails.change) {
+        receipt += `
+          <div class="item-row" style="font-size: 0.9em;">
+            <span>Recebido:</span>
+            <span>R$ ${sale.paymentDetails.cashReceived.toFixed(2)}</span>
+          </div>
+          <div class="item-row" style="font-size: 0.9em;">
+            <span>Troco:</span>
+            <span>R$ ${sale.paymentDetails.change.toFixed(2)}</span>
+          </div>
+        `;
+      }
+    }
+    
+    // Footer
+    receipt += `
+      <div class="divider"></div>
+      <p class="center">Obrigado pela preferência!</p>
+      <p class="center" style="font-size: 0.8em;">Natura Essencia - Beleza e Saúde</p>
+    `;
+    
+    return receipt;
+  };
+
   return {
     isManagerAuthOpen,
     isDiscountDialogOpen,
     isPromotionDialogOpen,
     isDiscountsListOpen,
     isPaymentDialogOpen,
+    isPrintReceiptDialogOpen,
     discountReason,
     discountAuthorizedBy,
     discountForm,
+    lastCompletedSale,
     
     cart,
     cartSubtotal,
@@ -260,6 +489,8 @@ export const useSalesManager = () => {
     handleSelectPromotion,
     linkCustomer,
     unlinkCustomer,
+    handlePrintReceipt,
+    handleClosePrintDialog,
     
     setIsManagerAuthOpen,
     setIsDiscountDialogOpen,

@@ -8,6 +8,7 @@ import { useSalesManager } from '@/hooks/use-sales-manager';
 import { SalesHeader } from '@/components/sales/SalesHeader';
 import { SalesContent } from '@/components/sales/SalesContent';
 import { SalesDialogs } from '@/components/sales/SalesDialogs';
+import { PrintReceiptDialog } from '@/components/sales/PrintReceiptDialog';
 
 const Sales = () => {
   const isMobile = useIsMobile();
@@ -33,8 +34,10 @@ const Sales = () => {
     isPromotionDialogOpen,
     isDiscountsListOpen,
     isPaymentDialogOpen,
+    isPrintReceiptDialogOpen,
     discountReason,
     discountForm,
+    lastCompletedSale,
     
     // Values from other hooks
     cart,
@@ -66,6 +69,8 @@ const Sales = () => {
     handleSelectPromotion,
     linkCustomer,
     unlinkCustomer,
+    handlePrintReceipt,
+    handleClosePrintDialog,
     
     // Functions for dialog control
     setIsManagerAuthOpen,
@@ -159,6 +164,14 @@ const Sales = () => {
         onClosePaymentDialog={() => setIsPaymentDialogOpen(false)}
         onConfirmPayment={handlePaymentConfirm}
         cartTotal={cartTotal}
+      />
+      
+      {/* Print Receipt Dialog */}
+      <PrintReceiptDialog
+        isOpen={isPrintReceiptDialogOpen}
+        onClose={handleClosePrintDialog}
+        onPrint={handlePrintReceipt}
+        sale={lastCompletedSale}
       />
     </div>
   );
