@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useCart } from '@/hooks/use-cart';
 import { useDiscounts } from '@/hooks/use-discounts';
 import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 import { PaymentDetails, MixedPayment } from '@/types';
@@ -9,10 +10,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { DiscountFormValues, discountFormSchema } from '@/components/sales/DiscountForm';
 import { useCashierOperations } from '@/hooks/use-cashier-operations';
-import { toast } from 'sonner';
 
 export const useSalesManager = () => {
-  const { toast } = useToast();
+  const { toast: internalToast } = useToast();
   const { user } = useAuth();
   const { getUserCashierStatus } = useCashierOperations();
   
@@ -242,7 +242,7 @@ export const useSalesManager = () => {
       confirmationMessage += ` | Cliente: ${linkedCustomer.name}`;
     }
     
-    toast({
+    internalToast({
       title: "Pagamento confirmado",
       description: confirmationMessage
     });
