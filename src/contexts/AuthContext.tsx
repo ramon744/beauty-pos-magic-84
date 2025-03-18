@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { User, UserRole } from '@/types';
-import { storageKeys } from '@/services/storage-service';
+import { STORAGE_KEYS } from '@/services/storage-service';
 
 // Definição da interface de loja
 interface Store {
@@ -85,8 +85,8 @@ const INITIAL_USERS: UserWithStore[] = [
   },
 ];
 
-// Local storage keys - centralizing for future DB migration
-const STORAGE_KEYS = {
+// Local storage keys specific to this context
+const AUTH_STORAGE_KEYS = {
   AUTH: 'beautyPosAuth',
   USERS: 'beautyPosUsers',
   STORES: 'beautyPosStores',
@@ -127,7 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Load stores from localStorage or initialize with defaults
   useEffect(() => {
-    const savedStores = localStorage.getItem(STORAGE_KEYS.STORES);
+    const savedStores = localStorage.getItem(AUTH_STORAGE_KEYS.STORES);
     if (savedStores) {
       try {
         const parsedStores = JSON.parse(savedStores);
@@ -140,18 +140,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (error) {
         console.error('Failed to parse stored stores', error);
         setStores(INITIAL_STORES);
-        localStorage.setItem(STORAGE_KEYS.STORES, JSON.stringify(INITIAL_STORES));
+        localStorage.setItem(AUTH_STORAGE_KEYS.STORES, JSON.stringify(INITIAL_STORES));
       }
     } else {
       // Initialize with default stores
       setStores(INITIAL_STORES);
-      localStorage.setItem(STORAGE_KEYS.STORES, JSON.stringify(INITIAL_STORES));
+      localStorage.setItem(AUTH_STORAGE_KEYS.STORES, JSON.stringify(INITIAL_STORES));
     }
   }, []);
 
   // Load users from localStorage or initialize with defaults
   useEffect(() => {
-    const savedUsers = localStorage.getItem(STORAGE_KEYS.USERS);
+    const savedUsers = localStorage.getItem(AUTH_STORAGE_KEYS.USERS);
     if (savedUsers) {
       try {
         const parsedUsers = JSON.parse(savedUsers);
@@ -164,18 +164,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (error) {
         console.error('Failed to parse stored users', error);
         setUsers(INITIAL_USERS);
-        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(INITIAL_USERS));
+        localStorage.setItem(AUTH_STORAGE_KEYS.USERS, JSON.stringify(INITIAL_USERS));
       }
     } else {
       // Initialize with default users
       setUsers(INITIAL_USERS);
-      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(INITIAL_USERS));
+      localStorage.setItem(AUTH_STORAGE_KEYS.USERS, JSON.stringify(INITIAL_USERS));
     }
   }, []);
 
   // Check for saved auth on mount
   useEffect(() => {
-    const savedAuth = localStorage.getItem(STORAGE_KEYS.AUTH);
+    const savedAuth = localStorage.getItem(AUTH_STORAGE_KEYS.AUTH);
     if (savedAuth) {
       try {
         const parsedAuth = JSON.parse(savedAuth);
@@ -194,7 +194,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (error) {
         console.error('Failed to parse stored auth', error);
-        localStorage.removeItem(STORAGE_KEYS.AUTH);
+        localStorage.removeItem(AUTH_STORAGE_KEYS.AUTH);
       }
     }
     setIsLoading(false);
@@ -203,14 +203,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Save users to localStorage whenever they change
   useEffect(() => {
     if (users.length > 0) {
-      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+      localStorage.setItem(AUTH_STORAGE_KEYS.USERS, JSON.stringify(users));
     }
   }, [users]);
 
   // Save stores to localStorage whenever they change
   useEffect(() => {
     if (stores.length > 0) {
-      localStorage.setItem(STORAGE_KEYS.STORES, JSON.stringify(stores));
+      localStorage.setItem(AUTH_STORAGE_KEYS.STORES, JSON.stringify(stores));
     }
   }, [stores]);
 
@@ -374,7 +374,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Strip password from user state
           const { password, ...userWithoutPassword } = updatedUser;
           setUser(userWithoutPassword as UserWithStore);
-          localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(userWithoutPassword));
+          localStorage.setItem(AUTH_STORAGE_KEYS.AUTH, JSON.stringify(userWithoutPassword));
           
           // Update current store if store changed
           if (userWithoutPassword.storeId !== user.storeId) {
@@ -439,7 +439,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         // Store in localStorage (will be replaced with tokens/session management)
-        localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(userWithoutPassword));
+        localStorage.setItem(AUTH_STORAGE_KEYS.AUTH, JSON.stringify(userWithoutPassword));
         toast.success(`Bem-vindo, ${userWithoutPassword.name}!`);
         return true;
       } else {
@@ -458,7 +458,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     setUser(null);
     setCurrentStore(null);
-    localStorage.removeItem(STORAGE_KEYS.AUTH);
+    localStorage.removeItem(AUTH_STORAGE_KEYS.AUTH);
     navigate('/');
     toast.info('Logout realizado com sucesso');
   };
@@ -502,5 +502,6 @@ export const useAuth = (): AuthContextType => {
   return context;
 };
 
-// Helper for future database adapters
-export const storageKeys = STORAGE_KEYS;
+// Export the AuthContext storage keys for use in other components
+export const authStorageKeys = AUTH_STORAGE_KEYS;
+
