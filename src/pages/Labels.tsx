@@ -98,11 +98,29 @@ const Labels: React.FC = () => {
       description: "O arquivo PDF com suas etiquetas está sendo gerado"
     });
     setPrintDialogOpen(false);
-    // A lógica de geração e download do PDF seria implementada aqui
+    
+    // Simulação de geração de PDF
     setTimeout(() => {
+      // Criar um link de download simulado
+      const dummyPdfData = new Blob(['PDF Content'], { type: 'application/pdf' });
+      const url = URL.createObjectURL(dummyPdfData);
+      const link = document.createElement('a');
+      
+      // Configurar o nome do arquivo e o URL
+      link.href = url;
+      link.download = `etiquetas-${new Date().toISOString().split('T')[0]}.pdf`;
+      
+      // Adicionar ao DOM, acionar o clique e remover
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Limpar o URL do objeto
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+      
       toast({
         title: "PDF Gerado",
-        description: "O arquivo PDF com suas etiquetas está pronto para download"
+        description: "O arquivo PDF com suas etiquetas foi baixado automaticamente"
       });
     }, 1500);
   };
