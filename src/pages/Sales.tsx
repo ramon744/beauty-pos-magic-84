@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,7 +13,7 @@ import { OpenCashierDialog } from '@/components/cashiers/OpenCashierDialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircleIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
+import { toast as sonnerToast } from '@/components/ui/use-toast';
 
 const Sales = () => {
   const isMobile = useIsMobile();
@@ -23,16 +22,13 @@ const Sales = () => {
   const { getUserCashierStatus } = useCashierOperations();
   const [isOpenCashierDialogOpen, setIsOpenCashierDialogOpen] = useState(false);
   
-  // Get cashier status
   const { cashier, isOpen } = getUserCashierStatus();
   
-  // Create a reference to the sales manager hook once to avoid multiple instances
   const salesManager = useSalesManager();
   
-  // Create a wrapped addProductToCart function that checks cashier status
   const handleAddProduct = (product: any) => {
     if (user && user.role === 'employee' && (!cashier || !isOpen)) {
-      toast.error("Você não pode adicionar produtos com o caixa fechado");
+      sonnerToast.error("Você não pode adicionar produtos com o caixa fechado");
       return;
     }
     salesManager.addProductToCart(product);
@@ -48,7 +44,6 @@ const Sales = () => {
   } = useProductSearch(handleAddProduct);
 
   const {
-    // State variables
     isManagerAuthOpen,
     isDiscountDialogOpen,
     isPromotionDialogOpen,
@@ -59,7 +54,6 @@ const Sales = () => {
     discountForm,
     lastCompletedSale,
     
-    // Values from other hooks
     cart,
     cartSubtotal,
     cartTotal,
@@ -73,7 +67,6 @@ const Sales = () => {
     appliedPromotionDetails,
     selectedPromotionId,
     
-    // Functions
     handleManagerAuthConfirm,
     requestManagerAuth,
     initiateRemoveFromCart,
@@ -92,7 +85,6 @@ const Sales = () => {
     handlePrintReceipt,
     handleClosePrintDialog,
     
-    // Functions for dialog control
     setIsManagerAuthOpen,
     setIsDiscountDialogOpen,
     setIsPromotionDialogOpen,
@@ -104,14 +96,12 @@ const Sales = () => {
     addProductToCart
   } = salesManager;
 
-  // Force cashier check on page load
   useEffect(() => {
     if (user && user.role === 'employee' && cashier && !isOpen) {
       setIsOpenCashierDialogOpen(true);
     }
   }, [user, cashier, isOpen]);
 
-  // If user is an employee and has no assigned cashier, show a warning
   if (user && user.role === 'employee' && !cashier) {
     return (
       <div className="flex items-center justify-center min-h-[80vh]">
@@ -127,7 +117,6 @@ const Sales = () => {
     );
   }
 
-  // If user is an employee and cashier is not open, show the cashier status
   if (user && user.role === 'employee' && cashier && !isOpen) {
     return (
       <div className="flex items-center justify-center min-h-[80vh]">
@@ -161,7 +150,6 @@ const Sales = () => {
       
       <SalesContent 
         isMobile={isMobile}
-        // Product search props
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         searchResults={searchResults}
@@ -170,7 +158,6 @@ const Sales = () => {
         toggleScanner={toggleScanner}
         addProductToCart={handleAddProduct}
         
-        // Cart section props
         cart={cart}
         linkedCustomer={linkedCustomer}
         updateCartItemQuantity={handleCartItemQuantityUpdate}
@@ -180,7 +167,6 @@ const Sales = () => {
         onLinkCustomer={linkCustomer}
         onUnlinkCustomer={unlinkCustomer}
         
-        // Sale summary props
         cartSubtotal={cartSubtotal}
         manualDiscount={manualDiscount}
         manualDiscountAmount={manualDiscountAmount}
@@ -197,14 +183,12 @@ const Sales = () => {
       />
       
       <SalesDialogs 
-        // Auth dialog props
         isManagerAuthOpen={isManagerAuthOpen}
         onCloseManagerAuth={() => {
           setIsManagerAuthOpen(false);
         }}
         onManagerAuthConfirm={handleManagerAuthConfirm}
         
-        // Discount dialog props
         isDiscountDialogOpen={isDiscountDialogOpen}
         onCloseDiscountDialog={() => setIsDiscountDialogOpen(false)}
         discountForm={discountForm}
@@ -212,7 +196,6 @@ const Sales = () => {
         discountReason={discountReason}
         onDiscountReasonChange={(value) => setDiscountReason(value)}
         
-        // Discounts list props
         isDiscountsListOpen={isDiscountsListOpen}
         onCloseDiscountsList={() => setIsDiscountsListOpen(false)}
         manualDiscount={manualDiscount}
@@ -223,21 +206,18 @@ const Sales = () => {
         onDeleteDiscount={handleDeleteDiscount}
         onRequestAuth={requestManagerAuth}
         
-        // Promotion dialog props
         isPromotionDialogOpen={isPromotionDialogOpen}
         onClosePromotionDialog={() => setIsPromotionDialogOpen(false)}
         selectedPromotionId={selectedPromotionId}
         onSelectPromotion={handleSelectPromotion}
         products={products}
         
-        // Payment dialog props
         isPaymentDialogOpen={isPaymentDialogOpen}
         onClosePaymentDialog={() => setIsPaymentDialogOpen(false)}
         onConfirmPayment={handlePaymentConfirm}
         cartTotal={cartTotal}
       />
       
-      {/* Print Receipt Dialog */}
       <PrintReceiptDialog
         isOpen={isPrintReceiptDialogOpen}
         onClose={handleClosePrintDialog}
@@ -245,7 +225,6 @@ const Sales = () => {
         sale={lastCompletedSale}
       />
       
-      {/* Open Cashier Dialog */}
       {cashier && (
         <OpenCashierDialog
           isOpen={isOpenCashierDialogOpen}

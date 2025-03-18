@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useCart } from '@/hooks/use-cart';
 import { useDiscounts } from '@/hooks/use-discounts';
 import { useToast } from '@/hooks/use-toast';
-import { toast } from 'sonner';
+import { toast as sonnerToast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 import { PaymentDetails, MixedPayment } from '@/types';
@@ -12,7 +12,7 @@ import { DiscountFormValues, discountFormSchema } from '@/components/sales/Disco
 import { useCashierOperations } from '@/hooks/use-cashier-operations';
 
 export const useSalesManager = () => {
-  const { toast: internalToast } = useToast();
+  const { toast } = useToast();
   const { user } = useAuth();
   const { getUserCashierStatus } = useCashierOperations();
   
@@ -121,7 +121,7 @@ export const useSalesManager = () => {
 
   const initiateRemoveFromCart = (productId: string) => {
     if (!checkCashierStatus()) {
-      toast.error("Não é possível realizar operações com o caixa fechado");
+      sonnerToast.error("Não é possível realizar operações com o caixa fechado");
       return;
     }
     
@@ -131,7 +131,7 @@ export const useSalesManager = () => {
 
   const handleCartItemQuantityUpdate = (productId: string, newQuantity: number) => {
     if (!checkCashierStatus()) {
-      toast.error("Não é possível realizar operações com o caixa fechado");
+      sonnerToast.error("Não é possível realizar operações com o caixa fechado");
       return;
     }
     
@@ -144,7 +144,7 @@ export const useSalesManager = () => {
 
   const handleClearCart = () => {
     if (!checkCashierStatus()) {
-      toast.error("Não é possível realizar operações com o caixa fechado");
+      sonnerToast.error("Não é possível realizar operações com o caixa fechado");
       return;
     }
     
@@ -163,7 +163,7 @@ export const useSalesManager = () => {
 
   const handleOpenPaymentDialog = () => {
     if (!checkCashierStatus()) {
-      toast.error("Não é possível finalizar vendas com o caixa fechado");
+      sonnerToast.error("Não é possível finalizar vendas com o caixa fechado");
       return;
     }
     
@@ -197,7 +197,7 @@ export const useSalesManager = () => {
 
   const handlePaymentConfirm = (paymentDetails: PaymentDetails | MixedPayment) => {
     if (!checkCashierStatus()) {
-      toast.error("Não é possível finalizar vendas com o caixa fechado");
+      sonnerToast.error("Não é possível finalizar vendas com o caixa fechado");
       setIsPaymentDialogOpen(false);
       return;
     }
@@ -242,7 +242,7 @@ export const useSalesManager = () => {
       confirmationMessage += ` | Cliente: ${linkedCustomer.name}`;
     }
     
-    internalToast({
+    toast({
       title: "Pagamento confirmado",
       description: confirmationMessage
     });
@@ -254,7 +254,7 @@ export const useSalesManager = () => {
 
   const finalizeSale = () => {
     if (!checkCashierStatus()) {
-      toast.error("Não é possível finalizar vendas com o caixa fechado");
+      sonnerToast.error("Não é possível finalizar vendas com o caixa fechado");
       return;
     }
     
@@ -265,7 +265,7 @@ export const useSalesManager = () => {
 
   const handleAddDiscount = () => {
     if (!checkCashierStatus()) {
-      toast.error("Não é possível aplicar descontos com o caixa fechado");
+      sonnerToast.error("Não é possível aplicar descontos com o caixa fechado");
       return;
     }
     
@@ -278,7 +278,7 @@ export const useSalesManager = () => {
 
   const handleSubmitDiscount = (values: DiscountFormValues) => {
     if (!checkCashierStatus()) {
-      toast.error("Não é possível aplicar descontos com o caixa fechado");
+      sonnerToast.error("Não é possível aplicar descontos com o caixa fechado");
       setIsDiscountDialogOpen(false);
       return;
     }
@@ -290,7 +290,7 @@ export const useSalesManager = () => {
 
   const handleOpenPromotions = () => {
     if (!checkCashierStatus()) {
-      toast.error("Não é possível aplicar promoções com o caixa fechado");
+      sonnerToast.error("Não é possível aplicar promoções com o caixa fechado");
       return;
     }
     
@@ -303,7 +303,7 @@ export const useSalesManager = () => {
 
   const handleDeleteDiscount = (discountType: 'manual' | 'promotion', reason?: string) => {
     if (!checkCashierStatus()) {
-      toast.error("Não é possível remover descontos com o caixa fechado");
+      sonnerToast.error("Não é possível remover descontos com o caixa fechado");
       return;
     }
     
@@ -528,7 +528,7 @@ export const useSalesManager = () => {
 
   const safeAddProductToCart = (product: any) => {
     if (!checkCashierStatus()) {
-      toast.error("Não é possível adicionar produtos com o caixa fechado");
+      sonnerToast.error("Não é possível adicionar produtos com o caixa fechado");
       return;
     }
     
