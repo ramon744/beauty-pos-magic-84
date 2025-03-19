@@ -376,15 +376,15 @@ export const useStockHistory = (productId: string) => {
     queryFn: async () => {
       try {
         // Try to fetch from Supabase first
-        // Fix: Use proper parameters instead of spread operator
-        const query = productId ? 
-          ['stock_history', 'product_id', productId] : 
-          ['stock_history'];
+        let stockHistory;
         
-        // Here we pass each parameter individually instead of using spread
-        const stockHistory = productId ?
-          await storageService.getFromSupabase<any>('stock_history', 'product_id', productId) :
-          await storageService.getFromSupabase<any>('stock_history');
+        if (productId) {
+          // If productId is provided, filter by product_id
+          stockHistory = await storageService.getFromSupabase<any>('stock_history', 'product_id', productId);
+        } else {
+          // If no productId, get all stock history
+          stockHistory = await storageService.getFromSupabase<any>('stock_history');
+        }
         
         if (stockHistory && stockHistory.length > 0) {
           // Update local storage with the latest data
@@ -450,4 +450,3 @@ export const useStatistics = () => {
     enabled: !!products && !!categories,
   });
 };
-
