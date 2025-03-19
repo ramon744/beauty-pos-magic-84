@@ -90,6 +90,12 @@ const CashierOperationsReportContent = () => {
     return data.shortages.reduce((total, shortage) => total + shortage.amount, 0);
   };
 
+  // Helper to find user name
+  const getUserName = (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    return user ? user.name : `ID: ${userId.substring(0, 6)}`;
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -339,7 +345,7 @@ const CashierOperationsReportContent = () => {
                             <td className="px-4 py-3 text-sm">
                               <div className="flex items-center gap-1">
                                 <UserIcon className="h-3 w-3 opacity-70" />
-                                {users.find(u => u.id === op.userId)?.name || `ID: ${op.userId.substring(0, 6)}`}
+                                {op.userName || getUserName(op.userId)}
                               </div>
                             </td>
                             <td className="px-4 py-3 text-sm">

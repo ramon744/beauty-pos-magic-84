@@ -87,7 +87,9 @@ export function useCashierOperationsReport(
           const filteredSales = orders.filter(order => {
             const orderDate = new Date(order.createdAt);
             const isInRange = isWithinRange(orderDate, dateRange);
-            const isMatchingOperator = operatorId === 'all' || order.userId === operatorId;
+            const isMatchingOperator = operatorId === 'all' || 
+                                      (order.userId === operatorId) || 
+                                      (order.seller && order.seller.id === operatorId);
             
             return isInRange && isMatchingOperator;
           });
@@ -97,12 +99,13 @@ export function useCashierOperationsReport(
             id: sale.id,
             timestamp: sale.createdAt,
             cashierId: sale.cashierId || '',
-            userId: sale.userId || '',
+            userId: sale.seller?.id || sale.userId || '',
+            userName: sale.seller?.name || '', // Add user name from seller info
             operationType: 'sale' as const,
             amount: sale.finalTotal || 0,
             reason: '', // No reason for sales
-            managerName: '', // No manager for sales
-            managerId: '',
+            managerName: sale.discountAuthorizedBy?.name || '', // Add manager name if available
+            managerId: sale.discountAuthorizedBy?.id || '',
           }));
           break;
       }
