@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useCategories, useFetchProducts, useSaveProduct } from '@/hooks/use-products';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Plus, Save, X, Edit, Trash, Search, Clock, ArrowRight, Filter, RotateCcw, Calendar, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Category, Product } from '@/types';
-import { storageService } from '@/services/storage-service';
+import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 import {
   Dialog,
   DialogContent,
@@ -49,10 +48,7 @@ import {
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-
-const CATEGORIES_STORAGE_KEY = 'categories';
-const PRODUCTS_STORAGE_KEY = 'products';
-const TEMP_CATEGORY_STORAGE_KEY = 'temp-category-assignments';
+import { fromTable, extractDataFromSupabase } from '@/services/supabase-helper';
 
 interface ProductCategoriesProps {
   fullWidth?: boolean;
@@ -178,18 +174,19 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
     }
   };
 
-  const handleAddCategory = () => {
+  const handleAddCategory = async () => {
     if (!newCategory.trim()) return;
     
     try {
-      const currentCategories = storageService.getItem<Category[]>(CATEGORIES_STORAGE_KEY) || [];
+      const currentCategories = storageService.getItem<Category[]>(STORAGE_KEYS.CATEGORIES) || [];
       
       const newCategoryObj: Category = {
         id: crypto.randomUUID(),
         name: newCategory.trim()
       };
       
-      storageService.setItem(CATEGORIES_STORAGE_KEY, [...currentCategories, newCategoryObj]);
+      // Use the updated storage service to save to both Supabase and localStorage
+      await storageService.saveToSupabase('categories', newCategoryObj);
       
       toast({
         title: "Categoria adicionada",
@@ -210,17 +207,15 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
     }
   };
 
-  const handleUpdateCategory = () => {
+  const handleUpdateCategory = async () => {
     if (!editingCategory || !editingCategory.name.trim()) return;
     
     try {
-      const currentCategories = storageService.getItem<Category[]>(CATEGORIES_STORAGE_KEY) || [];
-      
-      const updatedCategories = currentCategories.map(cat => 
-        cat.id === editingCategory.id ? { ...cat, name: editingCategory.name.trim() } : cat
-      );
-      
-      storageService.setItem(CATEGORIES_STORAGE_KEY, updatedCategories);
+      // Use the updated storage service to save to both Supabase and localStorage
+      await storageService.saveToSupabase('categories', {
+        ...editingCategory,
+        name: editingCategory.name.trim()
+      });
       
       toast({
         title: "Categoria atualizada",
@@ -254,10 +249,10 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
     }
   };
 
-  const handleConfirmDelete = (category: Category, targetCategoryId?: string) => {
+  const handleConfirmDelete = async (category: Category, targetCategoryId?: string) => {
     try {
-      const currentCategories = storageService.getItem<Category[]>(CATEGORIES_STORAGE_KEY) || [];
-      const products = storageService.getItem<Product[]>(PRODUCTS_STORAGE_KEY) || [];
+      const currentCategories = storageService.getItem<Category[]>(STORAGE_KEYS.CATEGORIES) || [];
+      const products = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
       
       const updatedCategories = currentCategories.filter(cat => cat.id !== category.id);
       
@@ -276,16 +271,17 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
             return product;
           });
           
-          storageService.setItem(PRODUCTS_STORAGE_KEY, updatedProducts);
-          
-          toast({
-            title: "Produtos migrados",
-            description: `Os produtos foram migrados para a categoria "${targetCategory.name}".`,
-          });
+          // Update products in both Supabase and localStorage
+          for (const product of updatedProducts) {
+            if (product.category.id === targetCategory.id) {
+              await storageService.saveToSupabase(STORAGE_KEYS.PRODUCTS, product);
+            }
+          }
         }
       }
       
-      storageService.setItem(CATEGORIES_STORAGE_KEY, updatedCategories);
+      // Delete the category from Supabase
+      await storageService.removeFromSupabase('categories', category.id);
       
       updateProductStatistics();
       
@@ -975,191 +971,4 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
               <Select
                 value={selectedTargetCategory}
                 onValueChange={setSelectedTargetCategory}
-                disabled={availableCategoriesForMigration.length === 0}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecione uma categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableCategoriesForMigration.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              {availableCategoriesForMigration.length === 0 && (
-                <p className="text-sm text-destructive mt-2">
-                  Não há outras categorias disponíveis. Crie uma nova categoria primeiro.
-                </p>
-              )}
-            </div>
-            
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowDeleteDialog(false);
-                  setCategoryToDelete(null);
-                }}
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={() => {
-                  if (categoryToDelete && selectedTargetCategory) {
-                    handleConfirmDelete(categoryToDelete, selectedTargetCategory);
-                  }
-                }}
-                disabled={!selectedTargetCategory || availableCategoriesForMigration.length === 0}
-                variant="default"
-              >
-                Migrar e Excluir
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        
-        <Dialog open={showTempCategoryDialog} onOpenChange={(open) => {
-          if (!open) {
-            setShowTempCategoryDialog(false);
-          }
-        }}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Atribuir Categoria Temporária</DialogTitle>
-              <DialogDescription>
-                Os produtos selecionados serão movidos para a categoria escolhida
-                temporariamente e retornarão automaticamente às suas categorias
-                originais após o período definido.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="temp-category">Categoria Temporária</Label>
-                <Select
-                  value={selectedTempCategory}
-                  onValueChange={setSelectedTempCategory}
-                >
-                  <SelectTrigger id="temp-category" className="w-full">
-                    <SelectValue placeholder="Selecione uma categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories?.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="temp-duration">Duração</Label>
-                <Select
-                  value={tempDuration}
-                  onValueChange={setTempDuration}
-                >
-                  <SelectTrigger id="temp-duration" className="w-full">
-                    <SelectValue placeholder="Selecione a duração" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1 dia</SelectItem>
-                    <SelectItem value="3">3 dias</SelectItem>
-                    <SelectItem value="7">7 dias</SelectItem>
-                    <SelectItem value="14">14 dias</SelectItem>
-                    <SelectItem value="30">30 dias</SelectItem>
-                    <SelectItem value="custom">Data e hora personalizadas</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {tempDuration === 'custom' && (
-                <div className="space-y-2">
-                  <Label>Data e Hora de Expiração</Label>
-                  <div className="flex flex-col space-y-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start text-left font-normal"
-                        >
-                          <Calendar className="mr-2 h-4 w-4" />
-                          {customDate ? format(customDate, "PPP") : "Selecione a data"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <CalendarComponent
-                          mode="single"
-                          selected={customDate}
-                          onSelect={(date) => date && setCustomDate(date)}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    
-                    <div className="flex space-x-2">
-                      <div className="w-1/2">
-                        <Label htmlFor="hour">Hora</Label>
-                        <Select
-                          value={customTimeHours}
-                          onValueChange={setCustomTimeHours}
-                        >
-                          <SelectTrigger id="hour" className="w-full">
-                            <SelectValue placeholder="Hora" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Array.from({ length: 24 }).map((_, idx) => (
-                              <SelectItem key={idx} value={idx.toString().padStart(2, '0')}>
-                                {idx.toString().padStart(2, '0')}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="w-1/2">
-                        <Label htmlFor="minute">Minuto</Label>
-                        <Select
-                          value={customTimeMinutes}
-                          onValueChange={setCustomTimeMinutes}
-                        >
-                          <SelectTrigger id="minute" className="w-full">
-                            <SelectValue placeholder="Minuto" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Array.from({ length: 60 }).map((_, idx) => (
-                              <SelectItem key={idx} value={idx.toString().padStart(2, '0')}>
-                                {idx.toString().padStart(2, '0')}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setShowTempCategoryDialog(false)}
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleAssignTempCategory}
-                disabled={!selectedTempCategory}
-              >
-                Atribuir
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </CardContent>
-    </Card>
-  );
-}
+                disabled={availableCategories

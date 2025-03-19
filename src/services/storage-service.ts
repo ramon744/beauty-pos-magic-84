@@ -1,6 +1,5 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { fromTable } from './supabase-helper';
+import { fromTable, extractDataFromSupabase } from './supabase-helper';
 
 export const storageService = {
   getItem: <T>(key: string): T | null => {
@@ -60,6 +59,22 @@ export const storageService = {
       
       if (error) {
         console.error(`Error saving to ${table}:`, error);
+        
+        // Also save to localStorage for backup and offline functionality
+        const storageKey = getStorageKeyForTable(table);
+        if (storageKey) {
+          const existingItems = storageService.getItem<T[]>(storageKey) || [];
+          const index = existingItems.findIndex(i => i.id === item.id);
+          
+          if (index >= 0) {
+            existingItems[index] = item;
+          } else {
+            existingItems.push(item);
+          }
+          
+          storageService.setItem(storageKey, existingItems);
+        }
+        
         // Just use the original item if there's an error
         return item;
       }
@@ -90,9 +105,40 @@ export const storageService = {
         return result as T;
       }
       
+      // If Supabase failed but we didn't catch an error, save to localStorage
+      const storageKey = getStorageKeyForTable(table);
+      if (storageKey) {
+        const existingItems = storageService.getItem<T[]>(storageKey) || [];
+        const index = existingItems.findIndex(i => i.id === item.id);
+        
+        if (index >= 0) {
+          existingItems[index] = item;
+        } else {
+          existingItems.push(item);
+        }
+        
+        storageService.setItem(storageKey, existingItems);
+      }
+      
       return item;
     } catch (err) {
       console.error(`Error in saveToSupabase for ${table}:`, err);
+      
+      // On error, still save to localStorage
+      const storageKey = getStorageKeyForTable(table);
+      if (storageKey) {
+        const existingItems = storageService.getItem<T[]>(storageKey) || [];
+        const index = existingItems.findIndex(i => i.id === item.id);
+        
+        if (index >= 0) {
+          existingItems[index] = item;
+        } else {
+          existingItems.push(item);
+        }
+        
+        storageService.setItem(storageKey, existingItems);
+      }
+      
       return item;
     }
   },
@@ -104,7 +150,16 @@ export const storageService = {
       
       if (error) {
         console.error(`Error removing from ${table}:`, error);
-        return false;
+        
+        // Still remove from localStorage even if Supabase fails
+        const storageKey = getStorageKeyForTable(table);
+        if (storageKey) {
+          const existingItems = storageService.getItem<any[]>(storageKey) || [];
+          const updatedItems = existingItems.filter(item => item.id !== id);
+          storageService.setItem(storageKey, updatedItems);
+        }
+        
+        return true; // Return true to let the UI update
       }
       
       // Also remove from localStorage
@@ -118,7 +173,16 @@ export const storageService = {
       return true;
     } catch (err) {
       console.error(`Error in removeFromSupabase for ${table}:`, err);
-      return false;
+      
+      // Still remove from localStorage even if Supabase fails
+      const storageKey = getStorageKeyForTable(table);
+      if (storageKey) {
+        const existingItems = storageService.getItem<any[]>(storageKey) || [];
+        const updatedItems = existingItems.filter(item => item.id !== id);
+        storageService.setItem(storageKey, updatedItems);
+      }
+      
+      return true; // Return true to let the UI update
     }
   }
 };
