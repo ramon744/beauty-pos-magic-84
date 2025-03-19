@@ -1,6 +1,8 @@
 
 import React from 'react';
 import UserMenu from './UserMenu';
+import { Button } from '@/components/ui/button';
+import { Bell } from 'lucide-react';
 
 interface NavbarProps {
   toggleSidebar: () => void;
@@ -46,9 +48,5 @@ const Navbar: React.FC<NavbarProps> = ({ toggleSidebar }) => {
     </header>
   );
 }
-
-// Missing import added
-import { Bell } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 export default Navbar;
