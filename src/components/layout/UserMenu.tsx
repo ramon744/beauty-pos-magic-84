@@ -16,12 +16,14 @@ import { useCashierOperations } from '@/hooks/use-cashier-operations';
 import { CloseCashierDialog } from '@/components/cashiers/CloseCashierDialog';
 import { ManagerAuthDialog } from '@/components/auth/ManagerAuthDialog';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const UserMenu: React.FC = () => {
   const { user, logout } = useAuth();
   const { getUserCashierStatus } = useCashierOperations();
   const [isCloseCashierDialogOpen, setIsCloseCashierDialogOpen] = useState(false);
   const [isManagerAuthOpen, setIsManagerAuthOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   if (!user) return null;
 
