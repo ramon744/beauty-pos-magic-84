@@ -58,7 +58,9 @@ const initializeSuppliers = () => {
 const getSuppliers = async (): Promise<Supplier[]> => {
   try {
     // Try to get from Supabase first
-    const { data, error } = await supabase.from('suppliers').select('*');
+    const { data, error } = await supabase
+      .from('suppliers')
+      .select();
     
     if (error) {
       console.error("Error fetching suppliers from Supabase:", error);
@@ -117,7 +119,7 @@ export function useFetchSupplier(id: string) {
         // Try to get from Supabase first
         const { data, error } = await supabase
           .from('suppliers')
-          .select('*')
+          .select()
           .eq('id', id)
           .single();
         
@@ -187,8 +189,7 @@ export function useSaveSupplier() {
         const { data, error } = await supabase
           .from('suppliers')
           .upsert(supplierData)
-          .select()
-          .single();
+          .select();
         
         if (error) {
           console.error("Error saving supplier to Supabase:", error);
@@ -212,34 +213,38 @@ export function useSaveSupplier() {
         }
         
         // Convert snake_case back to camelCase
-        const savedSupplier = {
-          id: data.id,
-          name: data.name,
-          phone: data.phone,
-          email: data.email,
-          address: data.address,
-          contactPerson: data.contact_person,
-          cnpj: data.cnpj,
-          createdAt: new Date(data.created_at),
-          updatedAt: new Date(data.updated_at)
-        };
-        
-        // Also update localStorage for offline access
-        const suppliers = storageService.getItem<Supplier[]>(SUPPLIERS_STORAGE_KEY) || [];
-        const existingIndex = suppliers.findIndex(s => s.id === savedSupplier.id);
-        
-        if (existingIndex >= 0) {
-          suppliers[existingIndex] = savedSupplier;
-        } else {
-          suppliers.push(savedSupplier);
+        if (data && data[0]) {
+          const savedSupplier = {
+            id: data[0].id,
+            name: data[0].name,
+            phone: data[0].phone,
+            email: data[0].email,
+            address: data[0].address,
+            contactPerson: data[0].contact_person,
+            cnpj: data[0].cnpj,
+            createdAt: new Date(data[0].created_at),
+            updatedAt: new Date(data[0].updated_at)
+          };
+          
+          // Also update localStorage for offline access
+          const suppliers = storageService.getItem<Supplier[]>(SUPPLIERS_STORAGE_KEY) || [];
+          const existingIndex = suppliers.findIndex(s => s.id === savedSupplier.id);
+          
+          if (existingIndex >= 0) {
+            suppliers[existingIndex] = savedSupplier;
+          } else {
+            suppliers.push(savedSupplier);
+          }
+          
+          storageService.setItem(SUPPLIERS_STORAGE_KEY, suppliers);
+          
+          // Simulate API delay
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          return savedSupplier;
         }
         
-        storageService.setItem(SUPPLIERS_STORAGE_KEY, suppliers);
-        
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        return savedSupplier;
+        return supplier;
       } catch (error) {
         console.error("Failed to save supplier:", error);
         

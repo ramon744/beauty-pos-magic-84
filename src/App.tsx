@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,12 +23,30 @@ import Cashiers from "./pages/Cashiers";
 import CashierLink from "./pages/CashierLink";
 import MainLayout from "./components/layout/MainLayout";
 import { useDataMigration } from './hooks/use-data-migration';
+import { toast } from "./components/ui/use-toast";
 
 const queryClient = new QueryClient();
 
 function App() {
   // Initialize data migration
   const { isMigrating, isCompleted, error } = useDataMigration();
+  
+  if (isMigrating) {
+    console.log("Migration in progress...");
+  }
+  
+  if (error) {
+    console.error("Migration error:", error);
+    toast({
+      variant: "destructive",
+      title: "Erro na migração de dados",
+      description: error
+    });
+  }
+  
+  if (isCompleted) {
+    console.log("Migration completed successfully!");
+  }
   
   return (
     <QueryClientProvider client={queryClient}>

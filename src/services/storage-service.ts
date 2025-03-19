@@ -17,15 +17,15 @@ export const storageService = {
   },
   
   // Supabase methods - these work with both approaches
-  async getFromSupabase: async <T>(table: string, column: string = '', value: any = null): Promise<T[]> => {
+  getFromSupabase: async <T>(table: string, column: string = '', value: any = null): Promise<T[]> => {
     try {
-      let query = supabase.from(table).select('*');
+      let query = supabase.from(table);
       
       if (column && value !== null) {
         query = query.eq(column, value);
       }
       
-      const { data, error } = await query;
+      const { data, error } = await query.select();
       
       if (error) {
         console.error(`Error fetching from ${table}:`, error);
@@ -43,7 +43,7 @@ export const storageService = {
     }
   },
   
-  async saveToSupabase: async <T extends { id: string }>(table: string, item: T): Promise<T> => {
+  saveToSupabase: async <T extends { id: string }>(table: string, item: T): Promise<T> => {
     try {
       // Convert camelCase to snake_case for all properties
       const transformed = Object.entries(item).reduce((acc, [key, value]) => {
@@ -55,8 +55,7 @@ export const storageService = {
       const { data, error } = await supabase
         .from(table)
         .upsert(transformed)
-        .select()
-        .single();
+        .select();
       
       if (error) {
         console.error(`Error saving to ${table}:`, error);
@@ -65,35 +64,39 @@ export const storageService = {
       }
       
       // Convert the result back to camelCase
-      const result = Object.entries(data).reduce((acc, [key, value]) => {
-        const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-        acc[camelKey] = value;
-        return acc;
-      }, {} as any);
-      
-      // Also save to localStorage for backup and offline functionality
-      const storageKey = getStorageKeyForTable(table);
-      if (storageKey) {
-        const existingItems = storageService.getItem<T[]>(storageKey) || [];
-        const index = existingItems.findIndex(i => i.id === item.id);
+      if (data && data[0]) {
+        const result = Object.entries(data[0]).reduce((acc, [key, value]) => {
+          const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+          acc[camelKey] = value;
+          return acc;
+        }, {} as any);
         
-        if (index >= 0) {
-          existingItems[index] = item;
-        } else {
-          existingItems.push(item);
+        // Also save to localStorage for backup and offline functionality
+        const storageKey = getStorageKeyForTable(table);
+        if (storageKey) {
+          const existingItems = storageService.getItem<T[]>(storageKey) || [];
+          const index = existingItems.findIndex(i => i.id === item.id);
+          
+          if (index >= 0) {
+            existingItems[index] = item;
+          } else {
+            existingItems.push(item);
+          }
+          
+          storageService.setItem(storageKey, existingItems);
         }
         
-        storageService.setItem(storageKey, existingItems);
+        return result as T;
       }
       
-      return result as T;
+      return item;
     } catch (err) {
       console.error(`Error in saveToSupabase for ${table}:`, err);
       return item;
     }
   },
   
-  async removeFromSupabase: async (table: string, id: string): Promise<boolean> => {
+  removeFromSupabase: async (table: string, id: string): Promise<boolean> => {
     try {
       const { error } = await supabase
         .from(table)
