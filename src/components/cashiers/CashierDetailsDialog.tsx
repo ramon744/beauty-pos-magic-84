@@ -24,6 +24,7 @@ import { formatCurrency } from '@/lib/formatters';
 import { CashierOperation } from '@/services/cashier-operations-service';
 import { FileIcon, PieChartIcon, TableIcon } from 'lucide-react';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Default payment methods with zero values
 const DEFAULT_PAYMENT_METHODS = [
@@ -145,7 +146,7 @@ export const CashierDetailsDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[700px]">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Detalhes do Caixa: {cashierName}</DialogTitle>
           <DialogDescription>
@@ -153,146 +154,150 @@ export const CashierDetailsDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="summary">
-              <PieChartIcon className="h-4 w-4 mr-2" /> Resumo de Pagamentos
-            </TabsTrigger>
-            <TabsTrigger value="operations">
-              <FileIcon className="h-4 w-4 mr-2" /> Operações do Caixa
-            </TabsTrigger>
-          </TabsList>
+        <ScrollArea className="flex-1 overflow-y-auto">
+          <div className="p-1">
+            <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="summary">
+                  <PieChartIcon className="h-4 w-4 mr-2" /> Resumo de Pagamentos
+                </TabsTrigger>
+                <TabsTrigger value="operations">
+                  <FileIcon className="h-4 w-4 mr-2" /> Operações do Caixa
+                </TabsTrigger>
+              </TabsList>
 
-          <TabsContent value="summary" className="space-y-4">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="text-lg font-medium mb-4">Formas de Pagamento</h3>
-                    <div className="mb-4">
-                      <div className="flex justify-between items-center text-muted-foreground mb-1">
-                        <span>Valor da abertura: </span>
-                        <span className="font-semibold">{formatCurrency(openingBalance)}</span>
+              <TabsContent value="summary" className="space-y-4">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <h3 className="text-lg font-medium mb-4">Formas de Pagamento</h3>
+                        <div className="mb-4">
+                          <div className="flex justify-between items-center text-muted-foreground mb-1">
+                            <span>Valor da abertura: </span>
+                            <span className="font-semibold">{formatCurrency(openingBalance)}</span>
+                          </div>
+                        </div>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Método</TableHead>
+                              <TableHead>Valor</TableHead>
+                              <TableHead>%</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {paymentMethods.map((method) => (
+                              <TableRow key={method.method}>
+                                <TableCell className="font-medium">{method.method}</TableCell>
+                                <TableCell>{formatCurrency(method.amount)}</TableCell>
+                                <TableCell>
+                                  {totalAmount > 0 
+                                    ? ((method.amount / totalAmount) * 100).toFixed(1) 
+                                    : '0.0'}%
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                            <TableRow>
+                              <TableCell className="font-bold">Total</TableCell>
+                              <TableCell className="font-bold">{formatCurrency(totalAmount)}</TableCell>
+                              <TableCell>100%</TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </div>
+
+                      <div className="flex flex-col items-center justify-center">
+                        <h3 className="text-lg font-medium mb-4">Distribuição de Pagamentos</h3>
+                        <div className="w-full h-[200px]">
+                          {totalAmount > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <Pie
+                                  data={paymentMethods.filter(method => method.amount > 0)}
+                                  cx="50%"
+                                  cy="50%"
+                                  labelLine={false}
+                                  outerRadius={70}
+                                  fill="#8884d8"
+                                  dataKey="amount"
+                                  nameKey="method"
+                                  label={({ method, percent }) => 
+                                    `${method}: ${(percent * 100).toFixed(0)}%`
+                                  }
+                                >
+                                  {paymentMethods.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                  ))}
+                                </Pie>
+                                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                                <Legend />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          ) : (
+                            <div className="h-full flex items-center justify-center text-muted-foreground">
+                              Não há pagamentos registrados ainda
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="operations" className="space-y-4">
+                <Card>
+                  <CardContent className="pt-6">
+                    <h3 className="text-lg font-medium mb-4">Histórico de Operações</h3>
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Método</TableHead>
+                          <TableHead>Hora</TableHead>
+                          <TableHead>Tipo</TableHead>
                           <TableHead>Valor</TableHead>
-                          <TableHead>%</TableHead>
+                          <TableHead>Usuário</TableHead>
+                          <TableHead>Motivo</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {paymentMethods.map((method) => (
-                          <TableRow key={method.method}>
-                            <TableCell className="font-medium">{method.method}</TableCell>
-                            <TableCell>{formatCurrency(method.amount)}</TableCell>
-                            <TableCell>
-                              {totalAmount > 0 
-                                ? ((method.amount / totalAmount) * 100).toFixed(1) 
-                                : '0.0'}%
+                        {operations.filter(op => op.cashierId === cashierId).length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center py-4">
+                              Nenhuma operação registrada para este caixa
                             </TableCell>
                           </TableRow>
-                        ))}
-                        <TableRow>
-                          <TableCell className="font-bold">Total</TableCell>
-                          <TableCell className="font-bold">{formatCurrency(totalAmount)}</TableCell>
-                          <TableCell>100%</TableCell>
-                        </TableRow>
+                        ) : (
+                          operations
+                            .filter(op => op.cashierId === cashierId)
+                            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                            .map((operation) => (
+                              <TableRow key={operation.id}>
+                                <TableCell>
+                                  {new Date(operation.timestamp).toLocaleTimeString('pt-BR')}
+                                </TableCell>
+                                <TableCell>
+                                  {operation.operationType === 'open' && 'Abertura'}
+                                  {operation.operationType === 'close' && 'Fechamento'}
+                                  {operation.operationType === 'deposit' && 'Suprimento'}
+                                  {operation.operationType === 'withdrawal' && 'Sangria'}
+                                </TableCell>
+                                <TableCell>{formatCurrency(operation.amount)}</TableCell>
+                                <TableCell>Usuário ID: {operation.userId.substring(0, 6)}</TableCell>
+                                <TableCell>{operation.reason || '-'}</TableCell>
+                              </TableRow>
+                            ))
+                        )}
                       </TableBody>
                     </Table>
-                  </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </ScrollArea>
 
-                  <div className="flex flex-col items-center justify-center">
-                    <h3 className="text-lg font-medium mb-4">Distribuição de Pagamentos</h3>
-                    <div className="w-full h-[250px]">
-                      {totalAmount > 0 ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={paymentMethods.filter(method => method.amount > 0)}
-                              cx="50%"
-                              cy="50%"
-                              labelLine={false}
-                              outerRadius={80}
-                              fill="#8884d8"
-                              dataKey="amount"
-                              nameKey="method"
-                              label={({ method, percent }) => 
-                                `${method}: ${(percent * 100).toFixed(0)}%`
-                              }
-                            >
-                              {paymentMethods.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
-                              ))}
-                            </Pie>
-                            <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                            <Legend />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      ) : (
-                        <div className="h-full flex items-center justify-center text-muted-foreground">
-                          Não há pagamentos registrados ainda
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="operations" className="space-y-4">
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="text-lg font-medium mb-4">Histórico de Operações</h3>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Hora</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Valor</TableHead>
-                      <TableHead>Usuário</TableHead>
-                      <TableHead>Motivo</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {operations.filter(op => op.cashierId === cashierId).length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center py-4">
-                          Nenhuma operação registrada para este caixa
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      operations
-                        .filter(op => op.cashierId === cashierId)
-                        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-                        .map((operation) => (
-                          <TableRow key={operation.id}>
-                            <TableCell>
-                              {new Date(operation.timestamp).toLocaleTimeString('pt-BR')}
-                            </TableCell>
-                            <TableCell>
-                              {operation.operationType === 'open' && 'Abertura'}
-                              {operation.operationType === 'close' && 'Fechamento'}
-                              {operation.operationType === 'deposit' && 'Suprimento'}
-                              {operation.operationType === 'withdrawal' && 'Sangria'}
-                            </TableCell>
-                            <TableCell>{formatCurrency(operation.amount)}</TableCell>
-                            <TableCell>Usuário ID: {operation.userId.substring(0, 6)}</TableCell>
-                            <TableCell>{operation.reason || '-'}</TableCell>
-                          </TableRow>
-                        ))
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
-        <DialogFooter>
+        <DialogFooter className="mt-6">
           <Button onClick={onClose}>Fechar</Button>
         </DialogFooter>
       </DialogContent>
