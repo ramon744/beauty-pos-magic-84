@@ -92,6 +92,12 @@
   }
 }
 
+/* Improved dialog styling for better containment */
+.DialogContent {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
 /* Glass morphism effect */
 .glass {
   @apply bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg;

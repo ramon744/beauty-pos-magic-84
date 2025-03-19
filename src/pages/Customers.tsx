@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Customer, Sale } from '@/types';
@@ -444,8 +445,9 @@ const Customers = () => {
           </TabsContent>
         </Tabs>
 
+        {/* Modified dialog to ensure it doesn't take up the entire screen */}
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto max-w-md w-full">
             <DialogHeader>
               <DialogTitle>Adicionar Novo Cliente</DialogTitle>
               <DialogDescription>
@@ -583,8 +585,9 @@ const Customers = () => {
           </DialogContent>
         </Dialog>
 
+        {/* Modified edit dialog to ensure it doesn't take up the entire screen */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto max-w-md w-full">
             <DialogHeader>
               <DialogTitle>Editar Cliente</DialogTitle>
               <DialogDescription>
