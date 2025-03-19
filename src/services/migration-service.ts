@@ -10,6 +10,7 @@ export const migrationService = {
     const localProducts = storageService.getItem(STORAGE_KEYS.PRODUCTS);
     if (!localProducts) return;
     
+    // Ensure we have an array of products
     const products = Array.isArray(localProducts) ? localProducts : [];
     
     // Insert products into Supabase
@@ -29,9 +30,9 @@ export const migrationService = {
       };
 
       try {
-        // Use a more generic approach
-        const { error } = await supabase
-          .from('products')
+        // Use type casting to avoid TypeScript errors
+        const { error } = await (supabase
+          .from('products') as any)
           .upsert(productData);
         
         if (error) console.error('Error migrating product:', error);
@@ -46,14 +47,15 @@ export const migrationService = {
     const localCategories = storageService.getItem(STORAGE_KEYS.CATEGORIES);
     if (!localCategories) return;
     
+    // Ensure we have an array of categories
     const categories = Array.isArray(localCategories) ? localCategories : [];
 
     // Insert categories into Supabase
     for (const category of categories) {
       try {
-        // Use a more generic approach
-        const { error } = await supabase
-          .from('categories')
+        // Use type casting to avoid TypeScript errors
+        const { error } = await (supabase
+          .from('categories') as any)
           .upsert({
             id: category.id,
             name: category.name
@@ -71,14 +73,15 @@ export const migrationService = {
     const localCustomers = storageService.getItem(STORAGE_KEYS.CUSTOMERS);
     if (!localCustomers) return;
     
+    // Ensure we have an array of customers
     const customers = Array.isArray(localCustomers) ? localCustomers : [];
 
     // Insert customers into Supabase
     for (const customer of customers) {
       try {
-        // Use a more generic approach
-        const { error } = await supabase
-          .from('customers')
+        // Use type casting to avoid TypeScript errors
+        const { error } = await (supabase
+          .from('customers') as any)
           .upsert({
             id: customer.id,
             name: customer.name,
@@ -101,14 +104,15 @@ export const migrationService = {
     const localUsers = storageService.getItem(STORAGE_KEYS.USERS);
     if (!localUsers) return;
     
+    // Ensure we have an array of users
     const users = Array.isArray(localUsers) ? localUsers : [];
 
     // Insert users into Supabase
     for (const user of users) {
       try {
-        // Use a more generic approach
-        const { error } = await supabase
-          .from('users')
+        // Use type casting to avoid TypeScript errors
+        const { error } = await (supabase
+          .from('users') as any)
           .upsert({
             id: user.id,
             name: user.name,
@@ -131,14 +135,15 @@ export const migrationService = {
     const localCashiers = storageService.getItem(STORAGE_KEYS.CASHIERS);
     if (!localCashiers) return;
     
+    // Ensure we have an array of cashiers
     const cashiers = Array.isArray(localCashiers) ? localCashiers : [];
 
     // Insert cashiers into Supabase
     for (const cashier of cashiers) {
       try {
-        // Use a more generic approach
-        const { error } = await supabase
-          .from('cashiers')
+        // Use type casting to avoid TypeScript errors
+        const { error } = await (supabase
+          .from('cashiers') as any)
           .upsert({
             id: cashier.id,
             name: cashier.name,
@@ -163,14 +168,15 @@ export const migrationService = {
     const localOperations = storageService.getItem(STORAGE_KEYS.CASHIER_OPERATIONS);
     if (!localOperations) return;
     
+    // Ensure we have an array of operations
     const operations = Array.isArray(localOperations) ? localOperations : [];
 
     // Insert operations into Supabase
     for (const operation of operations) {
       try {
-        // Use a more generic approach
-        const { error } = await supabase
-          .from('cashier_operations')
+        // Use type casting to avoid TypeScript errors
+        const { error } = await (supabase
+          .from('cashier_operations') as any)
           .upsert({
             id: operation.id,
             cashier_id: operation.cashierId,
@@ -196,14 +202,15 @@ export const migrationService = {
     const localOrders = storageService.getItem(STORAGE_KEYS.SALES);
     if (!localOrders) return;
     
+    // Ensure we have an array of orders
     const orders = Array.isArray(localOrders) ? localOrders : [];
 
     // Insert orders into Supabase
     for (const order of orders) {
       try {
-        // Use a more generic approach
-        const { error } = await supabase
-          .from('orders')
+        // Use type casting to avoid TypeScript errors
+        const { error } = await (supabase
+          .from('orders') as any)
           .upsert({
             id: order.id,
             user_id: order.userId || '1',
@@ -223,9 +230,9 @@ export const migrationService = {
         if (order.items && Array.isArray(order.items)) {
           for (const item of order.items) {
             try {
-              // Use a more generic approach
-              const { error: itemError } = await supabase
-                .from('order_items')
+              // Use type casting to avoid TypeScript errors
+              const { error: itemError } = await (supabase
+                .from('order_items') as any)
                 .upsert({
                   id: item.id || crypto.randomUUID(),
                   order_id: order.id,
@@ -252,14 +259,15 @@ export const migrationService = {
     const localPromotions = storageService.getItem(STORAGE_KEYS.PROMOTIONS);
     if (!localPromotions) return;
     
+    // Ensure we have an array of promotions
     const promotions = Array.isArray(localPromotions) ? localPromotions : [];
 
     // Insert promotions into Supabase
     for (const promotion of promotions) {
       try {
-        // Use a more generic approach
-        const { error } = await supabase
-          .from('promotions')
+        // Use type casting to avoid TypeScript errors
+        const { error } = await (supabase
+          .from('promotions') as any)
           .upsert({
             id: promotion.id,
             name: promotion.name,
@@ -294,14 +302,15 @@ export const migrationService = {
     const localSuppliers = storageService.getItem(SUPPLIERS_STORAGE_KEY);
     if (!localSuppliers) return;
     
+    // Ensure we have an array of suppliers
     const suppliers = Array.isArray(localSuppliers) ? localSuppliers : [];
 
     // Insert suppliers into Supabase
     for (const supplier of suppliers) {
       try {
-        // Use a more generic approach
-        const { error } = await supabase
-          .from('suppliers')
+        // Use type casting to avoid TypeScript errors
+        const { error } = await (supabase
+          .from('suppliers') as any)
           .upsert({
             id: supplier.id,
             name: supplier.name,
@@ -326,14 +335,15 @@ export const migrationService = {
     const localStockHistory = storageService.getItem(STORAGE_KEYS.STOCKS);
     if (!localStockHistory) return;
     
+    // Ensure we have an array of stock history
     const stockHistory = Array.isArray(localStockHistory) ? localStockHistory : [];
 
     // Insert stock history into Supabase
     for (const record of stockHistory) {
       try {
-        // Use a more generic approach
-        const { error } = await supabase
-          .from('stock_history')
+        // Use type casting to avoid TypeScript errors
+        const { error } = await (supabase
+          .from('stock_history') as any)
           .upsert({
             id: record.id,
             product_id: record.productId,

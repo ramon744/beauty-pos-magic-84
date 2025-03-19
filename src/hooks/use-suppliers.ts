@@ -57,9 +57,9 @@ const initializeSuppliers = () => {
 // Get all suppliers from Supabase with localStorage fallback
 const getSuppliers = async (): Promise<Supplier[]> => {
   try {
-    // Try to get from Supabase first with a more generic approach
-    const { data, error } = await supabase
-      .from('suppliers')
+    // Try to get from Supabase first with type casting to avoid TS errors
+    const { data, error } = await (supabase
+      .from('suppliers') as any)
       .select();
     
     if (error) {
@@ -70,7 +70,7 @@ const getSuppliers = async (): Promise<Supplier[]> => {
     
     if (data && Array.isArray(data) && data.length > 0) {
       // Convert snake_case to camelCase
-      const suppliers = data.map(item => ({
+      const suppliers = data.map((item: any) => ({
         id: item.id,
         name: item.name,
         phone: item.phone,
@@ -116,9 +116,9 @@ export function useFetchSupplier(id: string) {
       if (!id) return null;
       
       try {
-        // Try to get from Supabase first with a more generic approach
-        const { data, error } = await supabase
-          .from('suppliers')
+        // Try to get from Supabase first with type casting to avoid TS errors
+        const { data, error } = await (supabase
+          .from('suppliers') as any)
           .select()
           .eq('id', id)
           .single();
@@ -185,9 +185,9 @@ export function useSaveSupplier() {
           updated_at: supplier.updatedAt.toISOString()
         };
         
-        // Try to save to Supabase with a more generic approach
-        const { data, error } = await supabase
-          .from('suppliers')
+        // Try to save to Supabase with type casting to avoid TS errors
+        const { data, error } = await (supabase
+          .from('suppliers') as any)
           .upsert(supplierData)
           .select();
         
@@ -277,9 +277,9 @@ export function useDeleteSupplier() {
   return useMutation({
     mutationFn: async (supplierId: string) => {
       try {
-        // Try to delete from Supabase with a more generic approach
-        const { error } = await supabase
-          .from('suppliers')
+        // Try to delete from Supabase with type casting to avoid TS errors
+        const { error } = await (supabase
+          .from('suppliers') as any)
           .delete()
           .eq('id', supplierId);
         

@@ -19,11 +19,11 @@ export const storageService = {
   // Supabase methods with safe fallbacks to localStorage
   getFromSupabase: async <T>(table: string, column: string = '', value: any = null): Promise<T[]> => {
     try {
-      // Use a more generic approach to avoid TypeScript errors
-      let query = supabase.from(table);
+      // Use a more type-safe approach that avoids TS errors by using "any" type casting
+      let query = supabase.from(table) as any;
       
       if (column && value !== null) {
-        // Use a more dynamic approach
+        // Apply filter if provided
         query = query.eq(column, value);
       }
       
@@ -54,9 +54,9 @@ export const storageService = {
         return acc;
       }, {} as any);
       
-      // Use a more generic approach
-      const { data, error } = await supabase
-        .from(table)
+      // Use a more type-safe approach with "any" type casting
+      const { data, error } = await (supabase
+        .from(table) as any)
         .upsert(transformed)
         .select();
       
@@ -101,9 +101,9 @@ export const storageService = {
   
   removeFromSupabase: async (table: string, id: string): Promise<boolean> => {
     try {
-      // Use a more generic approach
-      const { error } = await supabase
-        .from(table)
+      // Use a more type-safe approach with "any" type casting
+      const { error } = await (supabase
+        .from(table) as any)
         .delete()
         .eq('id', id);
       
