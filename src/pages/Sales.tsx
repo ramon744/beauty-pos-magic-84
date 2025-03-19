@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
@@ -39,69 +38,8 @@ const Sales = () => {
     toggleScanner 
   } = useProductSearch(salesManager.addProductToCart);
 
-  const {
-    // State variables
-    isManagerAuthOpen,
-    isDiscountDialogOpen,
-    isPromotionDialogOpen,
-    isDiscountsListOpen,
-    isPaymentDialogOpen,
-    isPrintReceiptDialogOpen,
-    discountReason,
-    discountForm,
-    lastCompletedSale,
-    
-    // Values from other hooks
-    cart,
-    cartSubtotal,
-    cartTotal,
-    linkedCustomer,
-    manualDiscount,
-    appliedPromotion,
-    availablePromotions,
-    promotionDiscountAmount,
-    manualDiscountAmount,
-    totalDiscountAmount,
-    appliedPromotionDetails,
-    selectedPromotionId,
-    
-    // Functions
-    handleManagerAuthConfirm,
-    requestManagerAuth,
-    initiateRemoveFromCart,
-    handleCartItemQuantityUpdate,
-    handleClearCart,
-    handlePaymentConfirm,
-    finalizeSale,
-    handleAddDiscount,
-    handleSubmitDiscount,
-    handleOpenPromotions,
-    handleShowDiscountsList,
-    handleDeleteDiscount,
-    handleSelectPromotion,
-    linkCustomer,
-    unlinkCustomer,
-    handlePrintReceipt,
-    handleClosePrintDialog,
-    
-    // Functions for dialog control
-    setIsManagerAuthOpen,
-    setIsDiscountDialogOpen,
-    setIsPromotionDialogOpen,
-    setIsDiscountsListOpen,
-    setIsPaymentDialogOpen,
-    setDiscountReason,
-    removeDiscount,
-    removePromotion,
-    addProductToCart
-  } = salesManager;
-
-  // Force cashier check on page load
-  useEffect(() => {
-    if (user && cashier && !isOpen) {
-      setIsOpenCashierDialogOpen(true);
-    }
-  }, [user, cashier, isOpen]);
+  // No need to force cashier check on page load, user will only be prompted when they click "Abrir Caixa"
+  // Removed the useEffect that forces open the dialog
 
   // If user has no assigned cashier, show a warning
   if (user && !cashier) {
