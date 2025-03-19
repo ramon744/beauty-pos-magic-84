@@ -45,7 +45,7 @@ const Cashiers = () => {
     getLatestCashierOperation,
     loadOperations
   } = useCashierOperations();
-  const { users } = useAuth();
+  const { user, users, hasPermission } = useAuth();
   
   const [isOpenCashierDialogOpen, setIsOpenCashierDialogOpen] = useState(false);
   const [isCloseCashierDialogOpen, setIsCloseCashierDialogOpen] = useState(false);
@@ -62,117 +62,24 @@ const Cashiers = () => {
   const [currentOperation, setCurrentOperation] = useState<'withdrawal' | 'deposit' | null>(null);
   const [managerInfo, setManagerInfo] = useState<{id?: string, name?: string} | null>(null);
   
-  const openCashiers = cashiers.filter(cashier => 
+  const filteredCashiers = cashiers.filter(cashier => {
+    if (hasPermission(['admin', 'manager'])) {
+      return true;
+    }
+    return cashier.assignedUserId === user?.id;
+  });
+  
+  const openCashiers = filteredCashiers.filter(cashier => 
     cashier.isActive && isCashierOpen(cashier.id)
   );
   
-  const closedCashiers = cashiers.filter(cashier => 
+  const closedCashiers = filteredCashiers.filter(cashier => 
     !isCashierOpen(cashier.id) && operations.some(op => op.cashierId === cashier.id)
   );
   
-  const handleOpenCashier = (cashierId: string) => {
-    setSelectedCashierId(cashierId);
-    setIsOpenCashierDialogOpen(true);
-  };
-  
-  const handleCloseCashier = (cashierId: string) => {
-    setSelectedCashierId(cashierId);
-    setIsCloseCashierDialogOpen(true);
-  };
-  
-  const handleViewDetails = (cashierId: string) => {
-    setSelectedCashierId(cashierId);
-    setIsDetailsDialogOpen(true);
-  };
-
-  const handleViewHistory = (cashierId: string) => {
-    setSelectedCashierId(cashierId);
-    setIsHistoryDialogOpen(true);
-  };
-  
-  const handleWithdrawal = async () => {
-    if (!selectedCashierForOperation || !withdrawalAmount || parseFloat(withdrawalAmount) <= 0) {
-      toast.error("Informe um valor válido para a sangria");
-      return;
-    }
-    
-    setCurrentOperation('withdrawal');
-    setIsManagerAuthOpen(true);
-  };
-  
-  const handleDeposit = async () => {
-    if (!selectedCashierForOperation || !depositAmount || parseFloat(depositAmount) <= 0) {
-      toast.error("Informe um valor válido para o suprimento");
-      return;
-    }
-    
-    setCurrentOperation('deposit');
-    setIsManagerAuthOpen(true);
-  };
-  
-  const handleManagerAuth = (managerId?: string, managerName?: string) => {
-    setIsManagerAuthOpen(false);
-    
-    if (managerId && managerName) {
-      setManagerInfo({ id: managerId, name: managerName });
-      
-      if (currentOperation === 'withdrawal') {
-        processWithdrawal(managerId, managerName);
-      } else if (currentOperation === 'deposit') {
-        processDeposit(managerId, managerName);
-      }
-    }
-    
-    setCurrentOperation(null);
-  };
-  
-  const processWithdrawal = async (managerId: string, managerName: string) => {
-    try {
-      const amount = parseFloat(withdrawalAmount);
-      const result = await addWithdrawal(
-        selectedCashierForOperation, 
-        amount, 
-        withdrawalReason,
-        managerName,
-        managerId
-      );
-      
-      if (result) {
-        toast.success("Sangria realizada com sucesso");
-        setWithdrawalAmount('');
-        setWithdrawalReason('');
-        loadOperations();
-        loadCashiers();
-      }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : "Erro ao realizar sangria";
-      toast.error(errorMsg);
-    }
-  };
-  
-  const processDeposit = async (managerId: string, managerName: string) => {
-    try {
-      const amount = parseFloat(depositAmount);
-      const result = await addDeposit(
-        selectedCashierForOperation, 
-        amount, 
-        depositReason,
-        managerName,
-        managerId
-      );
-      
-      if (result) {
-        toast.success("Suprimento adicionado com sucesso");
-        setDepositAmount('');
-        setDepositReason('');
-        loadOperations();
-        loadCashiers();
-      }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : "Erro ao adicionar suprimento";
-      toast.error(errorMsg);
-    }
-  };
+  const filteredUsers = hasPermission(['admin', 'manager']) 
+    ? users 
+    : users.filter(u => u.id === user?.id);
   
   const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', {
@@ -298,7 +205,7 @@ const Cashiers = () => {
         <TabsContent value="closed" className="space-y-4">
           <h2 className="text-xl font-semibold">Caixas Fechados</h2>
           
-          <div className="flex gap-4 mb-6">
+          <div className="flex gap-4 mb-6 flex-wrap">
             <div className="grid w-full max-w-sm items-center gap-1.5">
               <Label htmlFor="date-from">Data Inicial</Label>
               <Input type="date" id="date-from" />
@@ -315,7 +222,7 @@ const Cashiers = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  {users.map(user => (
+                  {filteredUsers.map(user => (
                     <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
                   ))}
                 </SelectContent>

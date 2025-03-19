@@ -38,8 +38,12 @@ const CashierOperationsReportContent = () => {
   const [selectedOperator, setSelectedOperator] = useState<string>('all');
   const [reportType, setReportType] = useState<'operations' | 'closings' | 'shortages' | 'sales'>('operations');
   
-  const { users } = useAuth();
+  const { users, user, hasPermission } = useAuth();
   const { data, isLoading, refetch } = useCashierOperationsReport(dateRange, selectedOperator, reportType);
+
+  const filteredUsers = hasPermission(['admin', 'manager']) 
+    ? users 
+    : users.filter(u => u.id === user?.id);
 
   const formatDate = (date: Date) => {
     return format(date, 'dd/MM/yyyy', { locale: ptBR });
@@ -179,8 +183,10 @@ const CashierOperationsReportContent = () => {
                   <SelectValue placeholder="Todos os operadores" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos os operadores</SelectItem>
-                  {users.map((user) => (
+                  {hasPermission(['admin', 'manager']) && (
+                    <SelectItem value="all">Todos os operadores</SelectItem>
+                  )}
+                  {filteredUsers.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.name}
                     </SelectItem>
