@@ -14,6 +14,7 @@ import { OpenCashierDialog } from '@/components/cashiers/OpenCashierDialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircleIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 const Sales = () => {
   const isMobile = useIsMobile();
@@ -21,6 +22,7 @@ const Sales = () => {
   const { data: products = [] } = useProducts();
   const { getUserCashierStatus } = useCashierOperations();
   const [isOpenCashierDialogOpen, setIsOpenCashierDialogOpen] = useState(false);
+  const navigate = useNavigate();
   
   // Get cashier status
   const { cashier, isOpen } = getUserCashierStatus();
@@ -112,6 +114,11 @@ const Sales = () => {
             Você não possui um caixa vinculado ao seu usuário. 
             Por favor, contate um administrador para vincular um caixa.
           </p>
+          <div className="flex justify-center">
+            <Button onClick={() => navigate('/')} variant="outline">
+              Voltar para Dashboard
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -127,7 +134,10 @@ const Sales = () => {
           <p className="text-muted-foreground text-center mb-6">
             O caixa {cashier.name} está fechado. Abra o caixa para iniciar as vendas.
           </p>
-          <div className="flex justify-center">
+          <div className="flex justify-center gap-3">
+            <Button onClick={() => navigate('/')} variant="outline">
+              Voltar para Dashboard
+            </Button>
             <Button onClick={() => setIsOpenCashierDialogOpen(true)}>
               Abrir Caixa
             </Button>
@@ -158,32 +168,32 @@ const Sales = () => {
         hasSearched={hasSearched}
         isScanning={isScanning}
         toggleScanner={toggleScanner}
-        addProductToCart={addProductToCart}
+        addProductToCart={salesManager.addProductToCart}
         
         // Cart section props
-        cart={cart}
-        linkedCustomer={linkedCustomer}
-        updateCartItemQuantity={handleCartItemQuantityUpdate}
-        initiateRemoveFromCart={initiateRemoveFromCart}
-        handleOpenPromotions={handleOpenPromotions}
-        availablePromotions={availablePromotions}
-        onLinkCustomer={linkCustomer}
-        onUnlinkCustomer={unlinkCustomer}
+        cart={salesManager.cart}
+        linkedCustomer={salesManager.linkedCustomer}
+        updateCartItemQuantity={salesManager.handleCartItemQuantityUpdate}
+        initiateRemoveFromCart={salesManager.initiateRemoveFromCart}
+        handleOpenPromotions={salesManager.handleOpenPromotions}
+        availablePromotions={salesManager.availablePromotions}
+        onLinkCustomer={salesManager.linkCustomer}
+        onUnlinkCustomer={salesManager.unlinkCustomer}
         
         // Sale summary props
-        cartSubtotal={cartSubtotal}
-        manualDiscount={manualDiscount}
-        manualDiscountAmount={manualDiscountAmount}
-        promotionDiscountAmount={promotionDiscountAmount}
-        totalDiscountAmount={totalDiscountAmount}
-        cartTotal={cartTotal}
-        appliedPromotionDetails={appliedPromotionDetails}
-        removeDiscount={removeDiscount}
-        removePromotion={removePromotion}
-        finalizeSale={finalizeSale}
-        handleAddDiscount={handleAddDiscount}
-        handleShowDiscountsList={handleShowDiscountsList}
-        clearCart={handleClearCart}
+        cartSubtotal={salesManager.cartSubtotal}
+        manualDiscount={salesManager.manualDiscount}
+        manualDiscountAmount={salesManager.manualDiscountAmount}
+        promotionDiscountAmount={salesManager.promotionDiscountAmount}
+        totalDiscountAmount={salesManager.totalDiscountAmount}
+        cartTotal={salesManager.cartTotal}
+        appliedPromotionDetails={salesManager.appliedPromotionDetails}
+        removeDiscount={salesManager.removeDiscount}
+        removePromotion={salesManager.removePromotion}
+        finalizeSale={salesManager.finalizeSale}
+        handleAddDiscount={salesManager.handleAddDiscount}
+        handleShowDiscountsList={salesManager.handleShowDiscountsList}
+        clearCart={salesManager.handleClearCart}
       />
       
       <SalesDialogs 
@@ -229,10 +239,10 @@ const Sales = () => {
       
       {/* Print Receipt Dialog */}
       <PrintReceiptDialog
-        isOpen={isPrintReceiptDialogOpen}
-        onClose={handleClosePrintDialog}
-        onPrint={handlePrintReceipt}
-        sale={lastCompletedSale}
+        isOpen={salesManager.isPrintReceiptDialogOpen}
+        onClose={salesManager.handleClosePrintDialog}
+        onPrint={salesManager.handlePrintReceipt}
+        sale={salesManager.lastCompletedSale}
       />
       
       {/* Open Cashier Dialog */}
