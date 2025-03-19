@@ -41,6 +41,7 @@ export const CloseCashierDialog = ({
   const [shortageReason, setShortageReason] = useState('');
   const [isDiscrepancy, setIsDiscrepancy] = useState(false);
   const [isManagerAuthOpen, setIsManagerAuthOpen] = useState(false);
+  const [managerName, setManagerName] = useState<string>('');
   const { closeCashier } = useCashierOperations();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -77,9 +78,11 @@ export const CloseCashierDialog = ({
   const proceedWithClosure = async (amount: number) => {
     setIsSubmitting(true);
     try {
-      // Pass the shortage reason if there's a discrepancy
+      // Pass the shortage reason and manager name if there's a discrepancy
       const discrepancyReason = isDiscrepancy ? shortageReason : undefined;
-      const result = await closeCashier(cashierId, amount, discrepancyReason);
+      const managerNameToPass = isDiscrepancy ? managerName : undefined;
+      
+      const result = await closeCashier(cashierId, amount, discrepancyReason, managerNameToPass);
       
       if (result) {
         resetForm();
@@ -93,8 +96,11 @@ export const CloseCashierDialog = ({
     }
   };
 
-  const handleManagerAuth = (managerId?: string) => {
-    if (managerId) {
+  const handleManagerAuth = (managerId?: string, managerNameValue?: string) => {
+    if (managerId && managerNameValue) {
+      // Store the manager name
+      setManagerName(managerNameValue);
+      
       // Manager approved, proceed with closure
       const amount = parseFloat(finalAmount.replace(',', '.'));
       proceedWithClosure(amount);
@@ -107,6 +113,7 @@ export const CloseCashierDialog = ({
     setFinalAmount(currentBalance.toString());
     setShortageReason('');
     setIsDiscrepancy(false);
+    setManagerName('');
   };
 
   const handleCancel = () => {

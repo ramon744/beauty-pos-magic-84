@@ -113,17 +113,36 @@ export const CashierHistoryDialog = ({
     return format(new Date(date), "HH:mm:ss");
   };
 
-  const calculateShortage = (operation: CashierOperation): number => {
+  const calculateShortage = (operation: CashierOperation): number | null => {
     if (operation.operationType === 'close') {
+      const openOp = findMatchingOpenOperation(operation);
+      
+      if (openOp && openOp.amount) {
+        return openOp.amount - operation.amount;
+      }
+      
       if (operation.openingBalance !== undefined && operation.closingBalance !== undefined) {
         return operation.openingBalance - operation.closingBalance;
       }
-      
-      if (operation.amount && operation.openingBalance) {
-        return operation.openingBalance - operation.amount;
-      }
     }
-    return 0;
+    return null;
+  };
+
+  const findMatchingOpenOperation = (closeOperation: CashierOperation): CashierOperation | null => {
+    if (closeOperation.operationType !== 'close') return null;
+    
+    const cashierOps = operations.filter(op => op.cashierId === cashierId);
+    
+    const openOps = cashierOps
+      .filter(op => 
+        op.operationType === 'open' && 
+        new Date(op.timestamp) < new Date(closeOperation.timestamp)
+      )
+      .sort((a, b) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+    
+    return openOps.length > 0 ? openOps[0] : null;
   };
 
   const hasDiscrepancy = (operation: CashierOperation): boolean => {
@@ -131,7 +150,7 @@ export const CashierHistoryDialog = ({
       if (operation.discrepancyReason) return true;
       
       const shortage = calculateShortage(operation);
-      return shortage > 0;
+      return shortage !== null && shortage > 0;
     }
     return false;
   };
@@ -185,7 +204,7 @@ export const CashierHistoryDialog = ({
                         const isFirst = index === 0;
                         const isLast = index === dayGroup.operations.length - 1;
                         
-                        const shortageAmount = calculateShortage(operation);
+                        const shortageAmount = operation.operationType === 'close' ? calculateShortage(operation) : null;
                         const operationHasDiscrepancy = hasDiscrepancy(operation);
                         
                         return (
@@ -227,7 +246,7 @@ export const CashierHistoryDialog = ({
                                     </div>
                                   )}
                                   
-                                  {operationHasDiscrepancy && shortageAmount > 0 && (
+                                  {shortageAmount !== null && shortageAmount > 0 && (
                                     <div className="mt-2 p-2 bg-red-50 rounded-md border border-red-100">
                                       <div className="flex items-start gap-1 text-red-600 mb-1">
                                         <AlertCircleIcon className="h-4 w-4 mt-0.5" />
@@ -238,10 +257,12 @@ export const CashierHistoryDialog = ({
                                       {operation.discrepancyReason && (
                                         <div className="text-sm text-red-700">
                                           <p className="mb-1"><strong>Motivo:</strong> {operation.discrepancyReason}</p>
-                                          <p className="flex items-center gap-1">
-                                            <ShieldAlertIcon className="h-4 w-4" />
-                                            <strong>Autorizado por:</strong> {operation.managerName || "Gerente"}
-                                          </p>
+                                          {operation.managerName && (
+                                            <p className="flex items-center gap-1">
+                                              <ShieldAlertIcon className="h-4 w-4" />
+                                              <strong>Autorizado por:</strong> {operation.managerName}
+                                            </p>
+                                          )}
                                         </div>
                                       )}
                                     </div>
