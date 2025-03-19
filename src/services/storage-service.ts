@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { fromTable, extractDataFromSupabase } from './supabase-helper';
 
@@ -238,8 +237,24 @@ export const storageService = {
       const existingItems = storageService.getItem<any[]>(storageKey) || [];
       const updatedItems = existingItems.filter(item => item.id !== id);
       
+      // Ensure the item is truly gone from localStorage
+      if (existingItems.length === updatedItems.length) {
+        console.warn(`Item with id ${id} not found in localStorage for ${table}`);
+      } else {
+        console.log(`Successfully removed item ${id} from localStorage ${table}`);
+      }
+      
       // Important: Update the localStorage with the filtered items
       storageService.setItem(storageKey, updatedItems);
+      
+      // Double check the item was removed
+      const checkItems = storageService.getItem<any[]>(storageKey) || [];
+      const stillExists = checkItems.some(item => item.id === id);
+      if (stillExists) {
+        console.error(`Failed to remove item ${id} from localStorage, forcing removal`);
+        const forceRemove = checkItems.filter(item => item.id !== id);
+        storageService.setItem(storageKey, forceRemove);
+      }
     }
     
     // If offline, add to pending operations queue and return

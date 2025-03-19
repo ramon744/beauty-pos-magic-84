@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { DataTable } from '@/components/common/DataTable';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +22,7 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
   const { mutate: deleteProduct, isPending: isDeleting } = useDeleteProduct();
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
   const [searchValue, setSearchValue] = useState('');
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [deletionInProgress, setDeletionInProgress] = useState(false);
   
   // Effect to handle refetching after deletion
@@ -37,6 +37,24 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
     }
   }, [deletionInProgress, isDeleting, refetch]);
   
+  // Filter products based on search input
+  useEffect(() => {
+    if (products) {
+      const filtered = products.filter(product => {
+        if (!searchValue) return true;
+        
+        const searchLower = searchValue.toLowerCase();
+        return (
+          product.name.toLowerCase().includes(searchLower) ||
+          product.code.toLowerCase().includes(searchLower)
+        );
+      });
+      setFilteredProducts(filtered);
+    } else {
+      setFilteredProducts([]);
+    }
+  }, [products, searchValue]);
+  
   const handleDeleteProduct = async () => {
     if (!productToDelete) return;
     
@@ -49,6 +67,8 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
           description: "O produto foi excluído com sucesso.",
         });
         
+        // Remove the product from the filtered list immediately
+        setFilteredProducts(prev => prev.filter(p => p.id !== productToDelete));
         setProductToDelete(null);
       },
       onError: (error) => {
@@ -115,7 +135,7 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
           productId={row.original.id}
           productName={row.original.name}
           onEditProduct={onEditProduct}
-          isDeleting={isDeleting}
+          isDeleting={isDeleting && productToDelete === row.original.id}
           onDeleteConfirm={handleDeleteProduct}
           isDeleteDialogOpen={productToDelete === row.original.id}
           setDeleteDialogOpen={(open) => {
@@ -129,17 +149,6 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
       ),
     },
   ];
-
-  // Filter products based on search input
-  const filteredProducts = products ? products.filter(product => {
-    if (!searchValue) return true;
-    
-    const searchLower = searchValue.toLowerCase();
-    return (
-      product.name.toLowerCase().includes(searchLower) ||
-      product.code.toLowerCase().includes(searchLower)
-    );
-  }) : [];
 
   if (error) {
     return (
