@@ -42,7 +42,8 @@ const Cashiers = () => {
     getCashierBalance,
     addDeposit,
     addWithdrawal,
-    getLatestCashierOperation
+    getLatestCashierOperation,
+    loadOperations
   } = useCashierOperations();
   const { users } = useAuth();
   
@@ -591,3 +592,4 @@ const Cashiers = () => {
 };
 
 export default Cashiers;
+
