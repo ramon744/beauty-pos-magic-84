@@ -30,10 +30,9 @@ export const migrationService = {
       };
 
       try {
-        // Use type casting to avoid TypeScript errors
-        const { error } = await (supabase
-          .from('products') as any)
-          .upsert(productData);
+        // Use direct any casting to bypass TypeScript errors
+        const supabaseQuery: any = supabase.from('products' as any);
+        const { error } = await supabaseQuery.upsert(productData);
         
         if (error) console.error('Error migrating product:', error);
       } catch (err) {
@@ -53,13 +52,12 @@ export const migrationService = {
     // Insert categories into Supabase
     for (const category of categories) {
       try {
-        // Use type casting to avoid TypeScript errors
-        const { error } = await (supabase
-          .from('categories') as any)
-          .upsert({
-            id: category.id,
-            name: category.name
-          });
+        // Use direct any casting to bypass TypeScript errors
+        const supabaseQuery: any = supabase.from('categories' as any);
+        const { error } = await supabaseQuery.upsert({
+          id: category.id,
+          name: category.name
+        });
         
         if (error) console.error('Error migrating category:', error);
       } catch (err) {
@@ -79,18 +77,17 @@ export const migrationService = {
     // Insert customers into Supabase
     for (const customer of customers) {
       try {
-        // Use type casting to avoid TypeScript errors
-        const { error } = await (supabase
-          .from('customers') as any)
-          .upsert({
-            id: customer.id,
-            name: customer.name,
-            email: customer.email,
-            phone: customer.phone,
-            address: customer.address,
-            created_at: customer.createdAt,
-            updated_at: customer.updatedAt
-          });
+        // Use direct any casting to bypass TypeScript errors
+        const supabaseQuery: any = supabase.from('customers' as any);
+        const { error } = await supabaseQuery.upsert({
+          id: customer.id,
+          name: customer.name,
+          email: customer.email,
+          phone: customer.phone,
+          address: customer.address,
+          created_at: customer.createdAt,
+          updated_at: customer.updatedAt
+        });
         
         if (error) console.error('Error migrating customer:', error);
       } catch (err) {
@@ -110,18 +107,17 @@ export const migrationService = {
     // Insert users into Supabase
     for (const user of users) {
       try {
-        // Use type casting to avoid TypeScript errors
-        const { error } = await (supabase
-          .from('users') as any)
-          .upsert({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            password: user.password,
-            role: user.role,
-            assigned_cashier_id: user.assignedCashierId,
-            created_at: user.createdAt
-          });
+        // Use direct any casting to bypass TypeScript errors
+        const supabaseQuery: any = supabase.from('users' as any);
+        const { error } = await supabaseQuery.upsert({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          password: user.password,
+          role: user.role,
+          assigned_cashier_id: user.assignedCashierId,
+          created_at: user.createdAt
+        });
         
         if (error) console.error('Error migrating user:', error);
       } catch (err) {
@@ -141,20 +137,19 @@ export const migrationService = {
     // Insert cashiers into Supabase
     for (const cashier of cashiers) {
       try {
-        // Use type casting to avoid TypeScript errors
-        const { error } = await (supabase
-          .from('cashiers') as any)
-          .upsert({
-            id: cashier.id,
-            name: cashier.name,
-            register_number: cashier.registerNumber,
-            location: cashier.location,
-            is_active: cashier.isActive,
-            assigned_user_id: cashier.assignedUserId,
-            assigned_user_name: cashier.assignedUserName,
-            created_at: cashier.createdAt,
-            updated_at: cashier.updatedAt
-          });
+        // Use direct any casting to bypass TypeScript errors
+        const supabaseQuery: any = supabase.from('cashiers' as any);
+        const { error } = await supabaseQuery.upsert({
+          id: cashier.id,
+          name: cashier.name,
+          register_number: cashier.registerNumber,
+          location: cashier.location,
+          is_active: cashier.isActive,
+          assigned_user_id: cashier.assignedUserId,
+          assigned_user_name: cashier.assignedUserName,
+          created_at: cashier.createdAt,
+          updated_at: cashier.updatedAt
+        });
         
         if (error) console.error('Error migrating cashier:', error);
       } catch (err) {
@@ -174,21 +169,20 @@ export const migrationService = {
     // Insert operations into Supabase
     for (const operation of operations) {
       try {
-        // Use type casting to avoid TypeScript errors
-        const { error } = await (supabase
-          .from('cashier_operations') as any)
-          .upsert({
-            id: operation.id,
-            cashier_id: operation.cashierId,
-            user_id: operation.userId,
-            user_name: operation.userName,
-            operation_type: operation.operationType,
-            amount: operation.amount,
-            reason: operation.reason,
-            manager_id: operation.managerId,
-            manager_name: operation.managerName,
-            timestamp: operation.timestamp
-          });
+        // Use direct any casting to bypass TypeScript errors
+        const supabaseQuery: any = supabase.from('cashier_operations' as any);
+        const { error } = await supabaseQuery.upsert({
+          id: operation.id,
+          cashier_id: operation.cashierId,
+          user_id: operation.userId,
+          user_name: operation.userName,
+          operation_type: operation.operationType,
+          amount: operation.amount,
+          reason: operation.reason,
+          manager_id: operation.managerId,
+          manager_name: operation.managerName,
+          timestamp: operation.timestamp
+        });
         
         if (error) console.error('Error migrating cashier operation:', error);
       } catch (err) {
@@ -208,21 +202,20 @@ export const migrationService = {
     // Insert orders into Supabase
     for (const order of orders) {
       try {
-        // Use type casting to avoid TypeScript errors
-        const { error } = await (supabase
-          .from('orders') as any)
-          .upsert({
-            id: order.id,
-            user_id: order.userId || '1',
-            cashier_id: order.cashierId,
-            customer_id: order.customerId,
-            subtotal: order.subtotal,
-            discount_amount: order.discountAmount,
-            final_total: order.finalTotal,
-            payment_method: order.paymentMethod,
-            payment_details: order.paymentDetails,
-            created_at: order.createdAt
-          });
+        // Use direct any casting to bypass TypeScript errors
+        const supabaseQuery: any = supabase.from('orders' as any);
+        const { error } = await supabaseQuery.upsert({
+          id: order.id,
+          user_id: order.userId || '1',
+          cashier_id: order.cashierId,
+          customer_id: order.customerId,
+          subtotal: order.subtotal,
+          discount_amount: order.discountAmount,
+          final_total: order.finalTotal,
+          payment_method: order.paymentMethod,
+          payment_details: order.paymentDetails,
+          created_at: order.createdAt
+        });
         
         if (error) console.error('Error migrating order:', error);
         
@@ -230,17 +223,16 @@ export const migrationService = {
         if (order.items && Array.isArray(order.items)) {
           for (const item of order.items) {
             try {
-              // Use type casting to avoid TypeScript errors
-              const { error: itemError } = await (supabase
-                .from('order_items') as any)
-                .upsert({
-                  id: item.id || crypto.randomUUID(),
-                  order_id: order.id,
-                  product_id: item.id,
-                  quantity: item.quantity,
-                  price: item.price,
-                  subtotal: item.subtotal
-                });
+              // Use direct any casting to bypass TypeScript errors
+              const orderItemsQuery: any = supabase.from('order_items' as any);
+              const { error: itemError } = await orderItemsQuery.upsert({
+                id: item.id || crypto.randomUUID(),
+                order_id: order.id,
+                product_id: item.id,
+                quantity: item.quantity,
+                price: item.price,
+                subtotal: item.subtotal
+              });
               
               if (itemError) console.error('Error migrating order item:', itemError);
             } catch (err) {
@@ -265,30 +257,29 @@ export const migrationService = {
     // Insert promotions into Supabase
     for (const promotion of promotions) {
       try {
-        // Use type casting to avoid TypeScript errors
-        const { error } = await (supabase
-          .from('promotions') as any)
-          .upsert({
-            id: promotion.id,
-            name: promotion.name,
-            type: promotion.type,
-            description: promotion.description,
-            discount_percent: promotion.discountPercent,
-            fixed_price: promotion.fixedPrice,
-            buy_quantity: promotion.buyQuantity,
-            get_quantity: promotion.getQuantity,
-            product_id: promotion.productId,
-            secondary_product_id: promotion.secondaryProductId,
-            secondary_product_discount: promotion.secondaryProductDiscount,
-            category_id: promotion.categoryId,
-            product_ids: promotion.productIds,
-            bundle_products: promotion.bundleProducts,
-            start_date: promotion.startDate,
-            end_date: promotion.endDate,
-            is_active: promotion.isActive,
-            created_by: promotion.createdBy,
-            created_at: promotion.createdAt
-          });
+        // Use direct any casting to bypass TypeScript errors
+        const supabaseQuery: any = supabase.from('promotions' as any);
+        const { error } = await supabaseQuery.upsert({
+          id: promotion.id,
+          name: promotion.name,
+          type: promotion.type,
+          description: promotion.description,
+          discount_percent: promotion.discountPercent,
+          fixed_price: promotion.fixedPrice,
+          buy_quantity: promotion.buyQuantity,
+          get_quantity: promotion.getQuantity,
+          product_id: promotion.productId,
+          secondary_product_id: promotion.secondaryProductId,
+          secondary_product_discount: promotion.secondaryProductDiscount,
+          category_id: promotion.categoryId,
+          product_ids: promotion.productIds,
+          bundle_products: promotion.bundleProducts,
+          start_date: promotion.startDate,
+          end_date: promotion.endDate,
+          is_active: promotion.isActive,
+          created_by: promotion.createdBy,
+          created_at: promotion.createdAt
+        });
         
         if (error) console.error('Error migrating promotion:', error);
       } catch (err) {
@@ -308,20 +299,19 @@ export const migrationService = {
     // Insert suppliers into Supabase
     for (const supplier of suppliers) {
       try {
-        // Use type casting to avoid TypeScript errors
-        const { error } = await (supabase
-          .from('suppliers') as any)
-          .upsert({
-            id: supplier.id,
-            name: supplier.name,
-            phone: supplier.phone,
-            email: supplier.email,
-            address: supplier.address,
-            contact_person: supplier.contactPerson,
-            cnpj: supplier.cnpj,
-            created_at: supplier.createdAt,
-            updated_at: supplier.updatedAt
-          });
+        // Use direct any casting to bypass TypeScript errors
+        const supabaseQuery: any = supabase.from('suppliers' as any);
+        const { error } = await supabaseQuery.upsert({
+          id: supplier.id,
+          name: supplier.name,
+          phone: supplier.phone,
+          email: supplier.email,
+          address: supplier.address,
+          contact_person: supplier.contactPerson,
+          cnpj: supplier.cnpj,
+          created_at: supplier.createdAt,
+          updated_at: supplier.updatedAt
+        });
         
         if (error) console.error('Error migrating supplier:', error);
       } catch (err) {
@@ -341,18 +331,17 @@ export const migrationService = {
     // Insert stock history into Supabase
     for (const record of stockHistory) {
       try {
-        // Use type casting to avoid TypeScript errors
-        const { error } = await (supabase
-          .from('stock_history') as any)
-          .upsert({
-            id: record.id,
-            product_id: record.productId,
-            date: record.date,
-            quantity: record.quantity,
-            type: record.type,
-            reason: record.reason,
-            user_id: record.userId
-          });
+        // Use direct any casting to bypass TypeScript errors
+        const supabaseQuery: any = supabase.from('stock_history' as any);
+        const { error } = await supabaseQuery.upsert({
+          id: record.id,
+          product_id: record.productId,
+          date: record.date,
+          quantity: record.quantity,
+          type: record.type,
+          reason: record.reason,
+          user_id: record.userId
+        });
         
         if (error) console.error('Error migrating stock history:', error);
       } catch (err) {

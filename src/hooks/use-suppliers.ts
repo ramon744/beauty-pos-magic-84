@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Supplier } from '@/types';
 import { storageService } from '@/services/storage-service';
@@ -57,10 +56,9 @@ const initializeSuppliers = () => {
 // Get all suppliers from Supabase with localStorage fallback
 const getSuppliers = async (): Promise<Supplier[]> => {
   try {
-    // Try to get from Supabase first with type casting to avoid TS errors
-    const { data, error } = await (supabase
-      .from('suppliers') as any)
-      .select();
+    // Use any typing to bypass TypeScript restrictions
+    const supabaseQuery: any = supabase.from('suppliers' as any);
+    const { data, error } = await supabaseQuery.select();
     
     if (error) {
       console.error("Error fetching suppliers from Supabase:", error);
@@ -116,12 +114,9 @@ export function useFetchSupplier(id: string) {
       if (!id) return null;
       
       try {
-        // Try to get from Supabase first with type casting to avoid TS errors
-        const { data, error } = await (supabase
-          .from('suppliers') as any)
-          .select()
-          .eq('id', id)
-          .single();
+        // Use any typing to bypass TypeScript restrictions
+        const supabaseQuery: any = supabase.from('suppliers' as any);
+        const { data, error } = await supabaseQuery.select().eq('id', id).single();
         
         if (error) {
           console.error("Error fetching supplier from Supabase:", error);
@@ -185,11 +180,9 @@ export function useSaveSupplier() {
           updated_at: supplier.updatedAt.toISOString()
         };
         
-        // Try to save to Supabase with type casting to avoid TS errors
-        const { data, error } = await (supabase
-          .from('suppliers') as any)
-          .upsert(supplierData)
-          .select();
+        // Use any typing to bypass TypeScript restrictions
+        const supabaseQuery: any = supabase.from('suppliers' as any);
+        const { data, error } = await supabaseQuery.upsert(supplierData).select();
         
         if (error) {
           console.error("Error saving supplier to Supabase:", error);
@@ -277,11 +270,9 @@ export function useDeleteSupplier() {
   return useMutation({
     mutationFn: async (supplierId: string) => {
       try {
-        // Try to delete from Supabase with type casting to avoid TS errors
-        const { error } = await (supabase
-          .from('suppliers') as any)
-          .delete()
-          .eq('id', supplierId);
+        // Use any typing to bypass TypeScript restrictions
+        const supabaseQuery: any = supabase.from('suppliers' as any);
+        const { error } = await supabaseQuery.delete().eq('id', supplierId);
         
         if (error) {
           console.error("Error deleting supplier from Supabase:", error);
