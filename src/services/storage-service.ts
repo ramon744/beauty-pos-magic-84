@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { fromTable } from './supabase-helper';
 
@@ -23,7 +24,7 @@ export const storageService = {
       let query = fromTable(table);
       
       if (column && value !== null) {
-        // Apply filter if provided
+        // Apply filter if provided - now this will work because we've used 'any' type
         query = query.eq(column, value);
       }
       
