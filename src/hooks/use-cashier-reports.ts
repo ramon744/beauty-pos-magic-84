@@ -97,7 +97,7 @@ export function useCashierOperationsReport(
             timestamp: sale.createdAt,
             cashierId: sale.cashierId || '',
             userId: sale.userId || '',
-            operationType: 'sale',
+            operationType: 'sale' as const,
             amount: sale.finalTotal || 0,
             reason: '', // No reason for sales
             managerName: '', // No manager for sales
@@ -127,7 +127,9 @@ export function useCashierOperationsReport(
           operationId: op.id,
           amount: op.amount,
           reason: op.reason || '',
-          timestamp: op.timestamp,
+          timestamp: op.timestamp instanceof Date 
+            ? op.timestamp.toISOString() 
+            : (typeof op.timestamp === 'string' ? op.timestamp : new Date().toISOString()),
           managerId: op.managerId || '',
           managerName: op.managerName || '',
         }));

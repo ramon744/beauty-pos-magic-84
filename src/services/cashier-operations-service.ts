@@ -8,7 +8,7 @@ export interface CashierOperation {
   id: string;
   cashierId: string;
   userId: string;
-  operationType: 'open' | 'close' | 'withdrawal' | 'deposit';
+  operationType: 'open' | 'close' | 'withdrawal' | 'deposit' | 'sale';
   amount: number;
   reason?: string;
   timestamp: Date;
@@ -17,6 +17,7 @@ export interface CashierOperation {
   discrepancyReason?: string; // Field for shortage reason
   managerName?: string; // Added field for manager who authorized the discrepancy
   managerId?: string; // Added field for manager ID who authorized the discrepancy
+  isShortage?: boolean; // Added to identify shortage operations
 }
 
 // Initialize storage if empty

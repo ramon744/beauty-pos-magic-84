@@ -35,7 +35,7 @@ const CashierOperationsReportContent = () => {
     to: new Date()
   });
   const [selectedOperator, setSelectedOperator] = useState<string>('all');
-  const [reportType, setReportType] = useState<string>('operations');
+  const [reportType, setReportType] = useState<'operations' | 'closings' | 'shortages' | 'sales'>('operations');
   
   const { users } = useAuth();
   const { data, isLoading, refetch } = useCashierOperationsReport(dateRange, selectedOperator, reportType);
@@ -182,7 +182,7 @@ const CashierOperationsReportContent = () => {
               <Label>Tipo de Relatório</Label>
               <Select 
                 value={reportType} 
-                onValueChange={setReportType}
+                onValueChange={(value) => setReportType(value as 'operations' | 'closings' | 'shortages' | 'sales')}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o tipo de relatório" />
@@ -332,6 +332,7 @@ const CashierOperationsReportContent = () => {
                                 {op.operationType === 'close' && 'Fechamento'}
                                 {op.operationType === 'deposit' && 'Suprimento'}
                                 {op.operationType === 'withdrawal' && 'Sangria'}
+                                {op.operationType === 'sale' && 'Venda'}
                               </td>
                             )}
                             <td className="px-4 py-3 text-sm">
