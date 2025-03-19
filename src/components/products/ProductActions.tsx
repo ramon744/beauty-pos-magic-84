@@ -42,7 +42,7 @@ export function ProductActions({
       </Button>
       <AlertDialog 
         open={isDeleteDialogOpen} 
-        onOpenChange={(open) => !open && setDeleteDialogOpen(false)}
+        onOpenChange={(open) => !isDeleting && setDeleteDialogOpen(open)}
       >
         <AlertDialogTrigger asChild>
           <Button
@@ -64,7 +64,7 @@ export function ProductActions({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDelete} 
               className="bg-destructive text-destructive-foreground"
