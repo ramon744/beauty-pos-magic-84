@@ -20,9 +20,7 @@ const Products = () => {
   const { data: products, isLoading, error, refetch } = useFetchProducts();
   const { toast } = useToast();
 
-  // Effect to ensure we start with a clean state
   useEffect(() => {
-    // Force refetch when component mounts to ensure fresh data
     refetch();
   }, [refetch]);
 
@@ -39,16 +37,13 @@ const Products = () => {
   const handleFormSubmitted = () => {
     setActiveTab('list');
     setEditProductId(null);
-    // Force refetch to ensure we have the latest data
     refetch();
   };
 
-  // Check for products with stock below minimum
   const productsWithLowStock = products?.filter(
     product => product.minimumStock && product.stock <= product.minimumStock
   ) || [];
 
-  // Check for products approaching minimum stock (within 50% of minimum)
   const productsApproachingMinStock = products?.filter(
     product => product.minimumStock && 
               product.stock > product.minimumStock && 

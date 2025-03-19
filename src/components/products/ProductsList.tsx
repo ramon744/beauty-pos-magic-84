@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { DataTable } from '@/components/common/DataTable';
 import { Badge } from '@/components/ui/badge';
@@ -28,25 +27,14 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
   const [deletionInProgress, setDeletionInProgress] = useState(false);
   const [deletedProductIds, setDeletedProductIds] = useState<string[]>([]);
   
-  // On component mount AND route navigation, ensure we're starting with fresh data
+  // On component mount, load deleted IDs from localStorage
   useEffect(() => {
     console.log('ProductsList mounted or route changed, refetching data');
     refetch();
     
-    // Check localStorage for any leftover deleted products
-    const storedProducts = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
+    // Get deleted IDs from localStorage
     const deletedIds = JSON.parse(localStorage.getItem('deletedProductIds') || '[]');
-    
-    // If we have deleted IDs stored, make sure they are removed from localStorage
-    if (deletedIds.length > 0) {
-      console.log(`Found ${deletedIds.length} previously deleted products to filter out`);
-      const filteredStoredProducts = storedProducts.filter(p => !deletedIds.includes(p.id));
-      if (filteredStoredProducts.length !== storedProducts.length) {
-        console.log('Removed deleted products from localStorage');
-        storageService.setItem(STORAGE_KEYS.PRODUCTS, filteredStoredProducts);
-      }
-      setDeletedProductIds(deletedIds);
-    }
+    setDeletedProductIds(deletedIds);
   }, [refetch]);
   
   // Save deleted product IDs to localStorage when they change

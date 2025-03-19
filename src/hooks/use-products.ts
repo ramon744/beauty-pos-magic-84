@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Product, Category } from '@/types';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
@@ -57,7 +58,12 @@ const getProductsFromStorage = (): Product[] => {
   return mockProducts;
 };
 
-// Function to fetch products from storage
+// Get list of deleted product IDs from localStorage
+const getDeletedProductIds = (): string[] => {
+  return JSON.parse(localStorage.getItem('deletedProductIds') || '[]');
+};
+
+// Function to fetch products from storage, filtering out deleted products
 const fetchProducts = async (): Promise<Product[]> => {
   try {
     // First try to fetch from Supabase
@@ -65,14 +71,19 @@ const fetchProducts = async (): Promise<Product[]> => {
     if (products && products.length > 0) {
       // Update local storage with latest data from Supabase
       storageService.setItem(STORAGE_KEYS.PRODUCTS, products);
-      return products;
+      
+      // Filter out deleted products
+      const deletedIds = getDeletedProductIds();
+      return products.filter(p => !deletedIds.includes(p.id));
     }
   } catch (error) {
     console.error('Error fetching from Supabase, falling back to localStorage:', error);
   }
   
   // If Supabase fails or returns no data, get from local storage
-  return getProductsFromStorage();
+  const allProducts = getProductsFromStorage();
+  const deletedIds = getDeletedProductIds();
+  return allProducts.filter(p => !deletedIds.includes(p.id));
 };
 
 // Custom hook that uses fetchProducts but with a simpler name
@@ -260,6 +271,13 @@ export const useDeleteProduct = () => {
           storageService.setItem(STORAGE_KEYS.PRODUCTS, forceRemove);
         }
         
+        // 8. Add the product ID to deleted products list in localStorage
+        const deletedIds = getDeletedProductIds();
+        if (!deletedIds.includes(productId)) {
+          deletedIds.push(productId);
+          localStorage.setItem('deletedProductIds', JSON.stringify(deletedIds));
+        }
+        
         return productId;
       } catch (error) {
         console.error('Error in product deletion process:', error);
@@ -270,6 +288,13 @@ export const useDeleteProduct = () => {
           console.error('Despite errors, ensuring product is removed from localStorage');
           const finalRemove = finalCheck.filter(p => p.id !== productId);
           storageService.setItem(STORAGE_KEYS.PRODUCTS, finalRemove);
+        }
+        
+        // Always update deleted products list
+        const deletedIds = getDeletedProductIds();
+        if (!deletedIds.includes(productId)) {
+          deletedIds.push(productId);
+          localStorage.setItem('deletedProductIds', JSON.stringify(deletedIds));
         }
         
         return productId;
@@ -406,7 +431,9 @@ export const useStockHistory = (productId: string) => {
             return dateB - dateA;
           });
           
-          return stockHistory;
+          // Filter out items for deleted products
+          const deletedIds = getDeletedProductIds();
+          return stockHistory.filter(item => !deletedIds.includes(item.productId));
         }
       } catch (error) {
         console.error('Error fetching stock history from Supabase, falling back to localStorage:', error);
@@ -414,9 +441,15 @@ export const useStockHistory = (productId: string) => {
       
       // Fallback to localStorage
       const stockHistory = storageService.getItem<any[]>(STORAGE_KEYS.STOCKS) || [];
+      const deletedIds = getDeletedProductIds();
+      
+      // First filter out entries for deleted products
+      const filteredByDeletion = stockHistory.filter(item => !deletedIds.includes(item.productId));
+      
+      // Then filter by productId if provided
       const filteredHistory = productId 
-        ? stockHistory.filter(item => item.productId === productId)
-        : stockHistory;
+        ? filteredByDeletion.filter(item => item.productId === productId)
+        : filteredByDeletion;
       
       // Sort by timestamp, most recent first
       filteredHistory.sort((a, b) => {
