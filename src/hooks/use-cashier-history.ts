@@ -52,7 +52,7 @@ export function useCashierHistory(
 
   const calculateShortage = (operation: CashierOperation): number | null => {
     if (operation.operationType === 'close') {
-      // If there's already a recorded discrepancy and manager approval
+      // If there's already a recorded discrepancy
       if (operation.isShortage && operation.openingBalance !== undefined) {
         // Calculate the amount that was missing/short (openingBalance - closingAmount)
         return operation.openingBalance - operation.amount;

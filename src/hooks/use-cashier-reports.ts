@@ -85,12 +85,23 @@ export function useCashierOperationsReport(
             op.operationType === 'close' && op.discrepancyReason && op.discrepancyReason.trim() !== ''
           );
           
-          // Add isShortage flag to each operation
-          filteredOperations = filteredOperations.map(op => ({
-            ...op,
-            isShortage: true,
-            reason: op.discrepancyReason // Ensure reason is set from discrepancyReason
-          }));
+          // Calculate shortage amount and update each operation
+          filteredOperations = filteredOperations.map(op => {
+            // Calculate the difference between opening balance and closing amount
+            let shortageAmount = 0;
+            if (op.openingBalance !== undefined && op.amount !== undefined) {
+              shortageAmount = op.openingBalance - op.amount;
+            }
+            
+            return {
+              ...op,
+              isShortage: true,
+              // Store the shortage amount temporarily in the amount field for display purposes
+              originalAmount: op.amount, // Store the original amount
+              amount: shortageAmount > 0 ? shortageAmount : 0, // Only positive shortages
+              reason: op.discrepancyReason || '' // Ensure reason is set from discrepancyReason
+            };
+          });
           break;
         case 'sales':
           // For sales, we need to get all orders within the date range by the operator
@@ -129,7 +140,9 @@ export function useCashierOperationsReport(
       );
       
       // Calculate totals
-      const totalAmount = sortedOperations.reduce((total, op) => total + op.amount, 0);
+      const totalAmount = reportType === 'shortages' 
+        ? sortedOperations.reduce((total, op) => total + (op.amount || 0), 0)
+        : sortedOperations.reduce((total, op) => total + op.amount, 0);
       
       // Prepare report data
       const reportData: CashierOperationsReportData = {
@@ -142,7 +155,7 @@ export function useCashierOperationsReport(
       if (reportType === 'shortages') {
         reportData.shortages = sortedOperations.map(op => ({
           operationId: op.id,
-          amount: op.amount,
+          amount: op.amount, // This is now the shortage amount
           reason: op.discrepancyReason || op.reason || '',
           timestamp: op.timestamp instanceof Date 
             ? op.timestamp.toISOString() 

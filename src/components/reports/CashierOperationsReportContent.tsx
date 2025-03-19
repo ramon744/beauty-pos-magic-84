@@ -315,7 +315,9 @@ const CashierOperationsReportContent = () => {
                             <th className="px-4 py-3 text-left font-medium text-sm">Tipo</th>
                           )}
                           <th className="px-4 py-3 text-left font-medium text-sm">Operador</th>
-                          <th className="px-4 py-3 text-left font-medium text-sm">Valor</th>
+                          <th className="px-4 py-3 text-left font-medium text-sm">
+                            {reportType === 'shortages' ? 'Valor da Quebra' : 'Valor'}
+                          </th>
                           {reportType === 'shortages' && (
                             <th className="px-4 py-3 text-left font-medium text-sm">Motivo</th>
                           )}
