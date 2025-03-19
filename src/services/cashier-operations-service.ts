@@ -1,3 +1,4 @@
+
 import { storageService, STORAGE_KEYS } from './storage-service';
 import { cashierService } from './cashier-service';
 import { toast } from 'sonner';
@@ -59,7 +60,15 @@ export const cashierOperationsService = {
   // Check if a cashier is currently open
   isCashierOpen: (cashierId: string): boolean => {
     const latestOperation = cashierOperationsService.getLatestCashierOperation(cashierId);
-    return latestOperation?.operationType === 'open';
+    // If the latest operation is 'close', the cashier is closed
+    if (latestOperation?.operationType === 'close') return false;
+    
+    // If the latest operation is 'open', 'deposit', or 'withdrawal', the cashier is open
+    if (['open', 'deposit', 'withdrawal'].includes(latestOperation?.operationType || '')) {
+      return true;
+    }
+    
+    return false;
   },
   
   // Get current balance for a cashier, including sales
@@ -169,6 +178,8 @@ export const cashierOperationsService = {
     // Update cashier status
     cashierService.updateCashier(cashierId, { isActive: true });
     
+    console.log('Cashier opened:', cashier.name, 'with amount:', initialAmount);
+    
     toast.success(`Caixa ${cashier.name} aberto com sucesso`);
     return operation;
   },
@@ -212,8 +223,9 @@ export const cashierOperationsService = {
     storageService.setItem(STORAGE_KEYS.CASHIER_OPERATIONS, [...operations, operation]);
     
     // Update cashier status to closed - ONLY HERE WE CLOSE THE CASHIER
-    // This is the only place where we should set isActive to false
     cashierService.updateCashier(cashierId, { isActive: false });
+    
+    console.log('Cashier closed:', cashier.name, 'with final amount:', finalAmount);
     
     // Check for discrepancies
     if (finalAmount !== expectedBalance) {
@@ -264,8 +276,11 @@ export const cashierOperationsService = {
     const operations = cashierOperationsService.getOperations();
     storageService.setItem(STORAGE_KEYS.CASHIER_OPERATIONS, [...operations, operation]);
     
-    // CRITICAL FIX: Explicitly set cashier to active to ensure it stays open
+    // CRITICAL FIX: Ensure the cashier remains active/open after a deposit
+    // This will override any possible incorrect inactive state
     cashierService.updateCashier(cashierId, { isActive: true });
+    
+    console.log('Deposit added to cashier:', cashier.name, 'amount:', amount, 'isActive remains:', true);
     
     toast.success(`Suprimento de ${amount.toLocaleString('pt-BR', {
       style: 'currency',
@@ -310,8 +325,11 @@ export const cashierOperationsService = {
     const operations = cashierOperationsService.getOperations();
     storageService.setItem(STORAGE_KEYS.CASHIER_OPERATIONS, [...operations, operation]);
     
-    // CRITICAL FIX: Explicitly set cashier to active to ensure it stays open
+    // CRITICAL FIX: Ensure the cashier remains active/open after a withdrawal
+    // This will override any possible incorrect inactive state
     cashierService.updateCashier(cashierId, { isActive: true });
+    
+    console.log('Withdrawal from cashier:', cashier.name, 'amount:', amount, 'isActive remains:', true);
     
     toast.success(`Sangria de ${amount.toLocaleString('pt-BR', {
       style: 'currency',

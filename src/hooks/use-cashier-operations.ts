@@ -93,8 +93,16 @@ export function useCashierOperations() {
     
     try {
       setError(null);
-      // This should NOT close the cashier
+      // CRITICAL FIX: This should NOT close the cashier
       const operation = cashierOperationsService.addDeposit(cashierId, user.id, amount, reason, managerName, managerId);
+      
+      // CRITICAL FIX: Explicitly ensure the cashier is still set as active
+      const cashier = cashierService.getCashier(cashierId);
+      if (cashier && !cashier.isActive) {
+        console.log('Restoring active state for cashier after deposit:', cashierId);
+        cashierService.updateCashier(cashierId, { isActive: true });
+      }
+      
       loadOperations(); // Reload operations to update UI
       return operation;
     } catch (err) {
@@ -114,8 +122,16 @@ export function useCashierOperations() {
     
     try {
       setError(null);
-      // This should NOT close the cashier
+      // CRITICAL FIX: This should NOT close the cashier
       const operation = cashierOperationsService.addWithdrawal(cashierId, user.id, amount, reason, managerName, managerId);
+      
+      // CRITICAL FIX: Explicitly ensure the cashier is still set as active
+      const cashier = cashierService.getCashier(cashierId);
+      if (cashier && !cashier.isActive) {
+        console.log('Restoring active state for cashier after withdrawal:', cashierId);
+        cashierService.updateCashier(cashierId, { isActive: true });
+      }
+      
       loadOperations(); // Reload operations to update UI
       return operation;
     } catch (err) {
@@ -213,7 +229,7 @@ export function useCashierOperations() {
     loadOperations();
     
     // Set up a reload interval to ensure data is always fresh
-    const intervalId = setInterval(loadOperations, 5000);
+    const intervalId = setInterval(loadOperations, 3000); // Increased frequency to 3 seconds
     return () => clearInterval(intervalId);
   }, [loadOperations]);
 

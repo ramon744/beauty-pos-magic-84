@@ -1,4 +1,3 @@
-
 import { Cashier, User } from '@/types';
 import { storageService, STORAGE_KEYS } from './storage-service';
 import { toast } from 'sonner';
@@ -75,12 +74,20 @@ export const cashierService = {
         cashiers.some(c => c.id !== id && c.registerNumber === updates.registerNumber)) {
       throw new Error('Um caixa com esse número de registro já existe');
     }
+
+    // Keep track of the previous active state
+    const previousActiveState = cashiers[index].isActive;
     
     const updatedCashier: Cashier = {
       ...cashiers[index],
       ...updates,
       updatedAt: new Date()
     };
+    
+    // Log the active state change if it's changing
+    if (previousActiveState !== updatedCashier.isActive) {
+      console.log(`Cashier ${updatedCashier.name} active state changed from ${previousActiveState} to ${updatedCashier.isActive}`);
+    }
     
     cashiers[index] = updatedCashier;
     storageService.setItem(STORAGE_KEYS.CASHIERS, cashiers);
