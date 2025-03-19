@@ -57,9 +57,9 @@ const initializeSuppliers = () => {
 // Get all suppliers from Supabase with localStorage fallback
 const getSuppliers = async (): Promise<Supplier[]> => {
   try {
-    // Try to get from Supabase first, using type assertion
-    const { data, error } = await (supabase
-      .from('suppliers' as any) as any)
+    // Try to get from Supabase first with a more generic approach
+    const { data, error } = await supabase
+      .from('suppliers')
       .select();
     
     if (error) {
@@ -116,9 +116,9 @@ export function useFetchSupplier(id: string) {
       if (!id) return null;
       
       try {
-        // Try to get from Supabase first, using type assertion
-        const { data, error } = await (supabase
-          .from('suppliers' as any) as any)
+        // Try to get from Supabase first with a more generic approach
+        const { data, error } = await supabase
+          .from('suppliers')
           .select()
           .eq('id', id)
           .single();
@@ -185,9 +185,9 @@ export function useSaveSupplier() {
           updated_at: supplier.updatedAt.toISOString()
         };
         
-        // Try to save to Supabase using type assertion
-        const { data, error } = await (supabase
-          .from('suppliers' as any) as any)
+        // Try to save to Supabase with a more generic approach
+        const { data, error } = await supabase
+          .from('suppliers')
           .upsert(supplierData)
           .select();
         
@@ -277,9 +277,9 @@ export function useDeleteSupplier() {
   return useMutation({
     mutationFn: async (supplierId: string) => {
       try {
-        // Try to delete from Supabase using type assertion
-        const { error } = await (supabase
-          .from('suppliers' as any) as any)
+        // Try to delete from Supabase with a more generic approach
+        const { error } = await supabase
+          .from('suppliers')
           .delete()
           .eq('id', supplierId);
         
