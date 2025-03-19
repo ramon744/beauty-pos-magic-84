@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import ProductsList from '@/components/products/ProductsList';
 import ProductForm from '@/components/products/ProductForm';
@@ -13,31 +12,19 @@ import { useFetchProducts } from '@/hooks/use-products';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/components/ui/use-toast';
 import SyncStatusIndicator from '@/components/products/SyncStatusIndicator';
+import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 
 const Products = () => {
   const [activeTab, setActiveTab] = useState('list');
   const [editProductId, setEditProductId] = useState<string | null>(null);
-  const { data: products, isLoading, error } = useFetchProducts();
+  const { data: products, isLoading, error, refetch } = useFetchProducts();
   const { toast } = useToast();
 
-  // Check for data loading issues
+  // Effect to ensure we start with a clean state
   useEffect(() => {
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Erro ao carregar produtos",
-        description: "Ocorreu um erro ao carregar a lista de produtos."
-      });
-    }
-    
-    if (!isLoading && (!products || products.length === 0)) {
-      toast({
-        variant: "destructive",
-        title: "Sem produtos encontrados",
-        description: "Não foram encontrados produtos cadastrados no sistema."
-      });
-    }
-  }, [isLoading, products, error, toast]);
+    // Force refetch when component mounts to ensure fresh data
+    refetch();
+  }, [refetch]);
 
   const handleNewProduct = () => {
     setEditProductId(null);
@@ -52,6 +39,8 @@ const Products = () => {
   const handleFormSubmitted = () => {
     setActiveTab('list');
     setEditProductId(null);
+    // Force refetch to ensure we have the latest data
+    refetch();
   };
 
   // Check for products with stock below minimum
@@ -98,7 +87,7 @@ const Products = () => {
           </AlertDescription>
         </Alert>
       )}
-
+      
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="list">Lista de Produtos</TabsTrigger>

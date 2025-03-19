@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DataTable } from '@/components/common/DataTable';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
@@ -19,13 +19,28 @@ interface ProductsListProps {
 
 export default function ProductsList({ onEditProduct }: ProductsListProps) {
   const { toast } = useToast();
-  const { data: products, isLoading, error } = useFetchProducts();
+  const { data: products, isLoading, error, refetch } = useFetchProducts();
   const { mutate: deleteProduct, isPending: isDeleting } = useDeleteProduct();
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
   const [searchValue, setSearchValue] = useState('');
+  const [deletionInProgress, setDeletionInProgress] = useState(false);
+  
+  // Effect to handle refetching after deletion
+  useEffect(() => {
+    if (deletionInProgress && !isDeleting) {
+      // Small delay to ensure localStorage is updated before refetching
+      const timer = setTimeout(() => {
+        refetch();
+        setDeletionInProgress(false);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [deletionInProgress, isDeleting, refetch]);
   
   const handleDeleteProduct = async () => {
     if (!productToDelete) return;
+    
+    setDeletionInProgress(true);
     
     deleteProduct(productToDelete, {
       onSuccess: () => {
@@ -44,6 +59,7 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
         });
         
         setProductToDelete(null);
+        setDeletionInProgress(false);
       }
     });
   };
@@ -143,7 +159,7 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
         <DataTable
           columns={columns}
           data={filteredProducts}
-          isLoading={isLoading}
+          isLoading={isLoading || deletionInProgress}
         />
       </div>
     </div>

@@ -25,6 +25,11 @@ export function ProductActions({
   isDeleteDialogOpen,
   setDeleteDialogOpen
 }: ProductActionsProps) {
+  
+  const handleDelete = () => {
+    onDeleteConfirm();
+  };
+  
   return (
     <div className="flex items-center gap-2">
       <Button
@@ -61,7 +66,7 @@ export function ProductActions({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction 
-              onClick={onDeleteConfirm} 
+              onClick={handleDelete} 
               className="bg-destructive text-destructive-foreground"
               disabled={isDeleting}
             >

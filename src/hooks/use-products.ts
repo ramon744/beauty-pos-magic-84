@@ -211,14 +211,29 @@ export const useDeleteProduct = () => {
         console.error('Failed to delete from Supabase, deleting from localStorage only:', error);
       }
       
-      // Always delete from localStorage for consistency
-      const products = getProductsFromStorage();
+      // Get current products from localStorage before deletion
+      const products = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
+      console.log(`Before deletion: ${products.length} products in localStorage`);
+      
+      // Filter out the product to delete
       const updatedProducts = products.filter(p => p.id !== productId);
+      console.log(`After deletion: ${updatedProducts.length} products should be in localStorage`);
+      
+      // Force save the updated products to localStorage
       storageService.setItem(STORAGE_KEYS.PRODUCTS, updatedProducts);
+      
+      // Double check deletion was successful
+      const afterDelete = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
+      if (afterDelete.some(p => p.id === productId)) {
+        console.error('Product still exists in localStorage after deletion, forcing removal');
+        const forceRemove = afterDelete.filter(p => p.id !== productId);
+        storageService.setItem(STORAGE_KEYS.PRODUCTS, forceRemove);
+      }
       
       return productId;
     },
-    onSuccess: () => {
+    onSuccess: (productId) => {
+      console.log(`Product ${productId} successfully deleted`);
       // Invalidate queries to refetch data
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['productStats'] });

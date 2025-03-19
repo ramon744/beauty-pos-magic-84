@@ -21,15 +21,41 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   },
 });
 
-// Initialize the data migration
+// Check if tables exist and create them if not
 (async () => {
   try {
+    // Check if tables have been created
+    const tablesCreated = localStorage.getItem('tablesCreated');
+    if (!tablesCreated) {
+      console.log('Tables will be created if they don\'t exist...');
+
+      // Products table
+      const { error: productsError } = await supabase.rpc('create_table_if_not_exists', { 
+        table_name: 'products'
+      });
+      if (productsError) console.error('Error creating products table:', productsError);
+
+      // Categories table
+      const { error: categoriesError } = await supabase.rpc('create_table_if_not_exists', { 
+        table_name: 'categories'
+      });
+      if (categoriesError) console.error('Error creating categories table:', categoriesError);
+
+      // Stock history table
+      const { error: stockHistoryError } = await supabase.rpc('create_table_if_not_exists', { 
+        table_name: 'stock_history'
+      });
+      if (stockHistoryError) console.error('Error creating stock_history table:', stockHistoryError);
+
+      localStorage.setItem('tablesCreated', 'true');
+    }
+
     // Check if migration has already been run
     const migrationCompleted = localStorage.getItem('migrationCompleted');
     if (!migrationCompleted) {
       console.log('Data migration will be initialized by the hook. Loading data into Supabase...');
     }
   } catch (error) {
-    console.error('Error checking migration status:', error);
+    console.error('Error checking migration/table status:', error);
   }
 })();
