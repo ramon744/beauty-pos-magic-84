@@ -9,13 +9,15 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 const MainLayout: React.FC = () => {
   const isMobile = useIsMobile();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (isMobile) {
       setSidebarOpen(false);
+    } else {
+      setSidebarOpen(true);
     }
   }, [isMobile]);
 
@@ -48,7 +50,7 @@ const MainLayout: React.FC = () => {
       <div className="flex flex-1 flex-col overflow-hidden">
         <Navbar toggleSidebar={toggleSidebar} />
         
-        <main className="flex-1 overflow-y-auto pt-20 pb-6 px-4 md:px-6 transition-all duration-300">
+        <main className="flex-1 overflow-y-auto pt-20 pb-6 px-2 sm:px-4 md:px-6 transition-all duration-300">
           <PageTransition>
             <Outlet />
           </PageTransition>

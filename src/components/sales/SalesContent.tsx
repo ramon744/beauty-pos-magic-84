@@ -81,8 +81,8 @@ export const SalesContent: React.FC<SalesContentProps> = ({
   clearCart
 }) => {
   return (
-    <div className="grid gap-6 md:grid-cols-5">
-      <div className={`space-y-6 ${isMobile ? 'col-span-5' : 'col-span-3'}`}>
+    <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-5">
+      <div className={`space-y-4 sm:space-y-6 ${isMobile ? 'col-span-1' : 'md:col-span-3'}`}>
         <Card>
           <ProductSearch 
             searchQuery={searchQuery}
@@ -107,7 +107,7 @@ export const SalesContent: React.FC<SalesContentProps> = ({
         />
       </div>
 
-      <div className={`space-y-6 ${isMobile ? 'col-span-5' : 'col-span-2'}`}>
+      <div className={`space-y-4 sm:space-y-6 ${isMobile ? 'col-span-1' : 'md:col-span-2'}`}>
         <SaleSummary 
           cart={cart}
           cartSubtotal={cartSubtotal}

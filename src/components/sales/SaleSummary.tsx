@@ -66,20 +66,22 @@ export const SaleSummary: React.FC<SaleSummaryProps> = ({
         
         <div className="space-y-4 mt-4">
           <div className="flex justify-between">
-            <span className="font-medium">Total de Itens:</span>
-            <span>{cart.reduce((total, item) => total + item.quantity, 0)}</span>
+            <span className="font-medium text-sm sm:text-base">Total de Itens:</span>
+            <span className="text-sm sm:text-base">{cart.reduce((total, item) => total + item.quantity, 0)}</span>
           </div>
           
           <div className="flex justify-between">
-            <span className="font-medium">Subtotal:</span>
-            <span>R$ {cartSubtotal.toFixed(2)}</span>
+            <span className="font-medium text-sm sm:text-base">Subtotal:</span>
+            <span className="text-sm sm:text-base">R$ {cartSubtotal.toFixed(2)}</span>
           </div>
           
           {appliedPromotionDetails && (
             <div className="flex justify-between text-green-600">
-              <span className="font-medium flex items-center">
+              <span className="font-medium flex items-center text-sm sm:text-base">
                 <Gift className="mr-1 h-4 w-4" />
-                Promoção: {appliedPromotionDetails.name}
+                <span className="truncate max-w-[130px] sm:max-w-none">
+                  Promoção: {appliedPromotionDetails.name}
+                </span>
                 <Button 
                   variant="ghost" 
                   size="icon" 
@@ -89,13 +91,13 @@ export const SaleSummary: React.FC<SaleSummaryProps> = ({
                   <X className="h-3 w-3" />
                 </Button>
               </span>
-              <span>- R$ {promotionDiscountAmount.toFixed(2)}</span>
+              <span className="text-sm sm:text-base">- R$ {promotionDiscountAmount.toFixed(2)}</span>
             </div>
           )}
           
           {manualDiscount && (
             <div className="flex justify-between text-destructive">
-              <span className="font-medium flex items-center">
+              <span className="font-medium flex items-center text-sm sm:text-base">
                 <Percent className="mr-1 h-4 w-4" />
                 Desconto {manualDiscount.type === 'percentage' ? `(${manualDiscount.value}%)` : ''}:
                 <Button 
@@ -107,18 +109,18 @@ export const SaleSummary: React.FC<SaleSummaryProps> = ({
                   <X className="h-3 w-3" />
                 </Button>
               </span>
-              <span>- R$ {manualDiscountAmount.toFixed(2)}</span>
+              <span className="text-sm sm:text-base">- R$ {manualDiscountAmount.toFixed(2)}</span>
             </div>
           )}
           
           {(manualDiscountAmount > 0 || promotionDiscountAmount > 0) && (
             <div className="flex justify-between pt-2 border-t">
-              <span className="font-medium">Economia Total:</span>
-              <span className="text-green-600">R$ {totalDiscountAmount.toFixed(2)}</span>
+              <span className="font-medium text-sm sm:text-base">Economia Total:</span>
+              <span className="text-green-600 text-sm sm:text-base">R$ {totalDiscountAmount.toFixed(2)}</span>
             </div>
           )}
           
-          <div className="flex justify-between text-lg font-bold pt-2 border-t">
+          <div className="flex justify-between text-base sm:text-lg font-bold pt-2 border-t">
             <span>Total:</span>
             <span>R$ {cartTotal.toFixed(2)}</span>
           </div>
@@ -138,22 +140,22 @@ export const SaleSummary: React.FC<SaleSummaryProps> = ({
         <div className="flex gap-2 w-full">
           <Button 
             variant="outline" 
-            className="flex-1"
+            className="flex-1 text-xs sm:text-sm"
             disabled={cart.length === 0}
             onClick={handleAddDiscount}
           >
             <Percent className="mr-1 h-4 w-4" />
-            Desconto
+            <span className="truncate">Desconto</span>
           </Button>
           
           <Button 
             variant={availablePromotions.length > 0 ? "outline" : "ghost"} 
-            className={`flex-1 ${availablePromotions.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+            className={`flex-1 text-xs sm:text-sm ${availablePromotions.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
             disabled={availablePromotions.length === 0}
             onClick={handleOpenPromotions}
           >
             <Gift className="mr-1 h-4 w-4" />
-            Promoções
+            <span className="truncate">Promoções</span>
             {availablePromotions.length > 0 && (
               <Badge className="ml-1 bg-amber-100 text-amber-800 border-amber-200">
                 {availablePromotions.length}
@@ -165,21 +167,21 @@ export const SaleSummary: React.FC<SaleSummaryProps> = ({
         <div className="flex gap-2 w-full">
           <Button 
             variant="outline" 
-            className="flex-1"
+            className="flex-1 text-xs sm:text-sm"
             onClick={handleShowDiscountsList}
           >
             <List className="mr-1 h-4 w-4" />
-            Listar
+            <span className="truncate">Listar</span>
           </Button>
           
           <Button 
             variant="outline" 
-            className="flex-1"
+            className="flex-1 text-xs sm:text-sm"
             disabled={cart.length === 0}
             onClick={clearCart}
           >
             <Trash2 className="mr-1 h-4 w-4" />
-            Limpar
+            <span className="truncate">Limpar</span>
           </Button>
         </div>
       </CardFooter>

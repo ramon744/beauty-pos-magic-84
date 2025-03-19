@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -77,17 +76,15 @@ const UserMenu: React.FC = () => {
   return (
     <>
       <div className="flex items-center gap-2">
-        {!isMobile && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleLogout}
-            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            <span>Sair</span>
-          </Button>
-        )}
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={handleLogout}
+          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          <span className="hidden sm:inline">Sair</span>
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-9 w-9 rounded-full">

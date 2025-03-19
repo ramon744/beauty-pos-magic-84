@@ -36,7 +36,7 @@ const Navbar: React.FC<NavbarProps> = ({ toggleSidebar }) => {
           </svg>
         </Button>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
           <span className="absolute -top-1 -right-1 bg-sidebar-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
