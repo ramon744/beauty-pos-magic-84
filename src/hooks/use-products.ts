@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Product, Category } from '@/types';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
@@ -222,13 +223,41 @@ export const useStockAdjustment = () => {
           if (productIndex >= 0) {
             const product = products[productIndex];
             const previousStock = product.stock;
+            
+            // For balance adjustment, directly set the stock to the EXACT specified quantity
+            // without any other calculations
+            if (data.adjustmentType === 'balance') {
+              products[productIndex].stock = data.quantity;
+              products[productIndex].updatedAt = new Date();
+              
+              // Record stock history
+              const stockHistory = storageService.getItem<any[]>(STORAGE_KEYS.STOCKS) || [];
+              stockHistory.push({
+                id: crypto.randomUUID(),
+                productId: data.productId,
+                productName: product.name,
+                timestamp: new Date(),
+                previousStock: previousStock,
+                newStock: data.quantity,
+                quantity: Math.abs(data.quantity - previousStock),
+                adjustmentType: 'balance',
+                reason: data.reason,
+                userName: 'Current User', // This should be replaced with the actual user
+              });
+              
+              // Save updated products and history to storage
+              storageService.setItem(STORAGE_KEYS.PRODUCTS, products);
+              storageService.setItem(STORAGE_KEYS.STOCKS, stockHistory);
+              
+              resolve(data);
+              return;
+            }
+            
+            // For add/remove adjustments
             let newStock = previousStock;
             
             // Determine how to adjust the stock based on the adjustment type
-            if (data.adjustmentType === 'balance') {
-              // For balance, directly set the stock to the specified quantity
-              newStock = data.quantity;
-            } else if (data.adjustmentType === 'remove') {
+            if (data.adjustmentType === 'remove') {
               // If it's a removal, subtract the quantity
               newStock = previousStock - data.quantity;
             } else if (data.adjustmentType === 'add') {
@@ -252,7 +281,7 @@ export const useStockAdjustment = () => {
               timestamp: new Date(),
               previousStock: previousStock,
               newStock: newStock,
-              quantity: data.adjustmentType === 'balance' ? Math.abs(newStock - previousStock) : data.quantity,
+              quantity: data.quantity,
               adjustmentType: data.adjustmentType || 'add',
               reason: data.reason,
               userName: 'Current User', // This should be replaced with the actual user
