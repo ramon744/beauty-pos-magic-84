@@ -94,7 +94,7 @@ export function useCashierOperations() {
     try {
       setError(null);
       const operation = cashierOperationsService.addDeposit(cashierId, user.id, amount, reason, managerName, managerId);
-      loadOperations();
+      loadOperations(); // Reload operations to update UI
       return operation;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao adicionar suprimento';
@@ -114,7 +114,7 @@ export function useCashierOperations() {
     try {
       setError(null);
       const operation = cashierOperationsService.addWithdrawal(cashierId, user.id, amount, reason, managerName, managerId);
-      loadOperations();
+      loadOperations(); // Reload operations to update UI
       return operation;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao realizar sangria';
@@ -222,8 +222,8 @@ export function useCashierOperations() {
     loadOperations,
     loadUserOperations,
     getUserCashierStatus,
-    getCashierSalesTotal: getCashierSalesTotal,
-    getCashierPaymentBreakdown: getCashierPaymentBreakdown,
+    getCashierSalesTotal,
+    getCashierPaymentBreakdown,
     isCashierOpen: cashierOperationsService.isCashierOpen,
     getCashierBalance: cashierOperationsService.getCashierBalance,
     getLatestCashierOperation: cashierOperationsService.getLatestCashierOperation
