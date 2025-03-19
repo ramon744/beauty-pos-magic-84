@@ -95,12 +95,12 @@ export const CashierOperationCard: React.FC<CashierOperationCardProps> = ({
               </div>
             )}
             
-            {shortageAmount !== null && shortageAmount > 0 && (
+            {shortageAmount !== null && shortageAmount !== 0 && (
               <div className="mt-2 p-2 bg-red-50 rounded-md border border-red-100">
                 <div className="flex items-start gap-1 text-red-600 mb-1">
                   <AlertCircleIcon className="h-4 w-4 mt-0.5" />
                   <span className="font-medium">
-                    Quebra de caixa: {formatCurrency(shortageAmount)}
+                    Quebra de caixa: {formatCurrency(Math.abs(shortageAmount))}
                   </span>
                 </div>
                 {formattedDiscrepancyReason?.mainReason && (

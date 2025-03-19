@@ -1,4 +1,3 @@
-
 import { storageService, STORAGE_KEYS } from './storage-service';
 import { cashierService } from './cashier-service';
 import { toast } from 'sonner';
@@ -210,19 +209,14 @@ export const cashierOperationsService = {
       operationType: 'close',
       amount: finalAmount,
       timestamp: new Date(),
-      closingBalance: finalAmount
+      closingBalance: finalAmount,
+      openingBalance: expectedBalance // Store the expected balance to calculate shortage accurately
     };
     
     // Add discrepancy reason if provided (when amount is less than expected)
     if (finalAmount < expectedBalance && discrepancyReason) {
-      // Enhance the reason to include the manager's name internally
-      let enhancedReason = discrepancyReason;
-      
-      if (managerName) {
-        enhancedReason = `${enhancedReason}\nAutorizado por: ${managerName}`;
-      }
-      
-      operation.discrepancyReason = enhancedReason;
+      // Store the original reason with manager authorization info
+      operation.discrepancyReason = discrepancyReason;
       operation.managerName = managerName; // Add the manager name to the operation
       operation.managerId = managerId; // Add the manager ID to the operation
       operation.isShortage = true; // Mark as shortage operation

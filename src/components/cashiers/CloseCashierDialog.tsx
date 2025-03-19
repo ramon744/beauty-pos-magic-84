@@ -82,7 +82,13 @@ export const CloseCashierDialog = ({
     setIsSubmitting(true);
     try {
       // Pass the shortage reason and manager information if there's a discrepancy
-      const discrepancyReason = isDiscrepancy ? shortageReason : undefined;
+      let discrepancyReason = isDiscrepancy ? shortageReason : undefined;
+      
+      // Add the manager authorization text internally to the reason
+      if (isDiscrepancy && managerName) {
+        discrepancyReason = `${shortageReason}\nAutorizado por: ${managerName}`;
+      }
+      
       const managerNameToPass = isDiscrepancy ? managerName : undefined;
       const managerIdToPass = isDiscrepancy ? managerId : undefined;
       

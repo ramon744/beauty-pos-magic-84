@@ -53,7 +53,8 @@ export function useCashierHistory(
   const calculateShortage = (operation: CashierOperation): number | null => {
     if (operation.operationType === 'close') {
       // If there's already a recorded discrepancy and manager approval
-      if (operation.discrepancyReason && operation.openingBalance !== undefined) {
+      if (operation.isShortage && operation.openingBalance !== undefined) {
+        // Calculate the amount that was missing/short (openingBalance - closingAmount)
         return operation.openingBalance - operation.amount;
       }
       
@@ -91,7 +92,7 @@ export function useCashierHistory(
   const hasDiscrepancy = (operation: CashierOperation): boolean => {
     if (operation.operationType === 'close') {
       // Check if there's already a recorded discrepancy reason
-      if (operation.discrepancyReason) return true;
+      if (operation.discrepancyReason || operation.isShortage) return true;
       
       // Calculate and check if there's a shortage
       const shortage = calculateShortage(operation);
