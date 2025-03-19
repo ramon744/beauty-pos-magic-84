@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Users as UsersIcon, UserPlus, Pencil, Trash2, Shield } from 'lucide-react';
+import { Users as UsersIcon, UserPlus, Pencil, Trash2, Shield, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/common/DataTable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
