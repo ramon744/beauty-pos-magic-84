@@ -217,7 +217,15 @@ export const useDeleteProduct = () => {
         // 2. Delete from stock history first (if related records exist)
         try {
           console.log(`Attempting to delete related stock history for product ${productId}`);
-          await storageService.removeFromSupabase('stock_history', 'product_id', productId);
+          // Fix: We need to get stock history items by product_id and then delete each individually
+          const stockHistoryItems = await storageService.getFromSupabase<any>('stock_history', 'product_id', productId);
+          
+          if (stockHistoryItems && stockHistoryItems.length > 0) {
+            console.log(`Found ${stockHistoryItems.length} stock history items to delete`);
+            for (const item of stockHistoryItems) {
+              await storageService.removeFromSupabase('stock_history', item.id);
+            }
+          }
           
           // Also remove from localStorage
           const stockHistory = storageService.getItem<any[]>(STORAGE_KEYS.STOCKS) || [];
