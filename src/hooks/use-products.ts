@@ -60,13 +60,20 @@ const getProductsFromStorage = (): Product[] => {
 
 // Function to fetch products from storage
 const fetchProducts = async (): Promise<Product[]> => {
-  // Simulate API call delay
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const products = getProductsFromStorage();
-      resolve(products);
-    }, 500);
-  });
+  try {
+    // First try to fetch from Supabase
+    const products = await storageService.getFromSupabase<Product>('products');
+    if (products && products.length > 0) {
+      // Update local storage with latest data from Supabase
+      storageService.setItem(STORAGE_KEYS.PRODUCTS, products);
+      return products;
+    }
+  } catch (error) {
+    console.error('Error fetching from Supabase, falling back to localStorage:', error);
+  }
+  
+  // If Supabase fails or returns no data, get from local storage
+  return getProductsFromStorage();
 };
 
 // Custom hook that uses fetchProducts but with a simpler name
@@ -85,14 +92,19 @@ export const useFetchProduct = (productId: string) => {
   return useQuery({
     queryKey: ['product', productId],
     queryFn: async () => {
-      // Simulate API call
-      return new Promise<Product | undefined>((resolve) => {
-        setTimeout(() => {
-          const products = getProductsFromStorage();
-          const product = products.find(p => p.id === productId);
-          resolve(product);
-        }, 300);
-      });
+      try {
+        // Try to fetch from Supabase first
+        const products = await storageService.getFromSupabase<Product>('products', 'id', productId);
+        if (products && products.length > 0) {
+          return products[0];
+        }
+      } catch (error) {
+        console.error('Error fetching product from Supabase, falling back to localStorage:', error);
+      }
+      
+      // Fallback to local storage
+      const products = getProductsFromStorage();
+      return products.find(p => p.id === productId);
     },
     enabled: !!productId,
   });
@@ -122,47 +134,58 @@ export const useCategories = () => {
   return useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
-      // Simulate API call
-      return new Promise<Category[]>((resolve) => {
-        setTimeout(() => {
-          const categories = getCategoriesFromStorage();
-          resolve(categories);
-        }, 300);
-      });
+      try {
+        // Try to fetch from Supabase first
+        const categories = await storageService.getFromSupabase<Category>('categories');
+        if (categories && categories.length > 0) {
+          // Update local storage with latest data
+          storageService.setItem(STORAGE_KEYS.CATEGORIES, categories);
+          return categories;
+        }
+      } catch (error) {
+        console.error('Error fetching categories from Supabase, falling back to localStorage:', error);
+      }
+      
+      // Fallback to local storage
+      return getCategoriesFromStorage();
     },
   });
 };
 
-// Improved save product function that updates localStorage
+// Improved save product function that updates localStorage and Supabase
 export const useSaveProduct = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (product: Product) => {
-      return new Promise<Product>((resolve) => {
-        setTimeout(() => {
-          console.log('Saving product:', product);
-          
-          // Get current products from storage
-          const products = getProductsFromStorage();
-          
-          // Find if product already exists
-          const existingProductIndex = products.findIndex(p => p.id === product.id);
-          
-          if (existingProductIndex >= 0) {
-            // Update existing product
-            products[existingProductIndex] = product;
-          } else {
-            // Add new product
-            products.push(product);
-          }
-          
-          // Save updated products to storage
-          storageService.setItem(STORAGE_KEYS.PRODUCTS, products);
-          
-          resolve(product);
-        }, 500);
-      });
+    mutationFn: async (product: Product) => {
+      console.log('Saving product:', product);
+      
+      try {
+        // First try to save to Supabase
+        const savedProduct = await storageService.saveToSupabase('products', product);
+        return savedProduct;
+      } catch (error) {
+        console.error('Failed to save to Supabase, saving to localStorage only:', error);
+        
+        // Get current products from storage
+        const products = getProductsFromStorage();
+        
+        // Find if product already exists
+        const existingProductIndex = products.findIndex(p => p.id === product.id);
+        
+        if (existingProductIndex >= 0) {
+          // Update existing product
+          products[existingProductIndex] = product;
+        } else {
+          // Add new product
+          products.push(product);
+        }
+        
+        // Save updated products to storage
+        storageService.setItem(STORAGE_KEYS.PRODUCTS, products);
+        
+        return product;
+      }
     },
     onSuccess: () => {
       // Invalidate queries to refetch data
@@ -173,28 +196,27 @@ export const useSaveProduct = () => {
   });
 };
 
-// Improved delete product function that updates localStorage
+// Improved delete product function that updates Supabase and localStorage
 export const useDeleteProduct = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (productId: string) => {
-      return new Promise<string>((resolve) => {
-        setTimeout(() => {
-          console.log('Deleting product:', productId);
-          
-          // Get current products from storage
-          const products = getProductsFromStorage();
-          
-          // Filter out the deleted product
-          const updatedProducts = products.filter(p => p.id !== productId);
-          
-          // Save updated products to storage
-          storageService.setItem(STORAGE_KEYS.PRODUCTS, updatedProducts);
-          
-          resolve(productId);
-        }, 500);
-      });
+    mutationFn: async (productId: string) => {
+      console.log('Deleting product:', productId);
+      
+      try {
+        // First try to delete from Supabase
+        await storageService.removeFromSupabase('products', productId);
+      } catch (error) {
+        console.error('Failed to delete from Supabase, deleting from localStorage only:', error);
+      }
+      
+      // Always delete from localStorage for consistency
+      const products = getProductsFromStorage();
+      const updatedProducts = products.filter(p => p.id !== productId);
+      storageService.setItem(STORAGE_KEYS.PRODUCTS, updatedProducts);
+      
+      return productId;
     },
     onSuccess: () => {
       // Invalidate queries to refetch data
@@ -204,94 +226,76 @@ export const useDeleteProduct = () => {
   });
 };
 
-// Improved stock adjustment function that updates localStorage
+// Improved stock adjustment function that updates Supabase and localStorage
 export const useStockAdjustment = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (data: { productId: string, quantity: number, reason: string, adjustmentType?: 'add' | 'remove' | 'balance' }) => {
-      return new Promise<typeof data>((resolve) => {
-        setTimeout(() => {
-          console.log('Adjusting stock:', data);
-          
-          // Get current products from storage
-          const products = getProductsFromStorage();
-          
-          // Find the product to adjust
-          const productIndex = products.findIndex(p => p.id === data.productId);
-          
-          if (productIndex >= 0) {
-            const product = products[productIndex];
-            const previousStock = product.stock;
-            
-            // For balance adjustment, simply set the stock to exactly what was entered
-            if (data.adjustmentType === 'balance') {
-              // Set the stock directly to the exact value entered by the user
-              products[productIndex].stock = data.quantity;
-              products[productIndex].updatedAt = new Date();
-              
-              // Record stock history
-              const stockHistory = storageService.getItem<any[]>(STORAGE_KEYS.STOCKS) || [];
-              stockHistory.push({
-                id: crypto.randomUUID(),
-                productId: data.productId,
-                productName: product.name,
-                timestamp: new Date(),
-                previousStock: previousStock,
-                newStock: data.quantity,
-                quantity: Math.abs(data.quantity - previousStock),
-                adjustmentType: 'balance',
-                reason: data.reason,
-                userName: 'Current User', // This should be replaced with the actual user
-              });
-              
-              // Save updated products and history to storage
-              storageService.setItem(STORAGE_KEYS.PRODUCTS, products);
-              storageService.setItem(STORAGE_KEYS.STOCKS, stockHistory);
-              
-              resolve(data);
-              return;
-            }
-            
-            // For add/remove adjustments
-            let newStock = previousStock;
-            
-            // Determine how to adjust the stock based on the adjustment type
-            if (data.adjustmentType === 'remove') {
-              // If it's a removal, subtract the quantity
-              newStock = previousStock - data.quantity;
-            } else if (data.adjustmentType === 'add') {
-              // If it's an addition, add the quantity
-              newStock = previousStock + data.quantity;
-            }
-            
-            // Update product stock
-            products[productIndex].stock = newStock;
-            products[productIndex].updatedAt = new Date();
-            
-            // Save updated products to storage
-            storageService.setItem(STORAGE_KEYS.PRODUCTS, products);
-            
-            // Record stock history if needed
-            const stockHistory = storageService.getItem<any[]>(STORAGE_KEYS.STOCKS) || [];
-            stockHistory.push({
-              id: crypto.randomUUID(),
-              productId: data.productId,
-              productName: product.name,
-              timestamp: new Date(),
-              previousStock: previousStock,
-              newStock: newStock,
-              quantity: data.quantity,
-              adjustmentType: data.adjustmentType || 'add',
-              reason: data.reason,
-              userName: 'Current User', // This should be replaced with the actual user
-            });
-            storageService.setItem(STORAGE_KEYS.STOCKS, stockHistory);
-          }
-          
-          resolve(data);
-        }, 500);
-      });
+    mutationFn: async (data: { productId: string, quantity: number, reason: string, adjustmentType?: 'add' | 'remove' | 'balance' }) => {
+      console.log('Adjusting stock:', data);
+      
+      // Get current products from storage
+      const products = getProductsFromStorage();
+      
+      // Find the product to adjust
+      const productIndex = products.findIndex(p => p.id === data.productId);
+      
+      if (productIndex < 0) {
+        throw new Error('Product not found');
+      }
+      
+      const product = products[productIndex];
+      const previousStock = product.stock;
+      let newStock = previousStock;
+      
+      // For balance adjustment, simply set the stock to exactly what was entered
+      if (data.adjustmentType === 'balance') {
+        // Set the stock directly to the exact value entered by the user
+        newStock = data.quantity;
+      } else if (data.adjustmentType === 'remove') {
+        // If it's a removal, subtract the quantity
+        newStock = previousStock - data.quantity;
+      } else if (data.adjustmentType === 'add') {
+        // If it's an addition, add the quantity
+        newStock = previousStock + data.quantity;
+      }
+      
+      // Update product stock locally
+      products[productIndex].stock = newStock;
+      products[productIndex].updatedAt = new Date();
+      
+      // Save updated products to local storage
+      storageService.setItem(STORAGE_KEYS.PRODUCTS, products);
+      
+      // Record stock history
+      const stockHistory = storageService.getItem<any[]>(STORAGE_KEYS.STOCKS) || [];
+      const historyEntry = {
+        id: crypto.randomUUID(),
+        productId: data.productId,
+        productName: product.name,
+        timestamp: new Date(),
+        previousStock: previousStock,
+        newStock: newStock,
+        quantity: data.adjustmentType === 'balance' ? Math.abs(newStock - previousStock) : data.quantity,
+        adjustmentType: data.adjustmentType || 'add',
+        reason: data.reason,
+        userName: 'Current User', // This should be replaced with the actual user
+      };
+      
+      stockHistory.push(historyEntry);
+      storageService.setItem(STORAGE_KEYS.STOCKS, stockHistory);
+      
+      try {
+        // Try to save the updated product to Supabase
+        await storageService.saveToSupabase('products', products[productIndex]);
+        
+        // Try to save the stock history entry to Supabase
+        await storageService.saveToSupabase('stock_history', historyEntry);
+      } catch (error) {
+        console.error('Failed to sync stock adjustment to Supabase, stored in localStorage only:', error);
+      }
+      
+      return data;
     },
     onSuccess: () => {
       // Invalidate queries to refetch data
@@ -302,34 +306,47 @@ export const useStockAdjustment = () => {
   });
 };
 
-// Updated stock history function to use localStorage
+// Updated stock history function to use Supabase and localStorage
 export const useStockHistory = (productId: string) => {
   return useQuery({
     queryKey: ['stockHistory', productId],
     queryFn: async () => {
-      return new Promise<any[]>((resolve) => {
-        setTimeout(() => {
-          const stockHistory = storageService.getItem<any[]>(STORAGE_KEYS.STOCKS) || [];
-          const filteredHistory = productId 
-            ? stockHistory.filter(item => item.productId === productId)
-            : stockHistory;
-            
+      try {
+        // Try to fetch from Supabase first
+        const query = productId ? ['stock_history', 'product_id', productId] : ['stock_history'];
+        const stockHistory = await storageService.getFromSupabase<any[]>(...query);
+        
+        if (stockHistory && stockHistory.length > 0) {
+          // Update local storage with the latest data
+          storageService.setItem(STORAGE_KEYS.STOCKS, stockHistory);
+          
           // Sort by timestamp, most recent first
-          filteredHistory.sort((a, b) => {
+          stockHistory.sort((a, b) => {
             const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
             const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
             return dateB - dateA;
           });
           
-          // Ensure all timestamps are valid date strings
-          const validatedHistory = filteredHistory.map(item => ({
-            ...item,
-            timestamp: item.timestamp || new Date().toISOString(),
-          }));
-          
-          resolve(validatedHistory);
-        }, 300);
+          return stockHistory;
+        }
+      } catch (error) {
+        console.error('Error fetching stock history from Supabase, falling back to localStorage:', error);
+      }
+      
+      // Fallback to localStorage
+      const stockHistory = storageService.getItem<any[]>(STORAGE_KEYS.STOCKS) || [];
+      const filteredHistory = productId 
+        ? stockHistory.filter(item => item.productId === productId)
+        : stockHistory;
+      
+      // Sort by timestamp, most recent first
+      filteredHistory.sort((a, b) => {
+        const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+        const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+        return dateB - dateA;
       });
+      
+      return filteredHistory;
     },
   });
 };

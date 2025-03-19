@@ -1,6 +1,57 @@
 import { supabase } from '@/integrations/supabase/client';
 import { fromTable, extractDataFromSupabase } from './supabase-helper';
 
+// Queue for pending operations when offline
+let pendingOperations: Array<{
+  type: 'save' | 'remove',
+  table: string,
+  data: any
+}> = [];
+
+// Flag to track online status
+let isOnline = navigator.onLine;
+
+// Function to process pending operations when back online
+const processPendingOperations = async () => {
+  if (pendingOperations.length === 0) return;
+  
+  console.log(`Processing ${pendingOperations.length} pending operations...`);
+  
+  // Create a copy of the queue and clear it
+  const operations = [...pendingOperations];
+  pendingOperations = [];
+  
+  for (const op of operations) {
+    try {
+      if (op.type === 'save') {
+        await storageService.saveToSupabase(op.table, op.data, false);
+      } else if (op.type === 'remove') {
+        await storageService.removeFromSupabase(op.table, op.data, false);
+      }
+    } catch (error) {
+      console.error(`Failed to process operation:`, op, error);
+      // Put failed operations back in the queue
+      pendingOperations.push(op);
+    }
+  }
+  
+  console.log(`Processed pending operations. ${pendingOperations.length} operations remaining.`);
+};
+
+// Listen for online/offline events
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => {
+    console.log('Back online, syncing data...');
+    isOnline = true;
+    processPendingOperations();
+  });
+  
+  window.addEventListener('offline', () => {
+    console.log('Offline mode activated');
+    isOnline = false;
+  });
+}
+
 export const storageService = {
   getItem: <T>(key: string): T | null => {
     const value = localStorage.getItem(key);
@@ -18,12 +69,21 @@ export const storageService = {
   
   // Supabase methods with safe fallbacks to localStorage
   getFromSupabase: async <T>(table: string, column: string = '', value: any = null): Promise<T[]> => {
+    if (!isOnline) {
+      console.log('Offline: getting data from localStorage');
+      const localData = storageService.getItem<T[]>(getStorageKeyForTable(table));
+      if (column && value !== null && localData) {
+        return localData.filter((item: any) => item[column] === value) || [];
+      }
+      return localData || [];
+    }
+    
     try {
       // Use our helper function to safely access Supabase tables
       let query = fromTable(table);
       
       if (column && value !== null) {
-        // Apply filter if provided - now this will work because we've used 'any' type
+        // Apply filter if provided
         query = query.eq(column, value);
       }
       
@@ -33,7 +93,35 @@ export const storageService = {
         console.error(`Error fetching from ${table}:`, error);
         // Fallback to localStorage
         const localData = storageService.getItem<T[]>(getStorageKeyForTable(table));
+        if (column && value !== null && localData) {
+          return localData.filter((item: any) => item[column] === value) || [];
+        }
         return localData || [];
+      }
+      
+      // Also update localStorage for offline access
+      if (data.length > 0) {
+        const storageKey = getStorageKeyForTable(table);
+        if (!column && storageKey) {
+          // If this was a full table fetch, update the local storage
+          storageService.setItem(storageKey, data);
+        } else if (column && storageKey) {
+          // If this was a filtered fetch, we need to update just those records
+          const allItems = storageService.getItem<any[]>(storageKey) || [];
+          
+          // Update or add the fetched items to the local data
+          const updatedItems = [...allItems];
+          for (const item of data) {
+            const index = updatedItems.findIndex((i: any) => i.id === (item as any).id);
+            if (index >= 0) {
+              updatedItems[index] = item;
+            } else {
+              updatedItems.push(item);
+            }
+          }
+          
+          storageService.setItem(storageKey, updatedItems);
+        }
       }
       
       return (data as T[]) || [];
@@ -41,11 +129,42 @@ export const storageService = {
       console.error(`Error in getFromSupabase for ${table}:`, err);
       // Fallback to localStorage
       const localData = storageService.getItem<T[]>(getStorageKeyForTable(table));
+      if (column && value !== null && localData) {
+        return localData.filter((item: any) => item[column] === value) || [];
+      }
       return localData || [];
     }
   },
   
-  saveToSupabase: async <T extends { id: string }>(table: string, item: T): Promise<T> => {
+  saveToSupabase: async <T extends { id: string }>(table: string, item: T, queueIfOffline: boolean = true): Promise<T> => {
+    // Always save to localStorage first for immediate access
+    const storageKey = getStorageKeyForTable(table);
+    if (storageKey) {
+      const existingItems = storageService.getItem<T[]>(storageKey) || [];
+      const index = existingItems.findIndex(i => i.id === item.id);
+      
+      if (index >= 0) {
+        existingItems[index] = item;
+      } else {
+        existingItems.push(item);
+      }
+      
+      storageService.setItem(storageKey, existingItems);
+    }
+    
+    // If offline, add to pending operations queue and return
+    if (!isOnline) {
+      console.log('Offline: saving to localStorage only, queuing for sync');
+      if (queueIfOffline) {
+        pendingOperations.push({
+          type: 'save',
+          table,
+          data: item
+        });
+      }
+      return item;
+    }
+    
     try {
       // Convert camelCase to snake_case for all properties
       const transformed = Object.entries(item).reduce((acc, [key, value]) => {
@@ -59,27 +178,18 @@ export const storageService = {
       
       if (error) {
         console.error(`Error saving to ${table}:`, error);
-        
-        // Also save to localStorage for backup and offline functionality
-        const storageKey = getStorageKeyForTable(table);
-        if (storageKey) {
-          const existingItems = storageService.getItem<T[]>(storageKey) || [];
-          const index = existingItems.findIndex(i => i.id === item.id);
-          
-          if (index >= 0) {
-            existingItems[index] = item;
-          } else {
-            existingItems.push(item);
-          }
-          
-          storageService.setItem(storageKey, existingItems);
+        // We already saved to localStorage above
+        if (queueIfOffline) {
+          pendingOperations.push({
+            type: 'save',
+            table,
+            data: item
+          });
         }
-        
-        // Just use the original item if there's an error
         return item;
       }
       
-      // Convert the result back to camelCase
+      // Convert the result back to camelCase if we got data back
       if (data && data[0]) {
         const result = Object.entries(data[0]).reduce((acc, [key, value]) => {
           const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
@@ -87,16 +197,15 @@ export const storageService = {
           return acc;
         }, {} as any);
         
-        // Also save to localStorage for backup and offline functionality
-        const storageKey = getStorageKeyForTable(table);
+        // Update localStorage with the data from Supabase
         if (storageKey) {
           const existingItems = storageService.getItem<T[]>(storageKey) || [];
           const index = existingItems.findIndex(i => i.id === item.id);
           
           if (index >= 0) {
-            existingItems[index] = item;
+            existingItems[index] = result as T;
           } else {
-            existingItems.push(item);
+            existingItems.push(result as T);
           }
           
           storageService.setItem(storageKey, existingItems);
@@ -105,85 +214,89 @@ export const storageService = {
         return result as T;
       }
       
-      // If Supabase failed but we didn't catch an error, save to localStorage
-      const storageKey = getStorageKeyForTable(table);
-      if (storageKey) {
-        const existingItems = storageService.getItem<T[]>(storageKey) || [];
-        const index = existingItems.findIndex(i => i.id === item.id);
-        
-        if (index >= 0) {
-          existingItems[index] = item;
-        } else {
-          existingItems.push(item);
-        }
-        
-        storageService.setItem(storageKey, existingItems);
-      }
-      
+      // If we didn't get data back but the operation succeeded, return the original item
       return item;
     } catch (err) {
       console.error(`Error in saveToSupabase for ${table}:`, err);
-      
-      // On error, still save to localStorage
-      const storageKey = getStorageKeyForTable(table);
-      if (storageKey) {
-        const existingItems = storageService.getItem<T[]>(storageKey) || [];
-        const index = existingItems.findIndex(i => i.id === item.id);
-        
-        if (index >= 0) {
-          existingItems[index] = item;
-        } else {
-          existingItems.push(item);
-        }
-        
-        storageService.setItem(storageKey, existingItems);
+      // We already saved to localStorage above
+      if (queueIfOffline) {
+        pendingOperations.push({
+          type: 'save',
+          table,
+          data: item
+        });
       }
-      
       return item;
     }
   },
   
-  removeFromSupabase: async (table: string, id: string): Promise<boolean> => {
+  removeFromSupabase: async (table: string, id: string, queueIfOffline: boolean = true): Promise<boolean> => {
+    // Always remove from localStorage first for immediate UI update
+    const storageKey = getStorageKeyForTable(table);
+    if (storageKey) {
+      const existingItems = storageService.getItem<any[]>(storageKey) || [];
+      const updatedItems = existingItems.filter(item => item.id !== id);
+      storageService.setItem(storageKey, updatedItems);
+    }
+    
+    // If offline, add to pending operations queue and return
+    if (!isOnline) {
+      console.log('Offline: removing from localStorage only, queuing for sync');
+      if (queueIfOffline) {
+        pendingOperations.push({
+          type: 'remove',
+          table,
+          data: id
+        });
+      }
+      return true;
+    }
+    
     try {
       // Use our helper function to safely access Supabase tables
       const { error } = await fromTable(table).delete().eq('id', id);
       
       if (error) {
         console.error(`Error removing from ${table}:`, error);
-        
-        // Still remove from localStorage even if Supabase fails
-        const storageKey = getStorageKeyForTable(table);
-        if (storageKey) {
-          const existingItems = storageService.getItem<any[]>(storageKey) || [];
-          const updatedItems = existingItems.filter(item => item.id !== id);
-          storageService.setItem(storageKey, updatedItems);
+        // We already removed from localStorage above
+        if (queueIfOffline) {
+          pendingOperations.push({
+            type: 'remove',
+            table,
+            data: id
+          });
         }
-        
         return true; // Return true to let the UI update
-      }
-      
-      // Also remove from localStorage
-      const storageKey = getStorageKeyForTable(table);
-      if (storageKey) {
-        const existingItems = storageService.getItem<any[]>(storageKey) || [];
-        const updatedItems = existingItems.filter(item => item.id !== id);
-        storageService.setItem(storageKey, updatedItems);
       }
       
       return true;
     } catch (err) {
       console.error(`Error in removeFromSupabase for ${table}:`, err);
-      
-      // Still remove from localStorage even if Supabase fails
-      const storageKey = getStorageKeyForTable(table);
-      if (storageKey) {
-        const existingItems = storageService.getItem<any[]>(storageKey) || [];
-        const updatedItems = existingItems.filter(item => item.id !== id);
-        storageService.setItem(storageKey, updatedItems);
+      // We already removed from localStorage above
+      if (queueIfOffline) {
+        pendingOperations.push({
+          type: 'remove',
+          table,
+          data: id
+        });
       }
-      
       return true; // Return true to let the UI update
     }
+  },
+  
+  // For manual sync of pending operations
+  syncPendingOperations: async (): Promise<{ success: boolean, pendingCount: number }> => {
+    if (!isOnline) {
+      return { success: false, pendingCount: pendingOperations.length };
+    }
+    
+    await processPendingOperations();
+    return { success: true, pendingCount: pendingOperations.length };
+  },
+  
+  // Get number of pending operations
+  getPendingOperationsCount: (): number => {
+    return pendingOperations.length;
   }
 };
 

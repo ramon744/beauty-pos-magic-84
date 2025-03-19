@@ -12,6 +12,7 @@ import InventoryControl from '@/components/products/InventoryControl';
 import { useFetchProducts } from '@/hooks/use-products';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/components/ui/use-toast';
+import SyncStatusIndicator from '@/components/products/SyncStatusIndicator';
 
 const Products = () => {
   const [activeTab, setActiveTab] = useState('list');
@@ -68,7 +69,10 @@ const Products = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <h1 className="text-2xl font-bold tracking-tight">Gerenciamento de Produtos</h1>
+        <div className="flex flex-col md:flex-row md:items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight">Gerenciamento de Produtos</h1>
+          <SyncStatusIndicator />
+        </div>
         <Button onClick={handleNewProduct} className="md:w-auto w-full">
           <PlusCircle className="mr-2 h-4 w-4" />
           Novo Produto
