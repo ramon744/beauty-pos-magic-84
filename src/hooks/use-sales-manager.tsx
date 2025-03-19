@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useCart } from '@/hooks/use-cart';
 import { useDiscounts } from '@/hooks/use-discounts';
@@ -261,7 +262,8 @@ export const useSalesManager = () => {
     if (lastCompletedSale) {
       const receiptContent = generateReceiptContent(lastCompletedSale);
       
-      const printWindow = window.open('', '_blank');
+      // Create a new window without a full reload
+      const printWindow = window.open('', '_blank', 'width=800,height=600');
       if (printWindow) {
         printWindow.document.write(`
           <html>
@@ -310,7 +312,12 @@ export const useSalesManager = () => {
               <script>
                 window.onload = function() {
                   window.print();
-                  setTimeout(function() { window.close(); }, 500);
+                  
+                  // Use a timeout to prevent the window from closing too quickly
+                  // which could cause refresh-related issues
+                  setTimeout(function() { 
+                    window.close(); 
+                  }, 500);
                 };
               </script>
             </body>
@@ -320,6 +327,7 @@ export const useSalesManager = () => {
       }
     }
     
+    // Close the dialog without refreshing the main window
     handleClosePrintDialog();
   };
 
