@@ -1,3 +1,4 @@
+
 import { Cashier, User } from '@/types';
 import { storageService, STORAGE_KEYS } from './storage-service';
 import { toast } from 'sonner';
@@ -132,7 +133,7 @@ export const cashierService = {
       throw new Error('Este caixa já está atribuído a outro usuário');
     }
     
-    // Update the cashier with user assignment
+    // Update the cashier with user assignment and explicitly set active
     cashierService.updateCashier(cashierId, { 
       assignedUserId: userId,
       assignedUserName: userName,
@@ -154,6 +155,7 @@ export const cashierService = {
       return;
     }
     
+    // Don't change active state when unassigning
     cashierService.updateCashier(cashierId, { 
       assignedUserId: undefined,
       assignedUserName: undefined

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { cashierOperationsService, CashierOperation } from '@/services/cashier-operations-service';
 import { useAuth } from '@/contexts/AuthContext';
@@ -93,13 +92,12 @@ export function useCashierOperations() {
     
     try {
       setError(null);
-      // CRITICAL FIX: This should NOT close the cashier
       const operation = cashierOperationsService.addDeposit(cashierId, user.id, amount, reason, managerName, managerId);
       
-      // CRITICAL FIX: Explicitly ensure the cashier is still set as active
+      // Force ensure the cashier is active after deposit
       const cashier = cashierService.getCashier(cashierId);
       if (cashier && !cashier.isActive) {
-        console.log('Restoring active state for cashier after deposit:', cashierId);
+        console.log('Ensuring cashier remains active after deposit:', cashierId);
         cashierService.updateCashier(cashierId, { isActive: true });
       }
       
@@ -122,13 +120,12 @@ export function useCashierOperations() {
     
     try {
       setError(null);
-      // CRITICAL FIX: This should NOT close the cashier
       const operation = cashierOperationsService.addWithdrawal(cashierId, user.id, amount, reason, managerName, managerId);
       
-      // CRITICAL FIX: Explicitly ensure the cashier is still set as active
+      // Force ensure the cashier is active after withdrawal
       const cashier = cashierService.getCashier(cashierId);
       if (cashier && !cashier.isActive) {
-        console.log('Restoring active state for cashier after withdrawal:', cashierId);
+        console.log('Ensuring cashier remains active after withdrawal:', cashierId);
         cashierService.updateCashier(cashierId, { isActive: true });
       }
       
