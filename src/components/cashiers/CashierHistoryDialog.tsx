@@ -76,7 +76,7 @@ export const CashierHistoryDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[800px] max-h-screen flex flex-col">
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col">
         <DialogHeader className="shrink-0">
           <div className="flex justify-between items-center">
             <DialogTitle className="flex items-center gap-2">
@@ -109,7 +109,7 @@ export const CashierHistoryDialog = ({
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden my-4">
-          <ScrollArea className="h-[60vh] w-full">
+          <ScrollArea className="h-[60vh] w-full pr-4">
             <CashierDayGroup 
               dayGroups={groupedOperations}
               getUserName={getUserName}
