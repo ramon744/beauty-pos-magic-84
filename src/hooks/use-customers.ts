@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Customer } from '@/types';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 import { toast } from '@/hooks/use-toast';
@@ -76,8 +76,10 @@ const searchAddressByCEP = async (cep: string): Promise<{
   }
 };
 
-export const useCustomers = () => {
+export function useCustomers() {
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Load customers from localStorage on mount
   useEffect(() => {
@@ -172,10 +174,36 @@ export const useCustomers = () => {
   };
 
   // Remove a customer
-  const removeCustomer = async (id: string): Promise<boolean> => {
-    setCustomers(prevCustomers => prevCustomers.filter(c => c.id !== id));
-    return true;
-  };
+  const removeCustomer = useCallback(async (id: string): Promise<boolean> => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Tente remover do Supabase primeiro
+      const success = await storageService.removeFromSupabase('customers', id);
+      
+      if (success) {
+        // Certifique-se de também remover do estado local
+        setCustomers(prev => prev.filter(customer => customer.id !== id));
+        
+        // Se por algum motivo os dados persistirem no localStorage, forçamos a remoção aqui também
+        const storageKey = STORAGE_KEYS.CUSTOMERS;
+        const existingCustomers = storageService.getItem<Customer[]>(storageKey) || [];
+        const updatedCustomers = existingCustomers.filter(c => c.id !== id);
+        storageService.setItem(storageKey, updatedCustomers);
+        
+        return true;
+      }
+      
+      throw new Error('Não foi possível remover o cliente');
+    } catch (error) {
+      console.error('Erro ao remover cliente:', error);
+      setError('Erro ao remover cliente');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [setCustomers, setError, setLoading]);
 
   return {
     customers,
@@ -183,6 +211,8 @@ export const useCustomers = () => {
     updateCustomer,
     removeCustomer,
     searchAddressByCEP,
-    validateCPF // Expose the validation function
+    validateCPF,
+    loading,
+    error
   };
-};
+}

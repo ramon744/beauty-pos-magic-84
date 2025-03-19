@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { UserRound, UserPlus, X, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,12 +12,10 @@ import * as z from 'zod';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
-// Esquema de validação para a busca de CPF
 const cpfSearchSchema = z.object({
   cpf: z.string().min(11, "CPF deve ter pelo menos 11 dígitos").max(14)
 });
 
-// Esquema de validação para o cadastro rápido
 const quickCustomerSchema = z.object({
   name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
   cpf: z.string().min(11, "CPF deve ter pelo menos 11 dígitos").max(14),
@@ -45,7 +42,6 @@ export const CustomerLinking: React.FC<CustomerLinkingProps> = ({
   const [searchResult, setSearchResult] = useState<Customer | null>(null);
   const [searchError, setSearchError] = useState('');
 
-  // Form para busca por CPF
   const searchForm = useForm<CpfSearchFormValues>({
     resolver: zodResolver(cpfSearchSchema),
     defaultValues: {
@@ -53,7 +49,6 @@ export const CustomerLinking: React.FC<CustomerLinkingProps> = ({
     }
   });
 
-  // Form para cadastro rápido
   const registerForm = useForm<QuickCustomerFormValues>({
     resolver: zodResolver(quickCustomerSchema),
     defaultValues: {
@@ -63,7 +58,6 @@ export const CustomerLinking: React.FC<CustomerLinkingProps> = ({
     }
   });
 
-  // Formata o CPF para exibição
   const formatCPF = (cpf: string) => {
     const cpfDigits = cpf.replace(/\D/g, '');
     if (cpfDigits.length === 11) {
@@ -72,11 +66,9 @@ export const CustomerLinking: React.FC<CustomerLinkingProps> = ({
     return cpf;
   };
 
-  // Busca cliente por CPF
   const handleSearchCustomer = (data: CpfSearchFormValues) => {
     const cleanCpf = data.cpf.replace(/\D/g, '');
     
-    // Validar CPF antes de prosseguir
     if (!validateCPF(cleanCpf)) {
       setSearchResult(null);
       setSearchError('CPF inválido');
@@ -91,17 +83,14 @@ export const CustomerLinking: React.FC<CustomerLinkingProps> = ({
     } else {
       setSearchResult(null);
       setSearchError('Cliente não encontrado');
-      // Preenche automaticamente o CPF no formulário de cadastro rápido
       registerForm.setValue('cpf', data.cpf);
     }
   };
 
-  // Realiza o cadastro rápido do cliente
   const handleQuickRegister = async (data: QuickCustomerFormValues) => {
     try {
       const cleanCpf = data.cpf.replace(/\D/g, '');
       
-      // Validar CPF antes de prosseguir
       if (!validateCPF(cleanCpf)) {
         throw new Error('CPF inválido');
       }
@@ -122,13 +111,23 @@ export const CustomerLinking: React.FC<CustomerLinkingProps> = ({
     }
   };
 
-  // Seleciona o cliente encontrado
   const handleSelectCustomer = () => {
     if (searchResult) {
       onLinkCustomer(searchResult);
       setIsSearchDialogOpen(false);
       searchForm.reset();
       setSearchResult(null);
+    }
+  };
+
+  const handleUnlinkCustomer = () => {
+    if (linkedCustomer) {
+      const customerId = linkedCustomer.id;
+      
+      onUnlinkCustomer();
+      
+      setSearchResult(null);
+      setSearchError('');
     }
   };
 
@@ -154,7 +153,7 @@ export const CustomerLinking: React.FC<CustomerLinkingProps> = ({
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={onUnlinkCustomer}
+              onClick={handleUnlinkCustomer}
             >
               <X className="h-4 w-4 mr-1" />
               Remover
@@ -172,7 +171,6 @@ export const CustomerLinking: React.FC<CustomerLinkingProps> = ({
         </Button>
       )}
 
-      {/* Diálogo de busca de cliente */}
       <Dialog open={isSearchDialogOpen} onOpenChange={setIsSearchDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -196,7 +194,6 @@ export const CustomerLinking: React.FC<CustomerLinkingProps> = ({
                           placeholder="Digite o CPF do cliente"
                           {...field}
                           onChange={(e) => {
-                            // Limpa o resultado anterior ao digitar
                             setSearchResult(null);
                             setSearchError('');
                             field.onChange(e);
@@ -214,7 +211,6 @@ export const CustomerLinking: React.FC<CustomerLinkingProps> = ({
             </form>
           </Form>
 
-          {/* Resultado da busca */}
           {searchResult && (
             <div className="mt-4 p-3 border rounded-md bg-blue-50">
               <h4 className="font-medium">{searchResult.name}</h4>
@@ -232,7 +228,6 @@ export const CustomerLinking: React.FC<CustomerLinkingProps> = ({
             </div>
           )}
 
-          {/* Mensagem de erro e opção de cadastro */}
           {searchError && (
             <div className="mt-4 space-y-2">
               <p className="text-sm text-red-500">{searchError}</p>
@@ -257,7 +252,6 @@ export const CustomerLinking: React.FC<CustomerLinkingProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* Diálogo de cadastro rápido */}
       <Dialog open={isQuickRegisterOpen} onOpenChange={setIsQuickRegisterOpen}>
         <DialogContent>
           <DialogHeader>

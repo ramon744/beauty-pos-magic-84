@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { fromTable, extractDataFromSupabase } from './supabase-helper';
 
@@ -236,6 +237,8 @@ export const storageService = {
     if (storageKey) {
       const existingItems = storageService.getItem<any[]>(storageKey) || [];
       const updatedItems = existingItems.filter(item => item.id !== id);
+      
+      // Important: Update the localStorage with the filtered items
       storageService.setItem(storageKey, updatedItems);
     }
     
