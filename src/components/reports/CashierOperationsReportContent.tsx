@@ -18,6 +18,7 @@ import {
   AlertCircleIcon, 
   FileIcon, 
   InfoIcon,
+  ShieldAlertIcon
 } from 'lucide-react';
 import { 
   DropdownMenu,
@@ -349,12 +350,17 @@ const CashierOperationsReportContent = () => {
                             </td>
                             {reportType === 'shortages' && (
                               <td className="px-4 py-3 text-sm">
-                                {op.reason || '-'}
+                                {op.discrepancyReason || op.reason || '-'}
                               </td>
                             )}
                             {(reportType === 'shortages' || reportType === 'closings') && (
                               <td className="px-4 py-3 text-sm">
-                                {op.managerName || '-'}
+                                {op.managerName ? (
+                                  <div className="flex items-center gap-1">
+                                    <ShieldAlertIcon className="h-3 w-3 text-amber-500" />
+                                    {op.managerName}
+                                  </div>
+                                ) : '-'}
                               </td>
                             )}
                           </tr>

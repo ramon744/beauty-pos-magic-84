@@ -67,15 +67,16 @@ export function useCashierOperationsReport(
           filteredOperations = filteredOperations.filter(op => op.operationType === 'close');
           break;
         case 'shortages':
-          // Shortages are close operations with a reason (indicating a discrepancy)
+          // Shortages are close operations with a discrepancy reason (indicating a shortage)
           filteredOperations = filteredOperations.filter(op => 
-            op.operationType === 'close' && op.reason && op.reason.trim() !== ''
+            op.operationType === 'close' && op.discrepancyReason && op.discrepancyReason.trim() !== ''
           );
           
           // Add isShortage flag to each operation
           filteredOperations = filteredOperations.map(op => ({
             ...op,
-            isShortage: true
+            isShortage: true,
+            reason: op.discrepancyReason // Ensure reason is set from discrepancyReason
           }));
           break;
         case 'sales':
@@ -126,7 +127,7 @@ export function useCashierOperationsReport(
         reportData.shortages = sortedOperations.map(op => ({
           operationId: op.id,
           amount: op.amount,
-          reason: op.reason || '',
+          reason: op.discrepancyReason || op.reason || '',
           timestamp: op.timestamp instanceof Date 
             ? op.timestamp.toISOString() 
             : (typeof op.timestamp === 'string' ? op.timestamp : new Date().toISOString()),
