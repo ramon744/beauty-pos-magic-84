@@ -204,38 +204,75 @@ export const useDeleteProduct = () => {
       console.log('Deleting product:', productId);
       
       try {
-        // First try to delete from Supabase
+        // 1. Get the product details first (for cleanup of related records)
+        const products = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
+        const productToDelete = products.find(p => p.id === productId);
+        
+        if (!productToDelete) {
+          console.warn(`Product ${productId} not found in localStorage, proceeding with deletion anyway`);
+        } else {
+          console.log(`Found product to delete: ${productToDelete.name}`);
+        }
+        
+        // 2. Delete from stock history first (if related records exist)
+        try {
+          console.log(`Attempting to delete related stock history for product ${productId}`);
+          await storageService.removeFromSupabase('stock_history', 'product_id', productId, true);
+          
+          // Also remove from localStorage
+          const stockHistory = storageService.getItem<any[]>(STORAGE_KEYS.STOCKS) || [];
+          const updatedStockHistory = stockHistory.filter(item => item.productId !== productId);
+          storageService.setItem(STORAGE_KEYS.STOCKS, updatedStockHistory);
+        } catch (error) {
+          console.error('Error deleting related stock history:', error);
+          // Continue with product deletion even if stock history deletion fails
+        }
+        
+        // 3. Delete the product from Supabase
+        console.log(`Deleting product ${productId} from Supabase`);
         await storageService.removeFromSupabase('products', productId);
+        
+        // 4. Get current products from localStorage before deletion (final verification)
+        const products1 = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
+        console.log(`Before final verification: ${products1.length} products in localStorage`);
+        console.log(`Products still has deleted item: ${products1.some(p => p.id === productId)}`);
+        
+        // 5. Filter out the product to delete one more time
+        const updatedProducts = products1.filter(p => p.id !== productId);
+        console.log(`After final verification: ${updatedProducts.length} products should be in localStorage`);
+        
+        // 6. Force save the updated products to localStorage
+        storageService.setItem(STORAGE_KEYS.PRODUCTS, updatedProducts);
+        
+        // 7. Double check deletion was successful
+        const afterDelete = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
+        if (afterDelete.some(p => p.id === productId)) {
+          console.error('Product still exists in localStorage after deletion, forcing removal');
+          const forceRemove = afterDelete.filter(p => p.id !== productId);
+          storageService.setItem(STORAGE_KEYS.PRODUCTS, forceRemove);
+        }
+        
+        return productId;
       } catch (error) {
-        console.error('Failed to delete from Supabase, deleting from localStorage only:', error);
+        console.error('Error in product deletion process:', error);
+        
+        // Even if there was an error, make sure the product is removed from localStorage
+        const finalCheck = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
+        if (finalCheck.some(p => p.id === productId)) {
+          console.error('Despite errors, ensuring product is removed from localStorage');
+          const finalRemove = finalCheck.filter(p => p.id !== productId);
+          storageService.setItem(STORAGE_KEYS.PRODUCTS, finalRemove);
+        }
+        
+        return productId;
       }
-      
-      // Get current products from localStorage before deletion
-      const products = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
-      console.log(`Before deletion: ${products.length} products in localStorage`);
-      
-      // Filter out the product to delete
-      const updatedProducts = products.filter(p => p.id !== productId);
-      console.log(`After deletion: ${updatedProducts.length} products should be in localStorage`);
-      
-      // Force save the updated products to localStorage
-      storageService.setItem(STORAGE_KEYS.PRODUCTS, updatedProducts);
-      
-      // Double check deletion was successful
-      const afterDelete = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
-      if (afterDelete.some(p => p.id === productId)) {
-        console.error('Product still exists in localStorage after deletion, forcing removal');
-        const forceRemove = afterDelete.filter(p => p.id !== productId);
-        storageService.setItem(STORAGE_KEYS.PRODUCTS, forceRemove);
-      }
-      
-      return productId;
     },
     onSuccess: (productId) => {
       console.log(`Product ${productId} successfully deleted`);
-      // Invalidate queries to refetch data
+      // Invalidate queries to refetch data for ALL related components
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['productStats'] });
+      queryClient.invalidateQueries({ queryKey: ['stockHistory'] });
       
       // Perform one final check to ensure the product is truly gone
       setTimeout(() => {

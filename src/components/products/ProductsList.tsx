@@ -28,16 +28,40 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
   const [deletionInProgress, setDeletionInProgress] = useState(false);
   const [deletedProductIds, setDeletedProductIds] = useState<string[]>([]);
   
-  // On component mount, ensure we're starting with fresh data
+  // On component mount AND route navigation, ensure we're starting with fresh data
   useEffect(() => {
+    console.log('ProductsList mounted or route changed, refetching data');
     refetch();
+    
+    // Check localStorage for any leftover deleted products
+    const storedProducts = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
+    const deletedIds = JSON.parse(localStorage.getItem('deletedProductIds') || '[]');
+    
+    // If we have deleted IDs stored, make sure they are removed from localStorage
+    if (deletedIds.length > 0) {
+      console.log(`Found ${deletedIds.length} previously deleted products to filter out`);
+      const filteredStoredProducts = storedProducts.filter(p => !deletedIds.includes(p.id));
+      if (filteredStoredProducts.length !== storedProducts.length) {
+        console.log('Removed deleted products from localStorage');
+        storageService.setItem(STORAGE_KEYS.PRODUCTS, filteredStoredProducts);
+      }
+      setDeletedProductIds(deletedIds);
+    }
   }, [refetch]);
+  
+  // Save deleted product IDs to localStorage when they change
+  useEffect(() => {
+    if (deletedProductIds.length > 0) {
+      localStorage.setItem('deletedProductIds', JSON.stringify(deletedProductIds));
+    }
+  }, [deletedProductIds]);
   
   // Effect to handle refetching after deletion
   useEffect(() => {
     if (deletionInProgress && !isDeleting) {
       // Small delay to ensure localStorage is updated before refetching
       const timer = setTimeout(() => {
+        console.log('Deletion completed, refetching products');
         refetch();
         setDeletionInProgress(false);
       }, 300);
@@ -100,6 +124,13 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
           console.warn("Product still exists in localStorage after deletion, forcing removal");
           const forceRemoval = verifyProducts.filter(p => p.id !== productToDelete);
           storageService.setItem(STORAGE_KEYS.PRODUCTS, forceRemoval);
+        }
+        
+        // Store the deleted ID in localStorage for persistence across refreshes
+        const deletedIds = JSON.parse(localStorage.getItem('deletedProductIds') || '[]');
+        if (!deletedIds.includes(productToDelete)) {
+          deletedIds.push(productToDelete);
+          localStorage.setItem('deletedProductIds', JSON.stringify(deletedIds));
         }
       },
       onError: (error) => {

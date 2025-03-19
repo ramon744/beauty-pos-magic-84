@@ -231,9 +231,12 @@ export const storageService = {
   },
   
   removeFromSupabase: async (table: string, id: string, queueIfOffline: boolean = true): Promise<boolean> => {
+    console.log(`Attempting to remove item ${id} from ${table}`);
+    
     // Always remove from localStorage first for immediate UI update
     const storageKey = getStorageKeyForTable(table);
     if (storageKey) {
+      console.log(`Removing item ${id} from localStorage ${storageKey}`);
       const existingItems = storageService.getItem<any[]>(storageKey) || [];
       const updatedItems = existingItems.filter(item => item.id !== id);
       
@@ -287,6 +290,7 @@ export const storageService = {
     
     try {
       // Use our helper function to safely access Supabase tables
+      console.log(`Sending delete request to Supabase for table ${table}, id ${id}`);
       const { error } = await fromTable(table).delete().eq('id', id);
       
       if (error) {
@@ -299,9 +303,16 @@ export const storageService = {
             data: id
           });
         }
+        // Even though there was an error with Supabase, make sure it's gone from localStorage
+        const checkAgain = storageService.getItem<any[]>(storageKey) || [];
+        if (checkAgain.some(item => item.id === id)) {
+          console.error(`Item ${id} still in localStorage after Supabase error, forcing another removal`);
+          storageService.setItem(storageKey, checkAgain.filter(item => item.id !== id));
+        }
         return true; // Return true to let the UI update
       }
       
+      console.log(`Successfully deleted item ${id} from Supabase table ${table}`);
       return true;
     } catch (err) {
       console.error(`Error in removeFromSupabase for ${table}:`, err);
