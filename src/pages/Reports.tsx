@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import SalesReportContent from '@/components/reports/SalesReportContent';
 import ProductsReportContent from '@/components/reports/ProductsReportContent';
 import CustomersReportContent from '@/components/reports/CustomersReportContent';
+import CashierOperationsReportContent from '@/components/reports/CashierOperationsReportContent';
 import { useQueries, useIsFetching } from '@tanstack/react-query';
 import { useProducts } from '@/hooks/use-products';
 import { useSalesReports } from '@/hooks/use-reports';
@@ -18,15 +19,16 @@ const Reports = () => {
       <div className="flex flex-col space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Relatórios</h1>
         <p className="text-muted-foreground">
-          Visualize e exporte relatórios detalhados sobre vendas, produtos e clientes.
+          Visualize e exporte relatórios detalhados sobre vendas, produtos, clientes e operações de caixa.
         </p>
       </div>
 
       <Tabs defaultValue="sales" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-8">
+        <TabsList className="grid w-full grid-cols-4 mb-8">
           <TabsTrigger value="sales">Vendas</TabsTrigger>
           <TabsTrigger value="products">Produtos</TabsTrigger>
           <TabsTrigger value="customers">Clientes</TabsTrigger>
+          <TabsTrigger value="cashier">Operações de Caixa</TabsTrigger>
         </TabsList>
         
         <TabsContent value="sales" className="space-y-4">
@@ -39,6 +41,10 @@ const Reports = () => {
         
         <TabsContent value="customers" className="space-y-4">
           <CustomersReportContent />
+        </TabsContent>
+        
+        <TabsContent value="cashier" className="space-y-4">
+          <CashierOperationsReportContent />
         </TabsContent>
       </Tabs>
     </div>
