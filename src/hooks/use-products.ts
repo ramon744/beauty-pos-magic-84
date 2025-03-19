@@ -313,8 +313,15 @@ export const useStockHistory = (productId: string) => {
     queryFn: async () => {
       try {
         // Try to fetch from Supabase first
-        const query = productId ? ['stock_history', 'product_id', productId] : ['stock_history'];
-        const stockHistory = await storageService.getFromSupabase<any[]>(...query);
+        // Fix: Use proper parameters instead of spread operator
+        const query = productId ? 
+          ['stock_history', 'product_id', productId] : 
+          ['stock_history'];
+        
+        // Here we pass each parameter individually instead of using spread
+        const stockHistory = productId ?
+          await storageService.getFromSupabase<any>('stock_history', 'product_id', productId) :
+          await storageService.getFromSupabase<any>('stock_history');
         
         if (stockHistory && stockHistory.length > 0) {
           // Update local storage with the latest data
@@ -322,6 +329,7 @@ export const useStockHistory = (productId: string) => {
           
           // Sort by timestamp, most recent first
           stockHistory.sort((a, b) => {
+            // Fix: Access timestamp property from individual items, not from the array
             const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
             const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
             return dateB - dateA;
@@ -341,6 +349,7 @@ export const useStockHistory = (productId: string) => {
       
       // Sort by timestamp, most recent first
       filteredHistory.sort((a, b) => {
+        // Fix: Access timestamp property from individual items, not from the array
         const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
         const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
         return dateB - dateA;
