@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Product, Category } from '@/types';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
@@ -229,8 +228,8 @@ export const useStockAdjustment = () => {
             if (data.adjustmentType === 'remove') {
               // If it's a removal, subtract the quantity
               newStock = previousStock - data.quantity;
-            } else if (data.adjustmentType === 'add' || !data.adjustmentType) {
-              // If it's an addition or the type is not specified, add the quantity
+            } else if (data.adjustmentType === 'add') {
+              // If it's an addition, add the quantity
               newStock = previousStock + data.quantity;
             } else if (data.adjustmentType === 'balance') {
               // If it's a balance, set the stock to the quantity
