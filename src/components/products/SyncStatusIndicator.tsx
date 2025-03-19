@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Wifi, WifiOff } from 'lucide-react';
-import { toast } from '../ui/use-toast';
+import { toast } from '@/components/ui/use-toast';
 
 export const SyncStatusIndicator = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);

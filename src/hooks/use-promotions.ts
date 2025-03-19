@@ -222,7 +222,7 @@ export function useFetchPromotion(id: string) {
         const promotions = await storageService.getFromSupabase<Promotion[]>('promotions', 'id', id);
         
         if (promotions && promotions.length > 0) {
-          return promotions[0];
+          return promotions[0] as Promotion;  // Return the first item as a Promotion
         }
         
         throw new Error('Promotion not found');
@@ -243,7 +243,7 @@ export function useFetchPromotion(id: string) {
         const promotion = promotions.find(p => p.id === id);
         if (!promotion) throw new Error('Promotion not found');
         
-        return promotion;
+        return promotion as Promotion;  // Explicitly type as Promotion
       }
     },
     enabled: !!id, // Only run the query if id is provided
@@ -444,7 +444,7 @@ export function useRemoveProductFromPromotion() {
           throw new Error('Promotion not found');
         }
         
-        const promotion = promotions[0];
+        const promotion = promotions[0] as Promotion;
         
         // Handle based on promotion type
         if (promotion.type === 'bundle' && promotion.bundleProducts) {

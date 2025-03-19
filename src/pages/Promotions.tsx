@@ -6,6 +6,7 @@ import { PlusCircle } from 'lucide-react';
 import PromotionsList from '@/components/promotions/PromotionsList';
 import PromotionForm from '@/components/promotions/PromotionForm';
 import PromotionStats from '@/components/promotions/PromotionStats';
+import SyncStatusIndicator from '@/components/products/SyncStatusIndicator';
 
 const Promotions = () => {
   const [activeTab, setActiveTab] = useState('list');
@@ -29,7 +30,10 @@ const Promotions = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <h1 className="text-2xl font-bold tracking-tight">Gerenciamento de Promoções</h1>
+        <div className="flex items-center space-x-4">
+          <h1 className="text-2xl font-bold tracking-tight">Gerenciamento de Promoções</h1>
+          <SyncStatusIndicator />
+        </div>
         <Button onClick={handleNewPromotion} className="md:w-auto w-full">
           <PlusCircle className="mr-2 h-4 w-4" />
           Nova Promoção
