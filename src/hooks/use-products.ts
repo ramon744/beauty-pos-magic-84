@@ -286,9 +286,19 @@ export const useStockHistory = (productId: string) => {
             : stockHistory;
             
           // Sort by timestamp, most recent first
-          filteredHistory.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+          filteredHistory.sort((a, b) => {
+            const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+            const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+            return dateB - dateA;
+          });
           
-          resolve(filteredHistory);
+          // Ensure all timestamps are valid date strings
+          const validatedHistory = filteredHistory.map(item => ({
+            ...item,
+            timestamp: item.timestamp || new Date().toISOString(),
+          }));
+          
+          resolve(validatedHistory);
         }, 300);
       });
     },

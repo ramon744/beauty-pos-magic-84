@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useFetchProducts, useStockAdjustment, useStockHistory } from '@/hooks/use-products';
 import { DataTable } from '@/components/common/DataTable';
@@ -19,7 +18,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
@@ -360,7 +359,19 @@ const InventoryControl = () => {
   };
 
   const formatDateTime = (date: Date | string) => {
-    return format(new Date(date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+    try {
+      const dateObj = typeof date === 'string' ? new Date(date) : date;
+      
+      // Check if the date is valid before formatting
+      if (!isValid(dateObj)) {
+        return 'Data inválida';
+      }
+      
+      return format(dateObj, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+    } catch (err) {
+      console.error("Error formatting date:", err, date);
+      return "Data inválida";
+    }
   };
 
   return (
