@@ -91,8 +91,8 @@ export function useCashierHistory(
 
   const hasDiscrepancy = (operation: CashierOperation): boolean => {
     if (operation.operationType === 'close') {
-      // Check if there's already a recorded discrepancy reason
-      if (operation.discrepancyReason || operation.isShortage) return true;
+      // Check if there's already a recorded discrepancy reason or manager auth info
+      if (operation.discrepancyReason || operation.isShortage || operation.managerName) return true;
       
       // Calculate and check if there's a shortage
       const shortage = calculateShortage(operation);

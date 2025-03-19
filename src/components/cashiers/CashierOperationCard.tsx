@@ -106,10 +106,10 @@ export const CashierOperationCard: React.FC<CashierOperationCardProps> = ({
                 {formattedDiscrepancyReason?.mainReason && (
                   <div className="text-sm text-red-700">
                     <p className="mb-1"><strong>Motivo:</strong> {formattedDiscrepancyReason.mainReason}</p>
-                    {operation.managerName && (
-                      <p className="flex items-center gap-1">
+                    {(operation.managerName || formattedDiscrepancyReason.authInfo) && (
+                      <p className="flex items-center gap-1 text-amber-700">
                         <ShieldAlertIcon className="h-4 w-4" />
-                        <span><strong>Autorizado por:</strong> {operation.managerName}</span>
+                        <span><strong>Autorizado por:</strong> {operation.managerName || formattedDiscrepancyReason.authInfo}</span>
                       </p>
                     )}
                   </div>
@@ -126,10 +126,10 @@ export const CashierOperationCard: React.FC<CashierOperationCardProps> = ({
                 <strong>Motivo:</strong> {formattedReason.mainReason}
               </div>
             )}
-            {operation.managerName && (
+            {(operation.managerName || formattedReason?.authInfo) && (
               <div className="flex items-center gap-1 text-sm mt-1 text-amber-700">
                 <ShieldAlertIcon className="h-4 w-4" />
-                <span><strong>Autorizado por:</strong> {operation.managerName}</span>
+                <span><strong>Autorizado por:</strong> {operation.managerName || formattedReason.authInfo}</span>
               </div>
             )}
           </div>

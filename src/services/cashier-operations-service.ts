@@ -1,3 +1,4 @@
+
 import { storageService, STORAGE_KEYS } from './storage-service';
 import { cashierService } from './cashier-service';
 import { toast } from 'sonner';
@@ -15,8 +16,8 @@ export interface CashierOperation {
   openingBalance?: number;
   closingBalance?: number;
   discrepancyReason?: string; // Field for shortage reason
-  managerName?: string; // Added field for manager who authorized the discrepancy
-  managerId?: string; // Added field for manager ID who authorized the discrepancy
+  managerName?: string; // Field for manager who authorized the discrepancy
+  managerId?: string; // Field for manager ID who authorized the discrepancy
   isShortage?: boolean; // Added to identify shortage operations
 }
 
