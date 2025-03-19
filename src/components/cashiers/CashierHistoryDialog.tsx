@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -158,8 +157,8 @@ export const CashierHistoryDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <CalendarIcon className="h-5 w-5 text-primary" />
             Histórico do Caixa: {cashierName}
@@ -169,130 +168,132 @@ export const CashierHistoryDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 h-[calc(90vh-180px)] pr-4">
-          {groupedOperations.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Nenhuma operação registrada para este caixa
-            </div>
-          ) : (
-            <Accordion type="single" collapsible className="w-full">
-              {groupedOperations.map((dayGroup) => {
-                const openOps = dayGroup.operations.filter(op => op.operationType === 'open');
-                const closeOps = dayGroup.operations.filter(op => op.operationType === 'close');
-                
-                return (
-                  <AccordionItem key={dayGroup.date} value={dayGroup.date}>
-                    <AccordionTrigger className="hover:bg-muted px-4 rounded-md">
-                      <div className="flex justify-between items-center w-full">
-                        <div className="flex items-center gap-2">
-                          <CalendarIcon className="h-4 w-4 text-primary" />
-                          <span>{dayGroup.formattedDate}</span>
+        <div className="flex-grow overflow-hidden my-4">
+          <ScrollArea className="h-[calc(70vh)] w-full pr-4">
+            {groupedOperations.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Nenhuma operação registrada para este caixa
+              </div>
+            ) : (
+              <Accordion type="single" collapsible className="w-full">
+                {groupedOperations.map((dayGroup) => {
+                  const openOps = dayGroup.operations.filter(op => op.operationType === 'open');
+                  const closeOps = dayGroup.operations.filter(op => op.operationType === 'close');
+                  
+                  return (
+                    <AccordionItem key={dayGroup.date} value={dayGroup.date}>
+                      <AccordionTrigger className="hover:bg-muted px-4 rounded-md">
+                        <div className="flex justify-between items-center w-full">
+                          <div className="flex items-center gap-2">
+                            <CalendarIcon className="h-4 w-4 text-primary" />
+                            <span>{dayGroup.formattedDate}</span>
+                          </div>
+                          <div className="flex gap-4 text-sm">
+                            <span className="flex items-center gap-1">
+                              <ClockIcon className="h-3.5 w-3.5 text-green-500" />
+                              {openOps.length} aberturas
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <ClockIcon className="h-3.5 w-3.5 text-red-500" />
+                              {closeOps.length} fechamentos
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex gap-4 text-sm">
-                          <span className="flex items-center gap-1">
-                            <ClockIcon className="h-3.5 w-3.5 text-green-500" />
-                            {openOps.length} aberturas
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <ClockIcon className="h-3.5 w-3.5 text-red-500" />
-                            {closeOps.length} fechamentos
-                          </span>
-                        </div>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      {dayGroup.operations.map((operation, index) => {
-                        const isFirst = index === 0;
-                        const isLast = index === dayGroup.operations.length - 1;
-                        
-                        const shortageAmount = operation.operationType === 'close' ? calculateShortage(operation) : null;
-                        const operationHasDiscrepancy = hasDiscrepancy(operation);
-                        
-                        return (
-                          <Card key={operation.id} className="mb-4 border-l-4 border-l-primary">
-                            <CardContent className="p-4">
-                              <div className="flex justify-between items-start mb-2">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-medium">{formatTime(operation.timestamp)}</span>
-                                  {getOperationTypeBadge(operation.operationType)}
-                                </div>
-                                <div className="text-right">
-                                  <div className="font-medium">{formatCurrency(operation.amount)}</div>
-                                  <div className="text-sm text-muted-foreground">
-                                    Operador: {getUserName(operation.userId)}
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        {dayGroup.operations.map((operation, index) => {
+                          const isFirst = index === 0;
+                          const isLast = index === dayGroup.operations.length - 1;
+                          
+                          const shortageAmount = operation.operationType === 'close' ? calculateShortage(operation) : null;
+                          const operationHasDiscrepancy = hasDiscrepancy(operation);
+                          
+                          return (
+                            <Card key={operation.id} className="mb-4 border-l-4 border-l-primary">
+                              <CardContent className="p-4">
+                                <div className="flex justify-between items-start mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-medium">{formatTime(operation.timestamp)}</span>
+                                    {getOperationTypeBadge(operation.operationType)}
                                   </div>
-                                </div>
-                              </div>
-                              
-                              {operation.operationType === 'open' && (
-                                <div className="text-sm border-t pt-2 mt-2">
-                                  <div className="flex items-center gap-1 text-green-600">
-                                    <BanknoteIcon className="h-4 w-4" />
-                                    <span>Valor inicial: {formatCurrency(operation.amount)}</span>
-                                  </div>
-                                </div>
-                              )}
-                              
-                              {operation.operationType === 'close' && (
-                                <div className="text-sm border-t pt-2 mt-2">
-                                  <div className="flex items-center gap-1">
-                                    <BanknoteIcon className="h-4 w-4" />
-                                    <span>Valor de fechamento: {formatCurrency(operation.amount)}</span>
-                                  </div>
-                                  
-                                  {operation.openingBalance !== undefined && (
-                                    <div className="flex items-center gap-1 mt-1">
-                                      <BanknoteIcon className="h-4 w-4 text-green-600" />
-                                      <span>Valor inicial do caixa: {formatCurrency(operation.openingBalance)}</span>
+                                  <div className="text-right">
+                                    <div className="font-medium">{formatCurrency(operation.amount)}</div>
+                                    <div className="text-sm text-muted-foreground">
+                                      Operador: {getUserName(operation.userId)}
                                     </div>
-                                  )}
-                                  
-                                  {shortageAmount !== null && shortageAmount > 0 && (
-                                    <div className="mt-2 p-2 bg-red-50 rounded-md border border-red-100">
-                                      <div className="flex items-start gap-1 text-red-600 mb-1">
-                                        <AlertCircleIcon className="h-4 w-4 mt-0.5" />
-                                        <span className="font-medium">
-                                          Quebra de caixa: {formatCurrency(shortageAmount)}
-                                        </span>
+                                  </div>
+                                </div>
+                                
+                                {operation.operationType === 'open' && (
+                                  <div className="text-sm border-t pt-2 mt-2">
+                                    <div className="flex items-center gap-1 text-green-600">
+                                      <BanknoteIcon className="h-4 w-4" />
+                                      <span>Valor inicial: {formatCurrency(operation.amount)}</span>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {operation.operationType === 'close' && (
+                                  <div className="text-sm border-t pt-2 mt-2">
+                                    <div className="flex items-center gap-1">
+                                      <BanknoteIcon className="h-4 w-4" />
+                                      <span>Valor de fechamento: {formatCurrency(operation.amount)}</span>
+                                    </div>
+                                    
+                                    {operation.openingBalance !== undefined && (
+                                      <div className="flex items-center gap-1 mt-1">
+                                        <BanknoteIcon className="h-4 w-4 text-green-600" />
+                                        <span>Valor inicial do caixa: {formatCurrency(operation.openingBalance)}</span>
                                       </div>
-                                      {operation.discrepancyReason && (
-                                        <div className="text-sm text-red-700">
-                                          <p className="mb-1"><strong>Motivo:</strong> {operation.discrepancyReason}</p>
-                                          {operation.managerName && (
-                                            <p className="flex items-center gap-1">
-                                              <ShieldAlertIcon className="h-4 w-4" />
-                                              <strong>Autorizado por:</strong> {operation.managerName}
-                                            </p>
-                                          )}
+                                    )}
+                                    
+                                    {shortageAmount !== null && shortageAmount > 0 && (
+                                      <div className="mt-2 p-2 bg-red-50 rounded-md border border-red-100">
+                                        <div className="flex items-start gap-1 text-red-600 mb-1">
+                                          <AlertCircleIcon className="h-4 w-4 mt-0.5" />
+                                          <span className="font-medium">
+                                            Quebra de caixa: {formatCurrency(shortageAmount)}
+                                          </span>
                                         </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                              
-                              {(operation.operationType === 'deposit' || operation.operationType === 'withdrawal') && (
-                                <div className="text-sm border-t pt-2 mt-2">
-                                  {operation.reason && (
-                                    <div className="italic text-muted-foreground">
-                                      Motivo: {operation.reason}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              })}
-            </Accordion>
-          )}
-        </ScrollArea>
+                                        {operation.discrepancyReason && (
+                                          <div className="text-sm text-red-700">
+                                            <p className="mb-1"><strong>Motivo:</strong> {operation.discrepancyReason}</p>
+                                            {operation.managerName && (
+                                              <p className="flex items-center gap-1">
+                                                <ShieldAlertIcon className="h-4 w-4" />
+                                                <strong>Autorizado por:</strong> {operation.managerName}
+                                              </p>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                
+                                {(operation.operationType === 'deposit' || operation.operationType === 'withdrawal') && (
+                                  <div className="text-sm border-t pt-2 mt-2">
+                                    {operation.reason && (
+                                      <div className="italic text-muted-foreground">
+                                        Motivo: {operation.reason}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </AccordionContent>
+                    </AccordionItem>
+                  );
+                })}
+              </Accordion>
+            )}
+          </ScrollArea>
+        </div>
 
-        <DialogFooter className="mt-4 pt-2 border-t">
+        <DialogFooter className="flex-shrink-0 mt-2 pt-2 border-t">
           <Button onClick={onClose}>Fechar</Button>
         </DialogFooter>
       </DialogContent>
