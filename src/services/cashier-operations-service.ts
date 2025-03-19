@@ -8,6 +8,7 @@ export interface CashierOperation {
   id: string;
   cashierId: string;
   userId: string;
+  userName?: string; // Added userName property
   operationType: 'open' | 'close' | 'withdrawal' | 'deposit' | 'sale';
   amount: number;
   reason?: string;
