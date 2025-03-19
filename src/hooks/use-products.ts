@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Product, Category } from '@/types';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
@@ -137,7 +136,7 @@ export const useCategories = () => {
       try {
         // Try to fetch from Supabase first
         const categories = await storageService.getFromSupabase<Category>('categories');
-        if (categories && categories.length > 0) {
+        if (categories && categories && categories.length > 0) {
           // Update local storage with latest data
           storageService.setItem(STORAGE_KEYS.CATEGORIES, categories);
           return categories;

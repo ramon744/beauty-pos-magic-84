@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { DataTable } from '@/components/common/DataTable';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +12,7 @@ import { StockStatus } from './StockStatus';
 import { ProductActions } from './ProductActions';
 import { ExpirationDate } from './ExpirationDate';
 import { ProductDisplay } from './ProductDisplay';
+import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 
 interface ProductsListProps {
   onEditProduct: (productId: string) => void;
@@ -24,6 +26,7 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
   const [searchValue, setSearchValue] = useState('');
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [deletionInProgress, setDeletionInProgress] = useState(false);
+  const [deletedProductIds, setDeletedProductIds] = useState<string[]>([]);
   
   // Effect to handle refetching after deletion
   useEffect(() => {
@@ -37,10 +40,15 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
     }
   }, [deletionInProgress, isDeleting, refetch]);
   
-  // Filter products based on search input
+  // Filter products based on search input and exclude deleted products
   useEffect(() => {
     if (products) {
-      const filtered = products.filter(product => {
+      // Filter out already deleted products
+      const availableProducts = products.filter(product => 
+        !deletedProductIds.includes(product.id)
+      );
+      
+      const filtered = availableProducts.filter(product => {
         if (!searchValue) return true;
         
         const searchLower = searchValue.toLowerCase();
@@ -49,16 +57,28 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
           product.code.toLowerCase().includes(searchLower)
         );
       });
+      
       setFilteredProducts(filtered);
     } else {
       setFilteredProducts([]);
     }
-  }, [products, searchValue]);
+  }, [products, searchValue, deletedProductIds]);
   
   const handleDeleteProduct = async () => {
     if (!productToDelete) return;
     
     setDeletionInProgress(true);
+    
+    // Add this product to our deleted products list
+    setDeletedProductIds(prev => [...prev, productToDelete]);
+    
+    // Immediately remove the product from filtered list
+    setFilteredProducts(prev => prev.filter(p => p.id !== productToDelete));
+    
+    // Force removal from localStorage first for immediate UI update
+    const localProducts = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
+    const updatedProducts = localProducts.filter(p => p.id !== productToDelete);
+    storageService.setItem(STORAGE_KEYS.PRODUCTS, updatedProducts);
     
     deleteProduct(productToDelete, {
       onSuccess: () => {
@@ -67,8 +87,6 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
           description: "O produto foi excluído com sucesso.",
         });
         
-        // Remove the product from the filtered list immediately
-        setFilteredProducts(prev => prev.filter(p => p.id !== productToDelete));
         setProductToDelete(null);
       },
       onError: (error) => {
@@ -78,6 +96,8 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
           description: "Ocorreu um erro ao tentar excluir o produto.",
         });
         
+        // On error, remove from deletedProductIds to allow it to show again
+        setDeletedProductIds(prev => prev.filter(id => id !== productToDelete));
         setProductToDelete(null);
         setDeletionInProgress(false);
       }
