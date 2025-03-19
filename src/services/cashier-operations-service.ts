@@ -234,8 +234,10 @@ export const cashierOperationsService = {
     return operation;
   },
 
-  // Add deposit to cashier
+  // Add deposit to cashier - DO NOT CLOSE CASHIER
   addDeposit: (cashierId: string, userId: string, amount: number, reason?: string, managerName?: string, managerId?: string): CashierOperation => {
+    console.log("Starting addDeposit operation for cashier:", cashierId);
+    
     // Check if cashier exists
     const cashier = cashierService.getCashier(cashierId);
     if (!cashier) {
@@ -267,6 +269,8 @@ export const cashierOperationsService = {
     // CRITICAL FIX: Explicitly set cashier to active to ensure it stays open
     cashierService.updateCashier(cashierId, { isActive: true });
     
+    console.log(`Deposit complete. Cashier ${cashierId} should be active:`, true);
+    
     toast.success(`Suprimento de ${amount.toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL'
@@ -274,8 +278,10 @@ export const cashierOperationsService = {
     return operation;
   },
 
-  // Add withdrawal from cashier
+  // Add withdrawal from cashier - DO NOT CLOSE CASHIER
   addWithdrawal: (cashierId: string, userId: string, amount: number, reason?: string, managerName?: string, managerId?: string): CashierOperation => {
+    console.log("Starting addWithdrawal operation for cashier:", cashierId);
+    
     // Check if cashier exists
     const cashier = cashierService.getCashier(cashierId);
     if (!cashier) {
@@ -312,6 +318,8 @@ export const cashierOperationsService = {
     
     // CRITICAL FIX: Explicitly set cashier to active to ensure it stays open
     cashierService.updateCashier(cashierId, { isActive: true });
+    
+    console.log(`Withdrawal complete. Cashier ${cashierId} should be active:`, true);
     
     toast.success(`Sangria de ${amount.toLocaleString('pt-BR', {
       style: 'currency',

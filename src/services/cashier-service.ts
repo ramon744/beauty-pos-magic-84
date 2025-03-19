@@ -1,4 +1,3 @@
-
 import { Cashier, User } from '@/types';
 import { storageService, STORAGE_KEYS } from './storage-service';
 import { toast } from 'sonner';
@@ -60,7 +59,7 @@ export const cashierService = {
     return newCashier;
   },
 
-  // Update an existing cashier
+  // Update an existing cashier with improved logging
   updateCashier: (id: string, updates: Partial<Omit<Cashier, 'id' | 'createdAt'>>): Cashier => {
     const cashiers = cashierService.getCashiers();
     const index = cashiers.findIndex(c => c.id === id);
@@ -76,16 +75,29 @@ export const cashierService = {
       throw new Error('Um caixa com esse número de registro já existe');
     }
     
+    // Log previous state for debugging
+    console.log(`Updating cashier ${id}:`, {
+      before: cashiers[index],
+      updates
+    });
+    
     const updatedCashier: Cashier = {
       ...cashiers[index],
       ...updates,
       updatedAt: new Date()
     };
     
+    // Explicitly set isActive if it's in the updates
+    if (updates.isActive !== undefined) {
+      console.log(`Setting cashier ${id} isActive to:`, updates.isActive);
+      // Double check to make sure the value is explicitly set
+      updatedCashier.isActive = updates.isActive;
+    }
+    
     cashiers[index] = updatedCashier;
     storageService.setItem(STORAGE_KEYS.CASHIERS, cashiers);
     
-    // Add console log for debugging
+    // Log the updated cashier for verification
     console.log('Cashier updated:', updatedCashier);
     
     return updatedCashier;

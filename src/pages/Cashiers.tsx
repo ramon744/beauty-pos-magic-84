@@ -128,7 +128,14 @@ const Cashiers = () => {
   
   const processWithdrawal = async (managerId: string, managerName: string) => {
     try {
+      console.log("Processing withdrawal with manager authorization");
       const amount = parseFloat(withdrawalAmount);
+      
+      // Add additional debug
+      console.log("Selected cashier before withdrawal:", selectedCashierForOperation);
+      const cashierBefore = cashiers.find(c => c.id === selectedCashierForOperation);
+      console.log("Cashier status before withdrawal:", cashierBefore?.isActive);
+      
       const result = await addWithdrawal(
         selectedCashierForOperation, 
         amount, 
@@ -141,8 +148,15 @@ const Cashiers = () => {
         toast.success("Sangria realizada com sucesso");
         setWithdrawalAmount('');
         setWithdrawalReason('');
-        loadOperations();
-        loadCashiers();
+        
+        // Force reload data to ensure UI is updated correctly
+        await loadOperations();
+        await loadCashiers();
+        
+        // Add additional debug
+        console.log("Selected cashier after withdrawal:", selectedCashierForOperation);
+        const cashierAfter = cashiers.find(c => c.id === selectedCashierForOperation);
+        console.log("Cashier status after withdrawal:", cashierAfter?.isActive);
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Erro ao realizar sangria";
@@ -152,7 +166,14 @@ const Cashiers = () => {
   
   const processDeposit = async (managerId: string, managerName: string) => {
     try {
+      console.log("Processing deposit with manager authorization");
       const amount = parseFloat(depositAmount);
+      
+      // Add additional debug
+      console.log("Selected cashier before deposit:", selectedCashierForOperation);
+      const cashierBefore = cashiers.find(c => c.id === selectedCashierForOperation);
+      console.log("Cashier status before deposit:", cashierBefore?.isActive);
+      
       const result = await addDeposit(
         selectedCashierForOperation, 
         amount, 
@@ -165,8 +186,15 @@ const Cashiers = () => {
         toast.success("Suprimento adicionado com sucesso");
         setDepositAmount('');
         setDepositReason('');
-        loadOperations();
-        loadCashiers();
+        
+        // Force reload data to ensure UI is updated correctly
+        await loadOperations();
+        await loadCashiers();
+        
+        // Add additional debug
+        console.log("Selected cashier after deposit:", selectedCashierForOperation);
+        const cashierAfter = cashiers.find(c => c.id === selectedCashierForOperation);
+        console.log("Cashier status after deposit:", cashierAfter?.isActive);
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Erro ao adicionar suprimento";
@@ -192,17 +220,45 @@ const Cashiers = () => {
   };
   
   useEffect(() => {
-    const loadData = () => {
-      loadOperations();
-      loadCashiers();
+    const loadData = async () => {
+      console.log("Loading cashier data...");
+      await loadOperations();
+      await loadCashiers();
+      
+      // Additional check after loading data
+      console.log("Open cashiers after reload:", 
+        cashiers.filter(cashier => cashier.isActive && isCashierOpen(cashier.id)).length
+      );
     };
     
     loadData();
     
-    const intervalId = setInterval(loadData, 5000);
+    // More frequent updates to ensure UI is always in sync
+    const intervalId = setInterval(loadData, 3000);
     
     return () => clearInterval(intervalId);
-  }, [activeTab, loadOperations, loadCashiers]);
+  }, [activeTab, loadOperations, loadCashiers, cashiers, isCashierOpen]);
+
+  useEffect(() => {
+    const logOpenCashiers = () => {
+      const openCashiersCount = cashiers.filter(cashier => 
+        cashier.isActive && isCashierOpen(cashier.id)
+      ).length;
+      
+      console.log(`Current open cashiers: ${openCashiersCount}`);
+      console.log("All cashiers status:", cashiers.map(c => ({
+        id: c.id,
+        name: c.name,
+        isActive: c.isActive,
+        isOpen: isCashierOpen(c.id)
+      })));
+    };
+    
+    logOpenCashiers();
+    const intervalId = setInterval(logOpenCashiers, 10000);
+    
+    return () => clearInterval(intervalId);
+  }, [cashiers, isCashierOpen]);
 
   return (
     <div className="container p-6 space-y-6">

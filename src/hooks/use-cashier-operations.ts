@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { cashierOperationsService, CashierOperation } from '@/services/cashier-operations-service';
 import { useAuth } from '@/contexts/AuthContext';
@@ -91,11 +90,20 @@ export function useCashierOperations() {
       return null;
     }
     
+    console.log("Adding deposit to cashier:", cashierId, "Amount:", amount);
+    
     try {
       setError(null);
       // This should NOT close the cashier
       const operation = cashierOperationsService.addDeposit(cashierId, user.id, amount, reason, managerName, managerId);
-      loadOperations(); // Reload operations to update UI
+      
+      // Force reload after deposit to ensure UI is updated
+      loadOperations();
+      
+      // Verify cashier status after operation
+      const cashier = cashierService.getCashier(cashierId);
+      console.log("After deposit, cashier active status:", cashier?.isActive);
+      
       return operation;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao adicionar suprimento';
@@ -112,11 +120,20 @@ export function useCashierOperations() {
       return null;
     }
     
+    console.log("Adding withdrawal to cashier:", cashierId, "Amount:", amount);
+    
     try {
       setError(null);
       // This should NOT close the cashier
       const operation = cashierOperationsService.addWithdrawal(cashierId, user.id, amount, reason, managerName, managerId);
-      loadOperations(); // Reload operations to update UI
+      
+      // Force reload after withdrawal to ensure UI is updated
+      loadOperations();
+      
+      // Verify cashier status after operation
+      const cashier = cashierService.getCashier(cashierId);
+      console.log("After withdrawal, cashier active status:", cashier?.isActive);
+      
       return operation;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao realizar sangria';
@@ -208,12 +225,18 @@ export function useCashierOperations() {
     return Object.fromEntries(methodsMap);
   }, [operations]);
 
-  // Load operations on component mount
+  // Load operations on component mount and set up periodic refresh
   useEffect(() => {
+    // Initial load
     loadOperations();
     
     // Set up a reload interval to ensure data is always fresh
-    const intervalId = setInterval(loadOperations, 5000);
+    const intervalId = setInterval(() => {
+      console.log("Auto-refreshing cashier operations...");
+      loadOperations();
+    }, 5000);
+    
+    // Clean up interval on component unmount
     return () => clearInterval(intervalId);
   }, [loadOperations]);
 
