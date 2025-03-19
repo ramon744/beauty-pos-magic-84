@@ -215,9 +215,17 @@ export const cashierOperationsService = {
     
     // Add discrepancy reason if provided (when amount is less than expected)
     if (finalAmount < expectedBalance && discrepancyReason) {
-      operation.discrepancyReason = discrepancyReason;
+      // Enhance the reason to include the manager's name internally
+      let enhancedReason = discrepancyReason;
+      
+      if (managerName) {
+        enhancedReason = `${enhancedReason}\nAutorizado por: ${managerName}`;
+      }
+      
+      operation.discrepancyReason = enhancedReason;
       operation.managerName = managerName; // Add the manager name to the operation
       operation.managerId = managerId; // Add the manager ID to the operation
+      operation.isShortage = true; // Mark as shortage operation
     }
     
     // Save operation
@@ -261,6 +269,13 @@ export const cashierOperationsService = {
       throw new Error('O caixa precisa estar aberto para fazer um suprimento');
     }
     
+    // Enhance the reason to include the manager's name internally
+    let enhancedReason = reason || '';
+    
+    if (managerName) {
+      enhancedReason = enhancedReason ? `${enhancedReason}\nAutorizado por: ${managerName}` : `Autorizado por: ${managerName}`;
+    }
+    
     // Create operation
     const operation: CashierOperation = {
       id: crypto.randomUUID(),
@@ -268,7 +283,7 @@ export const cashierOperationsService = {
       userId,
       operationType: 'deposit',
       amount,
-      reason,
+      reason: enhancedReason,
       timestamp: new Date(),
       managerName, // Add manager name
       managerId    // Add manager ID
@@ -310,6 +325,13 @@ export const cashierOperationsService = {
       throw new Error('Saldo insuficiente para realizar esta sangria');
     }
     
+    // Enhance the reason to include the manager's name internally
+    let enhancedReason = reason || '';
+    
+    if (managerName) {
+      enhancedReason = enhancedReason ? `${enhancedReason}\nAutorizado por: ${managerName}` : `Autorizado por: ${managerName}`;
+    }
+    
     // Create operation
     const operation: CashierOperation = {
       id: crypto.randomUUID(),
@@ -317,7 +339,7 @@ export const cashierOperationsService = {
       userId,
       operationType: 'withdrawal',
       amount,
-      reason,
+      reason: enhancedReason,
       timestamp: new Date(),
       managerName, // Add manager name
       managerId    // Add manager ID

@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { WalletIcon, AlertCircleIcon, BadgeAlertIcon } from 'lucide-react';
+import { WalletIcon, AlertCircleIcon, BadgeAlertIcon, ShieldAlertIcon } from 'lucide-react';
 import { useCashierOperations } from '@/hooks/use-cashier-operations';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
@@ -81,7 +81,7 @@ export const CloseCashierDialog = ({
   const proceedWithClosure = async (amount: number) => {
     setIsSubmitting(true);
     try {
-      // Pass the shortage reason and manager name if there's a discrepancy
+      // Pass the shortage reason and manager information if there's a discrepancy
       const discrepancyReason = isDiscrepancy ? shortageReason : undefined;
       const managerNameToPass = isDiscrepancy ? managerName : undefined;
       const managerIdToPass = isDiscrepancy ? managerId : undefined;
@@ -199,12 +199,17 @@ export const CloseCashierDialog = ({
                       required
                       rows={3}
                     />
-                    <p className="text-sm text-red-500 mt-1">
-                      <BadgeAlertIcon className="h-4 w-4 inline-block mr-1" />
-                      {managerName ? 
-                        `Autorização concedida por: ${managerName}` : 
-                        "É necessário informar o motivo e autorização gerencial"}
-                    </p>
+                    {managerName ? (
+                      <div className="flex items-center gap-1 text-amber-500 mt-1">
+                        <ShieldAlertIcon className="h-4 w-4" />
+                        <span>Autorização concedida por: {managerName}</span>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-red-500 mt-1">
+                        <BadgeAlertIcon className="h-4 w-4 inline-block mr-1" />
+                        É necessário informar o motivo e autorização gerencial
+                      </p>
+                    )}
                   </div>
                 </div>
               )}

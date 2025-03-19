@@ -29,6 +29,7 @@ import {
 import { exportToExcel, exportToPDF } from '@/utils/export-utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const CashierOperationsReportContent = () => {
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -94,6 +95,19 @@ const CashierOperationsReportContent = () => {
   const getUserName = (userId: string) => {
     const user = users.find(u => u.id === userId);
     return user ? user.name : `ID: ${userId.substring(0, 6)}`;
+  };
+
+  // Helper to format the discrepancy reason, removing any internal manager info
+  const formatReason = (reason?: string): string => {
+    if (!reason) return '-';
+    
+    // Check if the reason includes the "Autorizado por:" text
+    const parts = reason.split('\nAutorizado por:');
+    if (parts.length > 1) {
+      return parts[0].trim();
+    }
+    
+    return reason;
   };
 
   return (
@@ -356,14 +370,31 @@ const CashierOperationsReportContent = () => {
                             </td>
                             {reportType === 'shortages' && (
                               <td className="px-4 py-3 text-sm">
-                                {op.discrepancyReason || op.reason || '-'}
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="cursor-help underline decoration-dotted underline-offset-2">
+                                        {formatReason(op.discrepancyReason || op.reason)}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{formatReason(op.discrepancyReason || op.reason)}</p>
+                                      {op.managerName && (
+                                        <p className="flex items-center gap-1 mt-1 text-amber-500">
+                                          <ShieldAlertIcon className="h-3 w-3" />
+                                          Autorizado por: {op.managerName}
+                                        </p>
+                                      )}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               </td>
                             )}
                             {(reportType === 'shortages' || reportType === 'closings') && (
                               <td className="px-4 py-3 text-sm">
                                 {op.managerName ? (
-                                  <div className="flex items-center gap-1">
-                                    <ShieldAlertIcon className="h-3 w-3 text-amber-500" />
+                                  <div className="flex items-center gap-1 text-amber-600">
+                                    <ShieldAlertIcon className="h-3 w-3" />
                                     {op.managerName}
                                   </div>
                                 ) : '-'}

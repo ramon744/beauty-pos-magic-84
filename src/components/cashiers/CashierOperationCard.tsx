@@ -37,6 +37,24 @@ export const CashierOperationCard: React.FC<CashierOperationCardProps> = ({
     }
   };
 
+  // Format reason text, separating the "Autorizado por" part if present
+  const formatReasonText = (text?: string): { mainReason: string, authInfo: string | null } => {
+    if (!text) return { mainReason: '', authInfo: null };
+    
+    const parts = text.split('\nAutorizado por:');
+    if (parts.length > 1) {
+      return { 
+        mainReason: parts[0].trim(), 
+        authInfo: parts[1].trim() 
+      };
+    }
+    
+    return { mainReason: text, authInfo: null };
+  };
+
+  const formattedReason = operation.reason ? formatReasonText(operation.reason) : null;
+  const formattedDiscrepancyReason = operation.discrepancyReason ? formatReasonText(operation.discrepancyReason) : null;
+
   return (
     <Card className="mb-4 border-l-4 border-l-primary">
       <CardContent className="p-4">
@@ -85,9 +103,9 @@ export const CashierOperationCard: React.FC<CashierOperationCardProps> = ({
                     Quebra de caixa: {formatCurrency(shortageAmount)}
                   </span>
                 </div>
-                {operation.discrepancyReason && (
+                {formattedDiscrepancyReason?.mainReason && (
                   <div className="text-sm text-red-700">
-                    <p className="mb-1"><strong>Motivo:</strong> {operation.discrepancyReason}</p>
+                    <p className="mb-1"><strong>Motivo:</strong> {formattedDiscrepancyReason.mainReason}</p>
                     {operation.managerName && (
                       <p className="flex items-center gap-1">
                         <ShieldAlertIcon className="h-4 w-4" />
@@ -103,13 +121,13 @@ export const CashierOperationCard: React.FC<CashierOperationCardProps> = ({
         
         {(operation.operationType === 'deposit' || operation.operationType === 'withdrawal') && (
           <div className="text-sm border-t pt-2 mt-2">
-            {operation.reason && (
+            {formattedReason?.mainReason && (
               <div className="italic text-muted-foreground">
-                <strong>Motivo:</strong> {operation.reason}
+                <strong>Motivo:</strong> {formattedReason.mainReason}
               </div>
             )}
             {operation.managerName && (
-              <div className="flex items-center gap-1 text-sm mt-1">
+              <div className="flex items-center gap-1 text-sm mt-1 text-amber-700">
                 <ShieldAlertIcon className="h-4 w-4" />
                 <span><strong>Autorizado por:</strong> {operation.managerName}</span>
               </div>
