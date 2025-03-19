@@ -1,81 +1,45 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { fromTable, extractDataFromSupabase } from './supabase-helper';
-
-// Queue for pending operations when offline
-let pendingOperations: Array<{
-  type: 'save' | 'remove',
-  table: string,
-  data: any
-}> = [];
 
 // Flag to track online status
 let isOnline = navigator.onLine;
 
-// Function to process pending operations when back online
-const processPendingOperations = async () => {
-  if (pendingOperations.length === 0) return;
-  
-  console.log(`Processing ${pendingOperations.length} pending operations...`);
-  
-  // Create a copy of the queue and clear it
-  const operations = [...pendingOperations];
-  pendingOperations = [];
-  
-  for (const op of operations) {
-    try {
-      if (op.type === 'save') {
-        await storageService.saveToSupabase(op.table, op.data, false);
-      } else if (op.type === 'remove') {
-        await storageService.removeFromSupabase(op.table, op.data, false);
-      }
-    } catch (error) {
-      console.error(`Failed to process operation:`, op, error);
-      // Put failed operations back in the queue
-      pendingOperations.push(op);
-    }
-  }
-  
-  console.log(`Processed pending operations. ${pendingOperations.length} operations remaining.`);
-};
-
 // Listen for online/offline events
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
-    console.log('Back online, syncing data...');
     isOnline = true;
-    processPendingOperations();
   });
   
   window.addEventListener('offline', () => {
-    console.log('Offline mode activated');
     isOnline = false;
   });
 }
 
 export const storageService = {
   getItem: <T>(key: string): T | null => {
+    // Para manter compatibilidade com código existente, ainda permitimos leitura do localStorage
     const value = localStorage.getItem(key);
     return value ? JSON.parse(value) : null;
   },
+  
   setItem: <T>(key: string, value: T): void => {
+    // Para manter compatibilidade com código existente, ainda permitimos escrita no localStorage
     localStorage.setItem(key, JSON.stringify(value));
   },
+  
   removeItem: (key: string): void => {
     localStorage.removeItem(key);
   },
+  
   clear: (): void => {
     localStorage.clear();
   },
   
-  // Supabase methods with safe fallbacks to localStorage
+  // Supabase methods with online-only behavior
   getFromSupabase: async <T>(table: string, column: string = '', value: any = null): Promise<T[]> => {
     if (!isOnline) {
-      console.log('Offline: getting data from localStorage');
-      const localData = storageService.getItem<T[]>(getStorageKeyForTable(table));
-      if (column && value !== null && localData) {
-        return localData.filter((item: any) => item[column] === value) || [];
-      }
-      return localData || [];
+      throw new Error('Aplicativo está offline. É necessário estar online para acessar os dados.');
     }
     
     try {
@@ -91,15 +55,10 @@ export const storageService = {
       
       if (error) {
         console.error(`Error fetching from ${table}:`, error);
-        // Fallback to localStorage
-        const localData = storageService.getItem<T[]>(getStorageKeyForTable(table));
-        if (column && value !== null && localData) {
-          return localData.filter((item: any) => item[column] === value) || [];
-        }
-        return localData || [];
+        throw error;
       }
       
-      // Also update localStorage for offline access
+      // Also update localStorage for compatibility with existing code
       if (data.length > 0) {
         const storageKey = getStorageKeyForTable(table);
         if (!column && storageKey) {
@@ -127,42 +86,13 @@ export const storageService = {
       return (data as T[]) || [];
     } catch (err) {
       console.error(`Error in getFromSupabase for ${table}:`, err);
-      // Fallback to localStorage
-      const localData = storageService.getItem<T[]>(getStorageKeyForTable(table));
-      if (column && value !== null && localData) {
-        return localData.filter((item: any) => item[column] === value) || [];
-      }
-      return localData || [];
+      throw err;
     }
   },
   
-  saveToSupabase: async <T extends { id: string }>(table: string, item: T, queueIfOffline: boolean = true): Promise<T> => {
-    // Always save to localStorage first for immediate access
-    const storageKey = getStorageKeyForTable(table);
-    if (storageKey) {
-      const existingItems = storageService.getItem<T[]>(storageKey) || [];
-      const index = existingItems.findIndex(i => i.id === item.id);
-      
-      if (index >= 0) {
-        existingItems[index] = item;
-      } else {
-        existingItems.push(item);
-      }
-      
-      storageService.setItem(storageKey, existingItems);
-    }
-    
-    // If offline, add to pending operations queue and return
+  saveToSupabase: async <T extends { id: string }>(table: string, item: T): Promise<T> => {
     if (!isOnline) {
-      console.log('Offline: saving to localStorage only, queuing for sync');
-      if (queueIfOffline) {
-        pendingOperations.push({
-          type: 'save',
-          table,
-          data: item
-        });
-      }
-      return item;
+      throw new Error('Aplicativo está offline. É necessário estar online para salvar os dados.');
     }
     
     try {
@@ -178,15 +108,22 @@ export const storageService = {
       
       if (error) {
         console.error(`Error saving to ${table}:`, error);
-        // We already saved to localStorage above
-        if (queueIfOffline) {
-          pendingOperations.push({
-            type: 'save',
-            table,
-            data: item
-          });
+        throw error;
+      }
+      
+      // Update localStorage for compatibility
+      const storageKey = getStorageKeyForTable(table);
+      if (storageKey) {
+        const existingItems = storageService.getItem<T[]>(storageKey) || [];
+        const index = existingItems.findIndex(i => i.id === item.id);
+        
+        if (index >= 0) {
+          existingItems[index] = item;
+        } else {
+          existingItems.push(item);
         }
-        return item;
+        
+        storageService.setItem(storageKey, existingItems);
       }
       
       // Convert the result back to camelCase if we got data back
@@ -197,20 +134,6 @@ export const storageService = {
           return acc;
         }, {} as any);
         
-        // Update localStorage with the data from Supabase
-        if (storageKey) {
-          const existingItems = storageService.getItem<T[]>(storageKey) || [];
-          const index = existingItems.findIndex(i => i.id === item.id);
-          
-          if (index >= 0) {
-            existingItems[index] = result as T;
-          } else {
-            existingItems.push(result as T);
-          }
-          
-          storageService.setItem(storageKey, existingItems);
-        }
-        
         return result as T;
       }
       
@@ -218,75 +141,16 @@ export const storageService = {
       return item;
     } catch (err) {
       console.error(`Error in saveToSupabase for ${table}:`, err);
-      // We already saved to localStorage above
-      if (queueIfOffline) {
-        pendingOperations.push({
-          type: 'save',
-          table,
-          data: item
-        });
-      }
-      return item;
+      throw err;
     }
   },
   
-  removeFromSupabase: async (table: string, id: string, queueIfOffline: boolean = true): Promise<boolean> => {
-    console.log(`Attempting to remove item ${id} from ${table}`);
-    
-    // Always remove from localStorage first for immediate UI update
-    const storageKey = getStorageKeyForTable(table);
-    if (storageKey) {
-      console.log(`Removing item ${id} from localStorage ${storageKey}`);
-      const existingItems = storageService.getItem<any[]>(storageKey) || [];
-      const updatedItems = existingItems.filter(item => item.id !== id);
-      
-      // Ensure the item is truly gone from localStorage
-      if (existingItems.length === updatedItems.length) {
-        console.warn(`Item with id ${id} not found in localStorage for ${table}`);
-      } else {
-        console.log(`Successfully removed item ${id} from localStorage ${table}`);
-      }
-      
-      // Important: Update the localStorage with the filtered items
-      storageService.setItem(storageKey, updatedItems);
-      
-      // Double check the item was removed
-      const checkItems = storageService.getItem<any[]>(storageKey) || [];
-      const stillExists = checkItems.some(item => item.id === id);
-      if (stillExists) {
-        console.error(`Failed to remove item ${id} from localStorage, forcing removal`);
-        const forceRemove = checkItems.filter(item => item.id !== id);
-        storageService.setItem(storageKey, forceRemove);
-        
-        // Triple check to be absolutely sure
-        const finalCheck = storageService.getItem<any[]>(storageKey) || [];
-        if (finalCheck.some(item => item.id === id)) {
-          console.error(`Still failed to remove item ${id} from localStorage after forced removal`);
-          
-          // One final desperate attempt - replace the entire array
-          const finalArray = [];
-          for (const item of finalCheck) {
-            if (item.id !== id) {
-              finalArray.push(item);
-            }
-          }
-          storageService.setItem(storageKey, finalArray);
-        }
-      }
-    }
-    
-    // If offline, add to pending operations queue and return
+  removeFromSupabase: async (table: string, id: string): Promise<boolean> => {
     if (!isOnline) {
-      console.log('Offline: removing from localStorage only, queuing for sync');
-      if (queueIfOffline) {
-        pendingOperations.push({
-          type: 'remove',
-          table,
-          data: id
-        });
-      }
-      return true;
+      throw new Error('Aplicativo está offline. É necessário estar online para remover os dados.');
     }
+    
+    console.log(`Attempting to remove item ${id} from ${table}`);
     
     try {
       // Use our helper function to safely access Supabase tables
@@ -295,52 +159,34 @@ export const storageService = {
       
       if (error) {
         console.error(`Error removing from ${table}:`, error);
-        // We already removed from localStorage above
-        if (queueIfOffline) {
-          pendingOperations.push({
-            type: 'remove',
-            table,
-            data: id
-          });
-        }
-        // Even though there was an error with Supabase, make sure it's gone from localStorage
-        const checkAgain = storageService.getItem<any[]>(storageKey) || [];
-        if (checkAgain.some(item => item.id === id)) {
-          console.error(`Item ${id} still in localStorage after Supabase error, forcing another removal`);
-          storageService.setItem(storageKey, checkAgain.filter(item => item.id !== id));
-        }
-        return true; // Return true to let the UI update
+        throw error;
+      }
+      
+      // Update localStorage for compatibility
+      const storageKey = getStorageKeyForTable(table);
+      if (storageKey) {
+        console.log(`Removing item ${id} from localStorage ${storageKey}`);
+        const existingItems = storageService.getItem<any[]>(storageKey) || [];
+        const updatedItems = existingItems.filter(item => item.id !== id);
+        
+        storageService.setItem(storageKey, updatedItems);
       }
       
       console.log(`Successfully deleted item ${id} from Supabase table ${table}`);
       return true;
     } catch (err) {
       console.error(`Error in removeFromSupabase for ${table}:`, err);
-      // We already removed from localStorage above
-      if (queueIfOffline) {
-        pendingOperations.push({
-          type: 'remove',
-          table,
-          data: id
-        });
-      }
-      return true; // Return true to let the UI update
+      throw err;
     }
   },
   
-  // For manual sync of pending operations
-  syncPendingOperations: async (): Promise<{ success: boolean, pendingCount: number }> => {
-    if (!isOnline) {
-      return { success: false, pendingCount: pendingOperations.length };
-    }
-    
-    await processPendingOperations();
-    return { success: true, pendingCount: pendingOperations.length };
-  },
-  
-  // Get number of pending operations
+  // Remove the offline-specific methods
   getPendingOperationsCount: (): number => {
-    return pendingOperations.length;
+    return 0; // Não há operações pendentes no modo online-only
+  },
+  
+  syncPendingOperations: async (): Promise<{ success: boolean, pendingCount: number }> => {
+    return { success: true, pendingCount: 0 }; // Não há operações para sincronizar no modo online-only
   }
 };
 

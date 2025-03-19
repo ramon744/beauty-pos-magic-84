@@ -37,6 +37,30 @@ export const useCart = () => {
     return savedCustomer;
   });
 
+  // Verificar conexão online
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  // Atualizar estado de online/offline
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => {
+      setIsOnline(false);
+      toast({
+        variant: "destructive",
+        title: "Conexão perdida",
+        description: "Você está offline. O aplicativo precisa de conexão com a internet para funcionar."
+      });
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [toast]);
+
   useEffect(() => {
     storageService.setItem(STORAGE_KEYS.CART, cart);
   }, [cart]);
@@ -51,6 +75,15 @@ export const useCart = () => {
   }, [linkedCustomer]);
 
   const addProductToCart = (product: Product, qty: number) => {
+    if (!isOnline) {
+      toast({
+        variant: "destructive",
+        title: "Erro de conexão",
+        description: "Não é possível adicionar produtos ao carrinho offline."
+      });
+      return;
+    }
+    
     if (!product || qty <= 0) return;
     
     const existingItem = cart.find(item => item.id === product.id);
@@ -85,6 +118,15 @@ export const useCart = () => {
   };
 
   const updateCartItemQuantity = (productId: string, newQuantity: number) => {
+    if (!isOnline) {
+      toast({
+        variant: "destructive",
+        title: "Erro de conexão",
+        description: "Não é possível atualizar o carrinho offline."
+      });
+      return productId;
+    }
+    
     if (newQuantity <= 0) return productId; // Return the productId to handle removal elsewhere
     
     setCart(cart.map(item => 
@@ -101,6 +143,15 @@ export const useCart = () => {
   };
 
   const removeFromCart = (productId: string) => {
+    if (!isOnline) {
+      toast({
+        variant: "destructive",
+        title: "Erro de conexão",
+        description: "Não é possível remover itens do carrinho offline."
+      });
+      return;
+    }
+    
     setCart(cart.filter(item => item.id !== productId));
     toast({
       title: "Produto removido",
@@ -109,6 +160,15 @@ export const useCart = () => {
   };
 
   const clearCart = () => {
+    if (!isOnline) {
+      toast({
+        variant: "destructive",
+        title: "Erro de conexão",
+        description: "Não é possível limpar o carrinho offline."
+      });
+      return;
+    }
+    
     setCart([]);
     setLinkedCustomer(null);
     toast({
@@ -118,6 +178,15 @@ export const useCart = () => {
   };
 
   const linkCustomer = (customer: Customer) => {
+    if (!isOnline) {
+      toast({
+        variant: "destructive",
+        title: "Erro de conexão",
+        description: "Não é possível vincular cliente offline."
+      });
+      return;
+    }
+    
     setLinkedCustomer(customer);
     toast({
       title: "Cliente vinculado",
@@ -126,6 +195,15 @@ export const useCart = () => {
   };
 
   const unlinkCustomer = () => {
+    if (!isOnline) {
+      toast({
+        variant: "destructive",
+        title: "Erro de conexão",
+        description: "Não é possível desvincular cliente offline."
+      });
+      return;
+    }
+    
     setLinkedCustomer(null);
     toast({
       title: "Cliente removido",
@@ -139,6 +217,7 @@ export const useCart = () => {
     cart,
     cartSubtotal,
     linkedCustomer,
+    isOnline,
     addProductToCart,
     updateCartItemQuantity,
     removeFromCart,

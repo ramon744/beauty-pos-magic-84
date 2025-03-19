@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Customer } from '@/types';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
@@ -59,6 +60,10 @@ const searchAddressByCEP = async (cep: string): Promise<{
   uf: string;
   erro?: boolean;
 } | null> => {
+  if (!navigator.onLine) {
+    throw new Error('Aplicativo está offline. Não é possível buscar CEP.');
+  }
+  
   if (!cep || cep.length !== 8) return null;
   
   try {
@@ -80,35 +85,104 @@ export function useCustomers() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-  // Load customers from localStorage on mount
+  // Atualizar estado de online/offline
   useEffect(() => {
-    const savedCustomers = storageService.getItem<Customer[]>(STORAGE_KEYS.CUSTOMERS);
-    if (savedCustomers) {
-      try {
-        // Convert string dates back to Date objects (if needed)
-        const customersWithDates = savedCustomers.map((c: any) => ({
-          ...c,
-          createdAt: new Date(c.createdAt),
-          updatedAt: new Date(c.updatedAt)
-        }));
-        setCustomers(customersWithDates);
-      } catch (error) {
-        console.error('Failed to parse stored customers', error);
-        setCustomers([]);
-      }
-    }
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => {
+      setIsOnline(false);
+      toast({
+        variant: "destructive",
+        title: "Conexão perdida",
+        description: "Você está offline. O aplicativo precisa de conexão com a internet para funcionar."
+      });
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
-  // Save customers to localStorage whenever they change
+  // Load customers from Supabase and fallback to localStorage
   useEffect(() => {
-    if (customers.length > 0) {
-      storageService.setItem(STORAGE_KEYS.CUSTOMERS, customers);
-    }
-  }, [customers]);
+    const loadCustomers = async () => {
+      setLoading(true);
+      try {
+        if (isOnline) {
+          // Try to load from Supabase
+          const supabaseCustomers = await storageService.getFromSupabase<Customer>('customers');
+          if (supabaseCustomers && supabaseCustomers.length > 0) {
+            setCustomers(supabaseCustomers);
+            // Update localStorage for compatibility
+            storageService.setItem(STORAGE_KEYS.CUSTOMERS, supabaseCustomers);
+          } else {
+            // If no customers in Supabase, try localStorage
+            const savedCustomers = storageService.getItem<Customer[]>(STORAGE_KEYS.CUSTOMERS);
+            if (savedCustomers) {
+              // Convert string dates back to Date objects
+              const customersWithDates = savedCustomers.map((c: any) => ({
+                ...c,
+                createdAt: new Date(c.createdAt),
+                updatedAt: new Date(c.updatedAt)
+              }));
+              setCustomers(customersWithDates);
+            }
+          }
+        } else {
+          // If offline, try localStorage
+          const savedCustomers = storageService.getItem<Customer[]>(STORAGE_KEYS.CUSTOMERS);
+          if (savedCustomers) {
+            const customersWithDates = savedCustomers.map((c: any) => ({
+              ...c,
+              createdAt: new Date(c.createdAt),
+              updatedAt: new Date(c.updatedAt)
+            }));
+            setCustomers(customersWithDates);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load customers', error);
+        setError('Falha ao carregar clientes');
+        
+        // Try localStorage as fallback
+        const savedCustomers = storageService.getItem<Customer[]>(STORAGE_KEYS.CUSTOMERS);
+        if (savedCustomers) {
+          try {
+            const customersWithDates = savedCustomers.map((c: any) => ({
+              ...c,
+              createdAt: new Date(c.createdAt),
+              updatedAt: new Date(c.updatedAt)
+            }));
+            setCustomers(customersWithDates);
+          } catch (parseError) {
+            console.error('Failed to parse stored customers', parseError);
+            setCustomers([]);
+          }
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadCustomers();
+  }, [isOnline]);
 
   // Add a new customer
   const addCustomer = async (customerData: CustomerInput): Promise<Customer> => {
+    if (!isOnline) {
+      toast({
+        variant: "destructive",
+        title: "Erro de conexão",
+        description: "Não é possível adicionar cliente offline."
+      });
+      throw new Error('Aplicativo está offline. Não é possível adicionar cliente.');
+    }
+    
     // Validate CPF
     if (!validateCPF(customerData.cpf)) {
       throw new Error('CPF inválido');
@@ -123,20 +197,44 @@ export function useCustomers() {
       throw new Error('CPF já está cadastrado');
     }
     
-    const now = new Date();
-    const newCustomer = {
-      id: Date.now().toString(),
-      ...customerData,
-      createdAt: now,
-      updatedAt: now,
-    };
-    
-    setCustomers(prevCustomers => [...prevCustomers, newCustomer]);
-    return newCustomer;
+    try {
+      const now = new Date();
+      const newCustomer = {
+        id: Date.now().toString(),
+        ...customerData,
+        createdAt: now,
+        updatedAt: now,
+      };
+      
+      // Salvar no Supabase
+      const savedCustomer = await storageService.saveToSupabase('customers', newCustomer);
+      
+      // Atualizar estado local
+      setCustomers(prevCustomers => [...prevCustomers, savedCustomer]);
+      
+      return savedCustomer;
+    } catch (error) {
+      console.error('Erro ao adicionar cliente:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao adicionar cliente",
+        description: "Não foi possível adicionar o cliente. Tente novamente."
+      });
+      throw error;
+    }
   };
 
   // Update an existing customer
   const updateCustomer = async (id: string, customerData: CustomerInput): Promise<Customer> => {
+    if (!isOnline) {
+      toast({
+        variant: "destructive",
+        title: "Erro de conexão",
+        description: "Não é possível atualizar cliente offline."
+      });
+      throw new Error('Aplicativo está offline. Não é possível atualizar cliente.');
+    }
+    
     // Validate CPF
     if (!validateCPF(customerData.cpf)) {
       throw new Error('CPF inválido');
@@ -152,58 +250,73 @@ export function useCustomers() {
       throw new Error('CPF já está cadastrado');
     }
     
-    const updatedCustomers = customers.map(c => {
-      if (c.id === id) {
-        return { 
-          ...c,
-          ...customerData,
-          updatedAt: new Date()
-        };
+    try {
+      const customerToUpdate = customers.find(c => c.id === id);
+      if (!customerToUpdate) {
+        throw new Error('Cliente não encontrado');
       }
-      return c;
-    });
-    
-    setCustomers(updatedCustomers);
-    const updatedCustomer = updatedCustomers.find(c => c.id === id);
-    
-    if (!updatedCustomer) {
-      throw new Error('Cliente não encontrado');
+      
+      const updatedCustomer = { 
+        ...customerToUpdate,
+        ...customerData,
+        updatedAt: new Date()
+      };
+      
+      // Salvar no Supabase
+      const savedCustomer = await storageService.saveToSupabase('customers', updatedCustomer);
+      
+      // Atualizar estado local
+      setCustomers(prevCustomers => prevCustomers.map(c => c.id === id ? savedCustomer : c));
+      
+      return savedCustomer;
+    } catch (error) {
+      console.error('Erro ao atualizar cliente:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao atualizar cliente",
+        description: "Não foi possível atualizar o cliente. Tente novamente."
+      });
+      throw error;
     }
-    
-    return updatedCustomer;
   };
 
   // Remove a customer
   const removeCustomer = useCallback(async (id: string): Promise<boolean> => {
+    if (!isOnline) {
+      toast({
+        variant: "destructive",
+        title: "Erro de conexão",
+        description: "Não é possível remover cliente offline."
+      });
+      throw new Error('Aplicativo está offline. Não é possível remover cliente.');
+    }
+    
     try {
       setLoading(true);
       setError(null);
       
-      // Tente remover do Supabase primeiro
-      const success = await storageService.removeFromSupabase('customers', id);
+      // Remover do Supabase
+      await storageService.removeFromSupabase('customers', id);
       
-      if (success) {
-        // Certifique-se de também remover do estado local
-        setCustomers(prev => prev.filter(customer => customer.id !== id));
-        
-        // Se por algum motivo os dados persistirem no localStorage, forçamos a remoção aqui também
-        const storageKey = STORAGE_KEYS.CUSTOMERS;
-        const existingCustomers = storageService.getItem<Customer[]>(storageKey) || [];
-        const updatedCustomers = existingCustomers.filter(c => c.id !== id);
-        storageService.setItem(storageKey, updatedCustomers);
-        
-        return true;
-      }
+      // Atualizar estado local
+      setCustomers(prev => prev.filter(customer => customer.id !== id));
       
-      throw new Error('Não foi possível remover o cliente');
+      return true;
     } catch (error) {
       console.error('Erro ao remover cliente:', error);
       setError('Erro ao remover cliente');
+      
+      toast({
+        variant: "destructive",
+        title: "Erro ao remover cliente",
+        description: "Não foi possível remover o cliente. Tente novamente."
+      });
+      
       return false;
     } finally {
       setLoading(false);
     }
-  }, [setCustomers, setError, setLoading]);
+  }, [isOnline, setCustomers, setError, setLoading]);
 
   return {
     customers,
@@ -213,6 +326,7 @@ export function useCustomers() {
     searchAddressByCEP,
     validateCPF,
     loading,
-    error
+    error,
+    isOnline
   };
 }

@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Product, Category } from '@/types';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
+import { toast } from '@/hooks/use-toast';
 
 // Get products from storage or use mock data if not available
 const getProductsFromStorage = (): Product[] => {
@@ -65,25 +66,35 @@ const getDeletedProductIds = (): string[] => {
 
 // Function to fetch products from storage, filtering out deleted products
 const fetchProducts = async (): Promise<Product[]> => {
-  try {
-    // First try to fetch from Supabase
-    const products = await storageService.getFromSupabase<Product>('products');
-    if (products && products.length > 0) {
-      // Update local storage with latest data from Supabase
-      storageService.setItem(STORAGE_KEYS.PRODUCTS, products);
-      
-      // Filter out deleted products
-      const deletedIds = getDeletedProductIds();
-      return products.filter(p => !deletedIds.includes(p.id));
-    }
-  } catch (error) {
-    console.error('Error fetching from Supabase, falling back to localStorage:', error);
+  if (!navigator.onLine) {
+    toast({
+      variant: "destructive",
+      title: "Erro de conexão",
+      description: "Não foi possível buscar os produtos. O aplicativo precisa de conexão com a internet."
+    });
+    throw new Error('Aplicativo está offline. Não é possível buscar produtos.');
   }
   
-  // If Supabase fails or returns no data, get from local storage
-  const allProducts = getProductsFromStorage();
-  const deletedIds = getDeletedProductIds();
-  return allProducts.filter(p => !deletedIds.includes(p.id));
+  try {
+    // Buscar do Supabase
+    const products = await storageService.getFromSupabase<Product>('products');
+    
+    // Atualizar localStorage para compatibilidade
+    if (products && products.length > 0) {
+      storageService.setItem(STORAGE_KEYS.PRODUCTS, products);
+    }
+    
+    // Filter out deleted products
+    const deletedIds = getDeletedProductIds();
+    return products.filter(p => !deletedIds.includes(p.id));
+  } catch (error) {
+    console.error('Erro ao buscar produtos:', error);
+    
+    // Caso de erro, tentar usar dados locais como fallback
+    const allProducts = getProductsFromStorage();
+    const deletedIds = getDeletedProductIds();
+    return allProducts.filter(p => !deletedIds.includes(p.id));
+  }
 };
 
 // Custom hook that uses fetchProducts but with a simpler name
@@ -102,19 +113,39 @@ export const useFetchProduct = (productId: string) => {
   return useQuery({
     queryKey: ['product', productId],
     queryFn: async () => {
+      if (!navigator.onLine) {
+        toast({
+          variant: "destructive",
+          title: "Erro de conexão",
+          description: "Não foi possível buscar os detalhes do produto. O aplicativo precisa de conexão com a internet."
+        });
+        
+        // Tentar usar dados locais como fallback
+        const products = getProductsFromStorage();
+        return products.find(p => p.id === productId);
+      }
+      
       try {
-        // Try to fetch from Supabase first
+        // Buscar do Supabase
         const products = await storageService.getFromSupabase<Product>('products', 'id', productId);
         if (products && products.length > 0) {
           return products[0];
         }
+        
+        throw new Error('Produto não encontrado');
       } catch (error) {
-        console.error('Error fetching product from Supabase, falling back to localStorage:', error);
+        console.error(`Erro ao buscar produto ${productId}:`, error);
+        
+        // Tentar usar dados locais como fallback
+        const products = getProductsFromStorage();
+        const product = products.find(p => p.id === productId);
+        
+        if (!product) {
+          throw new Error('Produto não encontrado');
+        }
+        
+        return product;
       }
-      
-      // Fallback to local storage
-      const products = getProductsFromStorage();
-      return products.find(p => p.id === productId);
     },
     enabled: !!productId,
   });
@@ -144,20 +175,34 @@ export const useCategories = () => {
   return useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
+      if (!navigator.onLine) {
+        toast({
+          variant: "destructive",
+          title: "Erro de conexão",
+          description: "Não foi possível buscar as categorias. O aplicativo precisa de conexão com a internet."
+        });
+        
+        // Tentar usar dados locais como fallback
+        return getCategoriesFromStorage();
+      }
+      
       try {
-        // Try to fetch from Supabase first
+        // Buscar do Supabase
         const categories = await storageService.getFromSupabase<Category>('categories');
-        if (categories && categories && categories.length > 0) {
-          // Update local storage with latest data
+        
+        // Atualizar localStorage para compatibilidade
+        if (categories && categories.length > 0) {
           storageService.setItem(STORAGE_KEYS.CATEGORIES, categories);
           return categories;
         }
+        
+        throw new Error('Nenhuma categoria encontrada');
       } catch (error) {
-        console.error('Error fetching categories from Supabase, falling back to localStorage:', error);
+        console.error('Erro ao buscar categorias:', error);
+        
+        // Tentar usar dados locais como fallback
+        return getCategoriesFromStorage();
       }
-      
-      // Fallback to local storage
-      return getCategoriesFromStorage();
     },
   });
 };
@@ -168,33 +213,42 @@ export const useSaveProduct = () => {
   
   return useMutation({
     mutationFn: async (product: Product) => {
+      if (!navigator.onLine) {
+        toast({
+          variant: "destructive",
+          title: "Erro de conexão",
+          description: "Não foi possível salvar o produto. O aplicativo precisa de conexão com a internet."
+        });
+        throw new Error('Aplicativo está offline. Não é possível salvar o produto.');
+      }
+      
       console.log('Saving product:', product);
       
       try {
-        // First try to save to Supabase
+        // Salvar no Supabase
         const savedProduct = await storageService.saveToSupabase('products', product);
-        return savedProduct;
-      } catch (error) {
-        console.error('Failed to save to Supabase, saving to localStorage only:', error);
         
-        // Get current products from storage
+        // Atualizar localStorage para compatibilidade
         const products = getProductsFromStorage();
-        
-        // Find if product already exists
         const existingProductIndex = products.findIndex(p => p.id === product.id);
         
         if (existingProductIndex >= 0) {
-          // Update existing product
-          products[existingProductIndex] = product;
+          products[existingProductIndex] = savedProduct;
         } else {
-          // Add new product
-          products.push(product);
+          products.push(savedProduct);
         }
         
-        // Save updated products to storage
         storageService.setItem(STORAGE_KEYS.PRODUCTS, products);
         
-        return product;
+        return savedProduct;
+      } catch (error) {
+        console.error('Erro ao salvar produto:', error);
+        toast({
+          variant: "destructive",
+          title: "Erro ao salvar",
+          description: "Não foi possível salvar o produto. Tente novamente."
+        });
+        throw error;
       }
     },
     onSuccess: () => {
@@ -212,10 +266,19 @@ export const useDeleteProduct = () => {
   
   return useMutation({
     mutationFn: async (productId: string) => {
+      if (!navigator.onLine) {
+        toast({
+          variant: "destructive",
+          title: "Erro de conexão",
+          description: "Não foi possível excluir o produto. O aplicativo precisa de conexão com a internet."
+        });
+        throw new Error('Aplicativo está offline. Não é possível excluir o produto.');
+      }
+      
       console.log('Deleting product:', productId);
       
       try {
-        // 1. Get the product details first (for cleanup of related records)
+        // 1. Buscar detalhes do produto
         const products = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
         const productToDelete = products.find(p => p.id === productId);
         
@@ -225,10 +288,9 @@ export const useDeleteProduct = () => {
           console.log(`Found product to delete: ${productToDelete.name}`);
         }
         
-        // 2. Delete from stock history first (if related records exist)
+        // 2. Apagar do histórico de estoque primeiro
         try {
           console.log(`Attempting to delete related stock history for product ${productId}`);
-          // Fix: We need to get stock history items by product_id and then delete each individually
           const stockHistoryItems = await storageService.getFromSupabase<any>('stock_history', 'product_id', productId);
           
           if (stockHistoryItems && stockHistoryItems.length > 0) {
@@ -238,40 +300,23 @@ export const useDeleteProduct = () => {
             }
           }
           
-          // Also remove from localStorage
+          // Atualizar localStorage para compatibilidade
           const stockHistory = storageService.getItem<any[]>(STORAGE_KEYS.STOCKS) || [];
           const updatedStockHistory = stockHistory.filter(item => item.productId !== productId);
           storageService.setItem(STORAGE_KEYS.STOCKS, updatedStockHistory);
         } catch (error) {
           console.error('Error deleting related stock history:', error);
-          // Continue with product deletion even if stock history deletion fails
         }
         
-        // 3. Delete the product from Supabase
+        // 3. Apagar produto do Supabase
         console.log(`Deleting product ${productId} from Supabase`);
         await storageService.removeFromSupabase('products', productId);
         
-        // 4. Get current products from localStorage before deletion (final verification)
-        const products1 = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
-        console.log(`Before final verification: ${products1.length} products in localStorage`);
-        console.log(`Products still has deleted item: ${products1.some(p => p.id === productId)}`);
-        
-        // 5. Filter out the product to delete one more time
-        const updatedProducts = products1.filter(p => p.id !== productId);
-        console.log(`After final verification: ${updatedProducts.length} products should be in localStorage`);
-        
-        // 6. Force save the updated products to localStorage
+        // 4. Atualizar localStorage para compatibilidade
+        const updatedProducts = products.filter(p => p.id !== productId);
         storageService.setItem(STORAGE_KEYS.PRODUCTS, updatedProducts);
         
-        // 7. Double check deletion was successful
-        const afterDelete = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
-        if (afterDelete.some(p => p.id === productId)) {
-          console.error('Product still exists in localStorage after deletion, forcing removal');
-          const forceRemove = afterDelete.filter(p => p.id !== productId);
-          storageService.setItem(STORAGE_KEYS.PRODUCTS, forceRemove);
-        }
-        
-        // 8. Add the product ID to deleted products list in localStorage
+        // 5. Registrar ID excluído para persistência
         const deletedIds = getDeletedProductIds();
         if (!deletedIds.includes(productId)) {
           deletedIds.push(productId);
@@ -280,24 +325,21 @@ export const useDeleteProduct = () => {
         
         return productId;
       } catch (error) {
-        console.error('Error in product deletion process:', error);
+        console.error('Erro ao excluir produto:', error);
+        toast({
+          variant: "destructive",
+          title: "Erro ao excluir",
+          description: "Não foi possível excluir o produto. Tente novamente."
+        });
         
-        // Even if there was an error, make sure the product is removed from localStorage
-        const finalCheck = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
-        if (finalCheck.some(p => p.id === productId)) {
-          console.error('Despite errors, ensuring product is removed from localStorage');
-          const finalRemove = finalCheck.filter(p => p.id !== productId);
-          storageService.setItem(STORAGE_KEYS.PRODUCTS, finalRemove);
-        }
-        
-        // Always update deleted products list
+        // Mesmo com erro, registrar como excluído localmente
         const deletedIds = getDeletedProductIds();
         if (!deletedIds.includes(productId)) {
           deletedIds.push(productId);
           localStorage.setItem('deletedProductIds', JSON.stringify(deletedIds));
         }
         
-        return productId;
+        throw error;
       }
     },
     onSuccess: (productId) => {
@@ -306,18 +348,6 @@ export const useDeleteProduct = () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['productStats'] });
       queryClient.invalidateQueries({ queryKey: ['stockHistory'] });
-      
-      // Perform one final check to ensure the product is truly gone
-      setTimeout(() => {
-        const finalCheck = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
-        if (finalCheck.some(p => p.id === productId)) {
-          console.error('Product still exists in localStorage after all deletion attempts');
-          const finalRemove = finalCheck.filter(p => p.id !== productId);
-          storageService.setItem(STORAGE_KEYS.PRODUCTS, finalRemove);
-          // Force a re-query 
-          queryClient.invalidateQueries({ queryKey: ['products'] });
-        }
-      }, 500);
     }
   });
 };
@@ -328,70 +358,86 @@ export const useStockAdjustment = () => {
   
   return useMutation({
     mutationFn: async (data: { productId: string, quantity: number, reason: string, adjustmentType?: 'add' | 'remove' | 'balance' }) => {
+      if (!navigator.onLine) {
+        toast({
+          variant: "destructive",
+          title: "Erro de conexão",
+          description: "Não foi possível ajustar o estoque. O aplicativo precisa de conexão com a internet."
+        });
+        throw new Error('Aplicativo está offline. Não é possível ajustar o estoque.');
+      }
+      
       console.log('Adjusting stock:', data);
       
-      // Get current products from storage
-      const products = getProductsFromStorage();
-      
-      // Find the product to adjust
-      const productIndex = products.findIndex(p => p.id === data.productId);
-      
-      if (productIndex < 0) {
-        throw new Error('Product not found');
-      }
-      
-      const product = products[productIndex];
-      const previousStock = product.stock;
-      let newStock = previousStock;
-      
-      // For balance adjustment, simply set the stock to exactly what was entered
-      if (data.adjustmentType === 'balance') {
-        // Set the stock directly to the exact value entered by the user
-        newStock = data.quantity;
-      } else if (data.adjustmentType === 'remove') {
-        // If it's a removal, subtract the quantity
-        newStock = previousStock - data.quantity;
-      } else if (data.adjustmentType === 'add') {
-        // If it's an addition, add the quantity
-        newStock = previousStock + data.quantity;
-      }
-      
-      // Update product stock locally
-      products[productIndex].stock = newStock;
-      products[productIndex].updatedAt = new Date();
-      
-      // Save updated products to local storage
-      storageService.setItem(STORAGE_KEYS.PRODUCTS, products);
-      
-      // Record stock history
-      const stockHistory = storageService.getItem<any[]>(STORAGE_KEYS.STOCKS) || [];
-      const historyEntry = {
-        id: crypto.randomUUID(),
-        productId: data.productId,
-        productName: product.name,
-        timestamp: new Date(),
-        previousStock: previousStock,
-        newStock: newStock,
-        quantity: data.adjustmentType === 'balance' ? Math.abs(newStock - previousStock) : data.quantity,
-        adjustmentType: data.adjustmentType || 'add',
-        reason: data.reason,
-        userName: 'Current User', // This should be replaced with the actual user
-      };
-      
-      stockHistory.push(historyEntry);
-      storageService.setItem(STORAGE_KEYS.STOCKS, stockHistory);
-      
       try {
-        // Try to save the updated product to Supabase
-        await storageService.saveToSupabase('products', products[productIndex]);
+        // Buscar produto do Supabase
+        const products = await storageService.getFromSupabase<Product>('products', 'id', data.productId);
         
-        // Try to save the stock history entry to Supabase
+        if (!products || products.length === 0) {
+          throw new Error('Produto não encontrado');
+        }
+        
+        const product = products[0];
+        const previousStock = product.stock;
+        let newStock = previousStock;
+        
+        // Calcular novo estoque baseado no tipo de ajuste
+        if (data.adjustmentType === 'balance') {
+          newStock = data.quantity;
+        } else if (data.adjustmentType === 'remove') {
+          newStock = previousStock - data.quantity;
+        } else if (data.adjustmentType === 'add') {
+          newStock = previousStock + data.quantity;
+        }
+        
+        // Atualizar produto no Supabase
+        product.stock = newStock;
+        product.updatedAt = new Date();
+        
+        await storageService.saveToSupabase('products', product);
+        
+        // Atualizar localStorage para compatibilidade
+        const localProducts = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
+        const productIndex = localProducts.findIndex(p => p.id === data.productId);
+        
+        if (productIndex >= 0) {
+          localProducts[productIndex].stock = newStock;
+          localProducts[productIndex].updatedAt = new Date();
+          storageService.setItem(STORAGE_KEYS.PRODUCTS, localProducts);
+        }
+        
+        // Registrar histórico de estoque
+        const historyEntry = {
+          id: crypto.randomUUID(),
+          productId: data.productId,
+          productName: product.name,
+          timestamp: new Date(),
+          previousStock: previousStock,
+          newStock: newStock,
+          quantity: data.adjustmentType === 'balance' ? Math.abs(newStock - previousStock) : data.quantity,
+          adjustmentType: data.adjustmentType || 'add',
+          reason: data.reason,
+          userName: 'Current User', // This should be replaced with the actual user
+        };
+        
+        // Salvar histórico no Supabase
         await storageService.saveToSupabase('stock_history', historyEntry);
+        
+        // Atualizar localStorage para compatibilidade
+        const stockHistory = storageService.getItem<any[]>(STORAGE_KEYS.STOCKS) || [];
+        stockHistory.push(historyEntry);
+        storageService.setItem(STORAGE_KEYS.STOCKS, stockHistory);
+        
+        return data;
       } catch (error) {
-        console.error('Failed to sync stock adjustment to Supabase, stored in localStorage only:', error);
+        console.error('Erro ao ajustar estoque:', error);
+        toast({
+          variant: "destructive",
+          title: "Erro ao ajustar estoque",
+          description: "Não foi possível ajustar o estoque do produto. Tente novamente."
+        });
+        throw error;
       }
-      
-      return data;
     },
     onSuccess: () => {
       // Invalidate queries to refetch data
@@ -407,59 +453,77 @@ export const useStockHistory = (productId: string) => {
   return useQuery({
     queryKey: ['stockHistory', productId],
     queryFn: async () => {
+      if (!navigator.onLine) {
+        toast({
+          variant: "destructive",
+          title: "Erro de conexão",
+          description: "Não foi possível buscar o histórico de estoque. O aplicativo precisa de conexão com a internet."
+        });
+        
+        // Tentar usar dados locais como fallback
+        const stockHistory = storageService.getItem<any[]>(STORAGE_KEYS.STOCKS) || [];
+        const deletedIds = getDeletedProductIds();
+        
+        // Filtrar itens excluídos e ordenar por data
+        const filteredByDeletion = stockHistory.filter(item => !deletedIds.includes(item.productId));
+        const filteredHistory = productId 
+          ? filteredByDeletion.filter(item => item.productId === productId)
+          : filteredByDeletion;
+        
+        filteredHistory.sort((a, b) => {
+          const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+          const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+          return dateB - dateA;
+        });
+        
+        return filteredHistory;
+      }
+      
       try {
-        // Try to fetch from Supabase first
+        // Buscar histórico de estoque do Supabase
         let stockHistory;
         
         if (productId) {
-          // If productId is provided, filter by product_id
           stockHistory = await storageService.getFromSupabase<any>('stock_history', 'product_id', productId);
         } else {
-          // If no productId, get all stock history
           stockHistory = await storageService.getFromSupabase<any>('stock_history');
         }
         
+        // Atualizar localStorage para compatibilidade
         if (stockHistory && stockHistory.length > 0) {
-          // Update local storage with the latest data
           storageService.setItem(STORAGE_KEYS.STOCKS, stockHistory);
-          
-          // Sort by timestamp, most recent first
-          stockHistory.sort((a, b) => {
-            // Fix: Access timestamp property from individual items, not from the array
-            const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-            const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-            return dateB - dateA;
-          });
-          
-          // Filter out items for deleted products
-          const deletedIds = getDeletedProductIds();
-          return stockHistory.filter(item => !deletedIds.includes(item.productId));
         }
+        
+        // Ordenar por data
+        stockHistory.sort((a, b) => {
+          const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+          const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+          return dateB - dateA;
+        });
+        
+        // Filtrar produtos excluídos
+        const deletedIds = getDeletedProductIds();
+        return stockHistory.filter(item => !deletedIds.includes(item.productId));
       } catch (error) {
-        console.error('Error fetching stock history from Supabase, falling back to localStorage:', error);
+        console.error('Erro ao buscar histórico de estoque:', error);
+        
+        // Tentar usar dados locais como fallback
+        const stockHistory = storageService.getItem<any[]>(STORAGE_KEYS.STOCKS) || [];
+        const deletedIds = getDeletedProductIds();
+        
+        const filteredByDeletion = stockHistory.filter(item => !deletedIds.includes(item.productId));
+        const filteredHistory = productId 
+          ? filteredByDeletion.filter(item => item.productId === productId)
+          : filteredByDeletion;
+        
+        filteredHistory.sort((a, b) => {
+          const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+          const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+          return dateB - dateA;
+        });
+        
+        return filteredHistory;
       }
-      
-      // Fallback to localStorage
-      const stockHistory = storageService.getItem<any[]>(STORAGE_KEYS.STOCKS) || [];
-      const deletedIds = getDeletedProductIds();
-      
-      // First filter out entries for deleted products
-      const filteredByDeletion = stockHistory.filter(item => !deletedIds.includes(item.productId));
-      
-      // Then filter by productId if provided
-      const filteredHistory = productId 
-        ? filteredByDeletion.filter(item => item.productId === productId)
-        : filteredByDeletion;
-      
-      // Sort by timestamp, most recent first
-      filteredHistory.sort((a, b) => {
-        // Fix: Access timestamp property from individual items, not from the array
-        const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-        const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-        return dateB - dateA;
-      });
-      
-      return filteredHistory;
     },
   });
 };
@@ -472,6 +536,28 @@ export const useStatistics = () => {
   return useQuery({
     queryKey: ['productStats'],
     queryFn: async () => {
+      if (!products || !categories) {
+        // Se não temos dados de produtos ou categorias, podemos usar dados locais
+        const localProducts = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
+        const localCategories = storageService.getItem<Category[]>(STORAGE_KEYS.CATEGORIES) || [];
+        const deletedIds = getDeletedProductIds();
+        
+        // Filtrar produtos excluídos
+        const availableProducts = localProducts.filter(p => !deletedIds.includes(p.id));
+        
+        return {
+          totalProducts: availableProducts.length,
+          stockValue: availableProducts.reduce((total, product) => total + (product.stock * product.costPrice), 0) || 0,
+          outOfStock: availableProducts.filter(product => product.stock === 0).length || 0,
+          categories: localCategories.length || 0,
+          lowStock: availableProducts.filter(product => 
+            product.minimumStock !== undefined && 
+            product.stock > 0 && 
+            product.stock <= product.minimumStock
+          ).length || 0,
+        };
+      }
+      
       // Calculate actual statistics based on products data
       const stats = {
         totalProducts: products?.length || 0,
@@ -488,6 +574,6 @@ export const useStatistics = () => {
       return stats;
     },
     // Ensure the statistics are recalculated when products or categories change
-    enabled: !!products && !!categories,
+    enabled: true,
   });
 };
