@@ -97,6 +97,88 @@ const Cashiers = () => {
     const user = users.find(u => u.id === userId);
     return user ? user.name : "Usuário desconhecido";
   };
+
+  const handleViewDetails = (cashierId: string) => {
+    setSelectedCashierId(cashierId);
+    setIsDetailsDialogOpen(true);
+  };
+
+  const handleCloseCashier = (cashierId: string) => {
+    setSelectedCashierId(cashierId);
+    setIsCloseCashierDialogOpen(true);
+  };
+
+  const handleViewHistory = (cashierId: string) => {
+    setSelectedCashierId(cashierId);
+    setIsHistoryDialogOpen(true);
+  };
+
+  const handleWithdrawal = () => {
+    if (!selectedCashierForOperation || !withdrawalAmount || parseFloat(withdrawalAmount) <= 0) {
+      toast.error('Selecione um caixa e informe um valor válido');
+      return;
+    }
+
+    const currentBalance = getCashierBalance(selectedCashierForOperation);
+    if (parseFloat(withdrawalAmount) > currentBalance) {
+      toast.error('Saldo insuficiente para realizar esta sangria');
+      return;
+    }
+
+    setCurrentOperation('withdrawal');
+    setIsManagerAuthOpen(true);
+  };
+
+  const handleDeposit = () => {
+    if (!selectedCashierForOperation || !depositAmount || parseFloat(depositAmount) <= 0) {
+      toast.error('Selecione um caixa e informe um valor válido');
+      return;
+    }
+
+    setCurrentOperation('deposit');
+    setIsManagerAuthOpen(true);
+  };
+
+  const handleManagerAuth = (managerId?: string, managerName?: string) => {
+    setManagerInfo({ id: managerId, name: managerName });
+    setIsManagerAuthOpen(false);
+
+    if (currentOperation === 'withdrawal') {
+      processWithdrawal(managerId, managerName);
+    } else if (currentOperation === 'deposit') {
+      processDeposit(managerId, managerName);
+    }
+
+    setCurrentOperation(null);
+  };
+
+  const processWithdrawal = (managerId?: string, managerName?: string) => {
+    try {
+      const amount = parseFloat(withdrawalAmount);
+      addWithdrawal(selectedCashierForOperation, amount, withdrawalReason, managerName, managerId);
+      
+      setWithdrawalAmount('');
+      setWithdrawalReason('');
+      setSelectedCashierForOperation('');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erro ao realizar sangria';
+      toast.error(message);
+    }
+  };
+
+  const processDeposit = (managerId?: string, managerName?: string) => {
+    try {
+      const amount = parseFloat(depositAmount);
+      addDeposit(selectedCashierForOperation, amount, depositReason, managerName, managerId);
+      
+      setDepositAmount('');
+      setDepositReason('');
+      setSelectedCashierForOperation('');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erro ao adicionar suprimento';
+      toast.error(message);
+    }
+  };
   
   useEffect(() => {
     const loadData = () => {
