@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Supplier } from '@/types';
 import { storageService } from '@/services/storage-service';
-import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/services/supabase-helper';
 
 // Storage key for suppliers
 const SUPPLIERS_STORAGE_KEY = 'suppliers';
@@ -56,9 +56,8 @@ const initializeSuppliers = () => {
 // Get all suppliers from Supabase with localStorage fallback
 const getSuppliers = async (): Promise<Supplier[]> => {
   try {
-    // Use any typing to bypass TypeScript restrictions
-    const supabaseQuery: any = supabase.from('suppliers' as any);
-    const { data, error } = await supabaseQuery.select();
+    // Use our helper function to safely access Supabase tables
+    const { data, error } = await fromTable('suppliers').select();
     
     if (error) {
       console.error("Error fetching suppliers from Supabase:", error);
@@ -114,9 +113,8 @@ export function useFetchSupplier(id: string) {
       if (!id) return null;
       
       try {
-        // Use any typing to bypass TypeScript restrictions
-        const supabaseQuery: any = supabase.from('suppliers' as any);
-        const { data, error } = await supabaseQuery.select().eq('id', id).single();
+        // Use our helper function to safely access Supabase tables
+        const { data, error } = await fromTable('suppliers').select().eq('id', id).single();
         
         if (error) {
           console.error("Error fetching supplier from Supabase:", error);
@@ -180,9 +178,8 @@ export function useSaveSupplier() {
           updated_at: supplier.updatedAt.toISOString()
         };
         
-        // Use any typing to bypass TypeScript restrictions
-        const supabaseQuery: any = supabase.from('suppliers' as any);
-        const { data, error } = await supabaseQuery.upsert(supplierData).select();
+        // Use our helper function to safely access Supabase tables
+        const { data, error } = await fromTable('suppliers').upsert(supplierData).select();
         
         if (error) {
           console.error("Error saving supplier to Supabase:", error);
@@ -270,9 +267,8 @@ export function useDeleteSupplier() {
   return useMutation({
     mutationFn: async (supplierId: string) => {
       try {
-        // Use any typing to bypass TypeScript restrictions
-        const supabaseQuery: any = supabase.from('suppliers' as any);
-        const { error } = await supabaseQuery.delete().eq('id', supplierId);
+        // Use our helper function to safely access Supabase tables
+        const { error } = await fromTable('suppliers').delete().eq('id', supplierId);
         
         if (error) {
           console.error("Error deleting supplier from Supabase:", error);

@@ -1,6 +1,6 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
+import { fromTable } from './supabase-helper';
 
 // This service helps migrate data from localStorage to Supabase
 // while maintaining backward compatibility
@@ -30,9 +30,8 @@ export const migrationService = {
       };
 
       try {
-        // Use direct any casting to bypass TypeScript errors
-        const supabaseQuery: any = supabase.from('products' as any);
-        const { error } = await supabaseQuery.upsert(productData);
+        // Use our helper function to safely access Supabase tables
+        const { error } = await fromTable('products').upsert(productData);
         
         if (error) console.error('Error migrating product:', error);
       } catch (err) {
@@ -52,9 +51,8 @@ export const migrationService = {
     // Insert categories into Supabase
     for (const category of categories) {
       try {
-        // Use direct any casting to bypass TypeScript errors
-        const supabaseQuery: any = supabase.from('categories' as any);
-        const { error } = await supabaseQuery.upsert({
+        // Use our helper function to safely access Supabase tables
+        const { error } = await fromTable('categories').upsert({
           id: category.id,
           name: category.name
         });
@@ -77,9 +75,8 @@ export const migrationService = {
     // Insert customers into Supabase
     for (const customer of customers) {
       try {
-        // Use direct any casting to bypass TypeScript errors
-        const supabaseQuery: any = supabase.from('customers' as any);
-        const { error } = await supabaseQuery.upsert({
+        // Use our helper function to safely access Supabase tables
+        const { error } = await fromTable('customers').upsert({
           id: customer.id,
           name: customer.name,
           email: customer.email,
@@ -107,9 +104,8 @@ export const migrationService = {
     // Insert users into Supabase
     for (const user of users) {
       try {
-        // Use direct any casting to bypass TypeScript errors
-        const supabaseQuery: any = supabase.from('users' as any);
-        const { error } = await supabaseQuery.upsert({
+        // Use our helper function to safely access Supabase tables
+        const { error } = await fromTable('users').upsert({
           id: user.id,
           name: user.name,
           email: user.email,
@@ -137,9 +133,8 @@ export const migrationService = {
     // Insert cashiers into Supabase
     for (const cashier of cashiers) {
       try {
-        // Use direct any casting to bypass TypeScript errors
-        const supabaseQuery: any = supabase.from('cashiers' as any);
-        const { error } = await supabaseQuery.upsert({
+        // Use our helper function to safely access Supabase tables
+        const { error } = await fromTable('cashiers').upsert({
           id: cashier.id,
           name: cashier.name,
           register_number: cashier.registerNumber,
@@ -169,9 +164,8 @@ export const migrationService = {
     // Insert operations into Supabase
     for (const operation of operations) {
       try {
-        // Use direct any casting to bypass TypeScript errors
-        const supabaseQuery: any = supabase.from('cashier_operations' as any);
-        const { error } = await supabaseQuery.upsert({
+        // Use our helper function to safely access Supabase tables
+        const { error } = await fromTable('cashier_operations').upsert({
           id: operation.id,
           cashier_id: operation.cashierId,
           user_id: operation.userId,
@@ -202,9 +196,8 @@ export const migrationService = {
     // Insert orders into Supabase
     for (const order of orders) {
       try {
-        // Use direct any casting to bypass TypeScript errors
-        const supabaseQuery: any = supabase.from('orders' as any);
-        const { error } = await supabaseQuery.upsert({
+        // Use our helper function to safely access Supabase tables
+        const { error } = await fromTable('orders').upsert({
           id: order.id,
           user_id: order.userId || '1',
           cashier_id: order.cashierId,
@@ -223,9 +216,8 @@ export const migrationService = {
         if (order.items && Array.isArray(order.items)) {
           for (const item of order.items) {
             try {
-              // Use direct any casting to bypass TypeScript errors
-              const orderItemsQuery: any = supabase.from('order_items' as any);
-              const { error: itemError } = await orderItemsQuery.upsert({
+              // Use our helper function to safely access Supabase tables
+              const { error: itemError } = await fromTable('order_items').upsert({
                 id: item.id || crypto.randomUUID(),
                 order_id: order.id,
                 product_id: item.id,
@@ -257,9 +249,8 @@ export const migrationService = {
     // Insert promotions into Supabase
     for (const promotion of promotions) {
       try {
-        // Use direct any casting to bypass TypeScript errors
-        const supabaseQuery: any = supabase.from('promotions' as any);
-        const { error } = await supabaseQuery.upsert({
+        // Use our helper function to safely access Supabase tables
+        const { error } = await fromTable('promotions').upsert({
           id: promotion.id,
           name: promotion.name,
           type: promotion.type,
@@ -299,9 +290,8 @@ export const migrationService = {
     // Insert suppliers into Supabase
     for (const supplier of suppliers) {
       try {
-        // Use direct any casting to bypass TypeScript errors
-        const supabaseQuery: any = supabase.from('suppliers' as any);
-        const { error } = await supabaseQuery.upsert({
+        // Use our helper function to safely access Supabase tables
+        const { error } = await fromTable('suppliers').upsert({
           id: supplier.id,
           name: supplier.name,
           phone: supplier.phone,
@@ -331,9 +321,8 @@ export const migrationService = {
     // Insert stock history into Supabase
     for (const record of stockHistory) {
       try {
-        // Use direct any casting to bypass TypeScript errors
-        const supabaseQuery: any = supabase.from('stock_history' as any);
-        const { error } = await supabaseQuery.upsert({
+        // Use our helper function to safely access Supabase tables
+        const { error } = await fromTable('stock_history').upsert({
           id: record.id,
           product_id: record.productId,
           date: record.date,
