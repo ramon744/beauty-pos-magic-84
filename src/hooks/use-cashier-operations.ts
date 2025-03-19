@@ -64,7 +64,7 @@ export function useCashierOperations() {
   }, [user, loadOperations]);
 
   // Close a cashier
-  const closeCashier = useCallback(async (cashierId: string, finalAmount: number, discrepancyReason?: string) => {
+  const closeCashier = useCallback(async (cashierId: string, finalAmount: number, discrepancyReason?: string, managerName?: string) => {
     if (!user) {
       toast({ title: 'Usuário não autenticado', variant: 'destructive' });
       return null;
@@ -72,7 +72,7 @@ export function useCashierOperations() {
     
     try {
       setError(null);
-      const operation = cashierOperationsService.closeCashier(cashierId, user.id, finalAmount, discrepancyReason);
+      const operation = cashierOperationsService.closeCashier(cashierId, user.id, finalAmount, discrepancyReason, managerName);
       loadOperations();
       return operation;
     } catch (err) {

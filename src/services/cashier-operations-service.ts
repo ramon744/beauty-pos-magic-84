@@ -13,7 +13,8 @@ export interface CashierOperation {
   timestamp: Date;
   openingBalance?: number;
   closingBalance?: number;
-  discrepancyReason?: string; // New field for shortage reason
+  discrepancyReason?: string; // Field for shortage reason
+  managerName?: string; // Added field for manager who authorized the discrepancy
 }
 
 // Initialize storage if empty
@@ -172,7 +173,7 @@ export const cashierOperationsService = {
   },
 
   // Close a cashier
-  closeCashier: (cashierId: string, userId: string, finalAmount: number, discrepancyReason?: string): CashierOperation => {
+  closeCashier: (cashierId: string, userId: string, finalAmount: number, discrepancyReason?: string, managerName?: string): CashierOperation => {
     // Check if cashier exists
     const cashier = cashierService.getCashier(cashierId);
     if (!cashier) {
@@ -201,6 +202,7 @@ export const cashierOperationsService = {
     // Add discrepancy reason if provided (when amount is less than expected)
     if (finalAmount < expectedBalance && discrepancyReason) {
       operation.discrepancyReason = discrepancyReason;
+      operation.managerName = managerName; // Add the manager name to the operation
     }
     
     // Save operation
