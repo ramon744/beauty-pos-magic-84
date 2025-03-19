@@ -141,7 +141,7 @@ const Cashiers = () => {
         toast.success("Sangria realizada com sucesso");
         setWithdrawalAmount('');
         setWithdrawalReason('');
-        loadOperations();
+        loadOperations(); // Recarrega as operações para atualizar a UI
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Erro ao realizar sangria";
@@ -164,7 +164,7 @@ const Cashiers = () => {
         toast.success("Suprimento adicionado com sucesso");
         setDepositAmount('');
         setDepositReason('');
-        loadOperations();
+        loadOperations(); // Recarrega as operações para atualizar a UI
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Erro ao adicionar suprimento";
@@ -592,4 +592,3 @@ const Cashiers = () => {
 };
 
 export default Cashiers;
-
