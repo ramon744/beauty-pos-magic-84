@@ -121,15 +121,6 @@ const Index = () => {
                 )}
               </Button>
             </form>
-            
-            <div className="pt-4">
-              <p className="text-center text-sm text-muted-foreground">
-                Usuários para teste: <br />
-                <span className="font-medium">admin@beauty.com / admin123</span> (Admin)<br />
-                <span className="font-medium">manager@beauty.com / manager123</span> (Gerente)<br />
-                <span className="font-medium">employee@beauty.com / employee123</span> (Funcionário)
-              </p>
-            </div>
           </div>
         </motion.div>
       </div>
