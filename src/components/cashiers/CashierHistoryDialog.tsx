@@ -28,7 +28,7 @@ import { CashierOperation } from '@/services/cashier-operations-service';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from '@/contexts/AuthContext';
-import { AlertCircleIcon, ClockIcon, BanknoteIcon, CalendarIcon } from 'lucide-react';
+import { AlertCircleIcon, ClockIcon, BanknoteIcon, CalendarIcon, ShieldAlertIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -117,6 +117,16 @@ export const CashierHistoryDialog = ({
     return format(new Date(date), "HH:mm:ss");
   };
 
+  // Calculate shortage amount between opening and closing balances
+  const calculateShortage = (operation: CashierOperation) => {
+    if (operation.operationType === 'close' && 
+        operation.openingBalance !== undefined && 
+        operation.closingBalance !== undefined) {
+      return operation.openingBalance - operation.closingBalance;
+    }
+    return 0;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh]">
@@ -169,11 +179,10 @@ export const CashierHistoryDialog = ({
                         const isLast = index === dayGroup.operations.length - 1;
                         
                         // Special handling for closing operations with discrepancy
+                        const shortageAmount = calculateShortage(operation);
                         const hasDiscrepancy = operation.operationType === 'close' && 
                                               operation.discrepancyReason && 
-                                              operation.closingBalance !== undefined && 
-                                              operation.openingBalance !== undefined && 
-                                              operation.closingBalance < operation.openingBalance;
+                                              shortageAmount > 0;
                         
                         return (
                           <Card key={operation.id} className="mb-4 border-l-4 border-l-primary">
@@ -208,17 +217,27 @@ export const CashierHistoryDialog = ({
                                     <span>Valor de fechamento: {formatCurrency(operation.amount)}</span>
                                   </div>
                                   
+                                  {operation.openingBalance !== undefined && (
+                                    <div className="flex items-center gap-1 mt-1">
+                                      <BanknoteIcon className="h-4 w-4 text-green-600" />
+                                      <span>Valor inicial do caixa: {formatCurrency(operation.openingBalance)}</span>
+                                    </div>
+                                  )}
+                                  
                                   {hasDiscrepancy && (
                                     <div className="mt-2 p-2 bg-red-50 rounded-md border border-red-100">
                                       <div className="flex items-start gap-1 text-red-600 mb-1">
                                         <AlertCircleIcon className="h-4 w-4 mt-0.5" />
                                         <span className="font-medium">
-                                          Quebra de caixa: {formatCurrency(operation.openingBalance - operation.closingBalance)}
+                                          Quebra de caixa: {formatCurrency(shortageAmount)}
                                         </span>
                                       </div>
                                       <div className="text-sm text-red-700">
                                         <p className="mb-1"><strong>Motivo:</strong> {operation.discrepancyReason}</p>
-                                        <p><strong>Autorizado por:</strong> Gerente</p>
+                                        <p className="flex items-center gap-1">
+                                          <ShieldAlertIcon className="h-4 w-4" />
+                                          <strong>Autorizado por:</strong> Gerente
+                                        </p>
                                       </div>
                                     </div>
                                   )}
