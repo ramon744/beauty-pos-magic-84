@@ -90,7 +90,7 @@ export const CashierOperationCard: React.FC<CashierOperationCardProps> = ({
                     {operation.managerName && (
                       <p className="flex items-center gap-1">
                         <ShieldAlertIcon className="h-4 w-4" />
-                        <strong>Autorizado por:</strong> {operation.managerName}
+                        <span><strong>Autorizado por:</strong> {operation.managerName}</span>
                       </p>
                     )}
                   </div>
@@ -105,6 +105,12 @@ export const CashierOperationCard: React.FC<CashierOperationCardProps> = ({
             {operation.reason && (
               <div className="italic text-muted-foreground">
                 Motivo: {operation.reason}
+              </div>
+            )}
+            {operation.managerName && (
+              <div className="flex items-center gap-1 text-sm mt-1">
+                <ShieldAlertIcon className="h-4 w-4" />
+                <span><strong>Autorizado por:</strong> {operation.managerName}</span>
               </div>
             )}
           </div>
