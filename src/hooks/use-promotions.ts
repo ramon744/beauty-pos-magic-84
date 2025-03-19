@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Promotion } from '@/types';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
@@ -95,16 +96,22 @@ const initializeData = () => {
 // Helper function to calculate statistics
 const updateStatistics = (): PromotionStatistics => {
   const promotions = storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS) || [];
+  const deletedPromotionIds = JSON.parse(localStorage.getItem('deletedPromotionIds') || '[]');
+  
+  // Filter out deleted promotions
+  const availablePromotions = promotions.filter(
+    promotion => !deletedPromotionIds.includes(promotion.id)
+  );
   
   const now = new Date();
   
   const statistics: PromotionStatistics = {
-    totalPromotions: promotions.length,
-    activePromotions: promotions.filter(p => p.isActive).length,
-    upcomingPromotions: promotions.filter(p => {
+    totalPromotions: availablePromotions.length,
+    activePromotions: availablePromotions.filter(p => p.isActive).length,
+    upcomingPromotions: availablePromotions.filter(p => {
       return p.isActive && new Date(p.startDate) > now;
     }).length,
-    expiredPromotions: promotions.filter(p => {
+    expiredPromotions: availablePromotions.filter(p => {
       return new Date(p.endDate) < now;
     }).length,
   };
@@ -125,6 +132,11 @@ const initializeIfNeeded = () => {
 // Run initialization
 initializeIfNeeded();
 
+// Helper to get deleted promotion IDs
+const getDeletedPromotionIds = (): string[] => {
+  return JSON.parse(localStorage.getItem('deletedPromotionIds') || '[]');
+};
+
 // Hook for fetching all promotions
 export function useFetchPromotions() {
   return useQuery({
@@ -138,7 +150,11 @@ export function useFetchPromotions() {
       }
       
       // Fetch from localStorage
-      return storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS) || [];
+      const allPromotions = storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS) || [];
+      
+      // Filter out deleted promotions
+      const deletedIds = getDeletedPromotionIds();
+      return allPromotions.filter(promotion => !deletedIds.includes(promotion.id));
     },
   });
 }
@@ -150,6 +166,12 @@ export function useFetchPromotion(id: string) {
     queryFn: async () => {
       // Skip the request if id is empty
       if (!id) return null;
+      
+      // Check if promotion is deleted
+      const deletedIds = getDeletedPromotionIds();
+      if (deletedIds.includes(id)) {
+        throw new Error('Promotion has been deleted');
+      }
       
       // Fetch from localStorage
       const promotions = storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS) || [];
@@ -236,6 +258,13 @@ export function useDeletePromotion() {
       
       // Update statistics
       updateStatistics();
+      
+      // Store the deleted ID in localStorage for persistence
+      const deletedIds = getDeletedPromotionIds();
+      if (!deletedIds.includes(promotionId)) {
+        deletedIds.push(promotionId);
+        localStorage.setItem('deletedPromotionIds', JSON.stringify(deletedIds));
+      }
       
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000));

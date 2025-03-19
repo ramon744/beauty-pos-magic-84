@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useFetchPromotions, useDeletePromotion } from '@/hooks/use-promotions';
 import { useFetchProducts } from '@/hooks/use-products';
 import { useCategories } from '@/hooks/use-products';
@@ -56,6 +56,20 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [promotionToDelete, setPromotionToDelete] = useState<string | null>(null);
+  const [deletedPromotionIds, setDeletedPromotionIds] = useState<string[]>([]);
+
+  // Carregar IDs de promoções excluídas do localStorage ao montar o componente
+  useEffect(() => {
+    const deletedIds = JSON.parse(localStorage.getItem('deletedPromotionIds') || '[]');
+    setDeletedPromotionIds(deletedIds);
+  }, []);
+
+  // Salvar IDs de promoções excluídas no localStorage quando eles mudarem
+  useEffect(() => {
+    if (deletedPromotionIds.length > 0) {
+      localStorage.setItem('deletedPromotionIds', JSON.stringify(deletedPromotionIds));
+    }
+  }, [deletedPromotionIds]);
 
   // Get product name by id
   const getProductName = (productId?: string) => {
@@ -124,7 +138,9 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
   };
 
   // Filter promotions based on search and filters
-  const filteredPromotions = promotions.filter(promotion => {
+  const filteredPromotions = promotions
+    .filter(promotion => !deletedPromotionIds.includes(promotion.id))
+    .filter(promotion => {
     // Filter by search term
     const matchesSearch = 
       promotion.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -158,6 +174,9 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
   // Handle actual deletion
   const handleConfirmDelete = () => {
     if (promotionToDelete) {
+      // Adicionar ao estado de promoções excluídas
+      setDeletedPromotionIds(prev => [...prev, promotionToDelete]);
+      
       deletePromotion(promotionToDelete, {
         onSuccess: () => {
           toast({
@@ -165,8 +184,18 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
             description: 'A promoção foi excluída com sucesso',
           });
           setPromotionToDelete(null);
+          
+          // Gravar o ID excluído no localStorage para persistência
+          const deletedIds = JSON.parse(localStorage.getItem('deletedPromotionIds') || '[]');
+          if (!deletedIds.includes(promotionToDelete)) {
+            deletedIds.push(promotionToDelete);
+            localStorage.setItem('deletedPromotionIds', JSON.stringify(deletedIds));
+          }
         },
         onError: () => {
+          // Em caso de erro, remover do estado de promoções excluídas
+          setDeletedPromotionIds(prev => prev.filter(id => id !== promotionToDelete));
+          
           toast({
             variant: 'destructive',
             title: 'Erro',
