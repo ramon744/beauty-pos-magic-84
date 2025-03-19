@@ -53,6 +53,7 @@ export const CashierHistoryDialog = ({
 
   const handleExport = (format: 'excel' | 'pdf') => {
     try {
+      // Prepare export data with all necessary information
       const exportData = {
         operations,
         cashierName,
@@ -62,11 +63,11 @@ export const CashierHistoryDialog = ({
 
       if (format === 'excel') {
         exportToExcel(exportData);
+        toast.success('Relatório exportado com sucesso em formato EXCEL');
       } else {
         exportToPDF(exportData);
+        toast.success('Relatório exportado com sucesso em formato PDF');
       }
-      
-      toast.success(`Relatório exportado com sucesso em formato ${format.toUpperCase()}`);
     } catch (error) {
       console.error('Erro ao exportar relatório:', error);
       toast.error('Erro ao exportar relatório. Tente novamente.');

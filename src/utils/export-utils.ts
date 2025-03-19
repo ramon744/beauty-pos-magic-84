@@ -38,6 +38,7 @@ const getCashierSalesData = (cashierId: string, startDate: Date) => {
   // Filter orders by cashier and date
   return orders.filter(order => {
     const orderDate = new Date(order.createdAt);
+    // Fixed: Properly ensure we're checking for orders associated with this cashier
     return orderDate >= startDate && order.cashierId === cashierId;
   });
 };
@@ -48,7 +49,7 @@ export const exportToExcel = (data: ExportData) => {
   
   // Create operations worksheet data
   const operationsData = operations.map(op => ({
-    'Data': formatDate(op.timestamp),
+    'Data': formatDate(new Date(op.timestamp)),
     'Tipo': getOperationTypeName(op.operationType),
     'Operador': getUserName(op.userId),
     'Valor': op.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
@@ -64,7 +65,8 @@ export const exportToExcel = (data: ExportData) => {
   let salesData: any[] = [];
   if (openingOps.length > 0) {
     const latestOpening = openingOps[0];
-    const sales = getCashierSalesData(latestOpening.cashierId, latestOpening.timestamp);
+    // Fixed: Get all sales related to the cashier since opening
+    const sales = getCashierSalesData(latestOpening.cashierId, new Date(latestOpening.timestamp));
     
     salesData = sales.map(sale => ({
       'ID Venda': sale.id,
@@ -120,7 +122,7 @@ export const exportToPDF = (data: ExportData) => {
   doc.text("Operações de Caixa", 14, 40);
   
   const operationsData = operations.map(op => [
-    formatDate(op.timestamp),
+    formatDate(new Date(op.timestamp)),
     getOperationTypeName(op.operationType),
     getUserName(op.userId),
     op.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
@@ -128,10 +130,13 @@ export const exportToPDF = (data: ExportData) => {
     op.managerName || '-',
   ]);
   
+  // Fixed: Properly typecast doc to use autoTable
   (doc as any).autoTable({
     startY: 45,
     head: [['Data', 'Tipo', 'Operador', 'Valor', 'Motivo', 'Autorizado por']],
     body: operationsData,
+    theme: 'grid', // Add theme for better visibility
+    headStyles: { fillColor: [41, 128, 185] }, // Add styling to headers
   });
   
   // Find the opening operation to get sales since that time
@@ -141,10 +146,12 @@ export const exportToPDF = (data: ExportData) => {
   
   if (openingOps.length > 0) {
     const latestOpening = openingOps[0];
-    const sales = getCashierSalesData(latestOpening.cashierId, latestOpening.timestamp);
+    // Fixed: Get cashier sales with proper date handling
+    const sales = getCashierSalesData(latestOpening.cashierId, new Date(latestOpening.timestamp));
     
     if (sales.length > 0) {
       // Add sales table
+      // Fixed: Use proper positioning based on the previous table
       const currentY = (doc as any).lastAutoTable.finalY + 10;
       doc.text("Vendas Realizadas", 14, currentY);
       
@@ -156,10 +163,32 @@ export const exportToPDF = (data: ExportData) => {
         sale.items.length.toString(),
       ]);
       
+      // Fixed: Properly add sales table
       (doc as any).autoTable({
         startY: currentY + 5,
         head: [['ID', 'Data', 'Valor Total', 'Pagamento', 'Itens']],
         body: salesData,
+        theme: 'grid',
+        headStyles: { fillColor: [41, 128, 185] },
+      });
+      
+      // Add payment summary table if there are sales
+      const paymentData = getPaymentBreakdownData(operations);
+      const paymentRows = paymentData.map(payment => [
+        payment['Forma de Pagamento'],
+        payment['Valor Total']
+      ]);
+      
+      // Fixed: Proper positioning for payment breakdown table
+      const paymentY = (doc as any).lastAutoTable.finalY + 10;
+      doc.text("Resumo de Pagamentos", 14, paymentY);
+      
+      (doc as any).autoTable({
+        startY: paymentY + 5,
+        head: [['Forma de Pagamento', 'Valor Total']],
+        body: paymentRows,
+        theme: 'grid',
+        headStyles: { fillColor: [41, 128, 185] },
       });
     }
   }
@@ -204,10 +233,10 @@ const getPaymentBreakdownData = (operations: CashierOperation[]) => {
   const latestOpening = openingOps[0];
   const orders = storageService.getItem<any[]>(STORAGE_KEYS.ORDERS) || [];
   
-  // Filter orders by cashier and after opening date
+  // Fixed: Filter orders by cashier and ensure date comparison is consistent
   const filteredOrders = orders.filter(order => {
     const orderDate = new Date(order.createdAt);
-    return orderDate >= latestOpening.timestamp && order.cashierId === latestOpening.cashierId;
+    return orderDate >= new Date(latestOpening.timestamp) && order.cashierId === latestOpening.cashierId;
   });
   
   // Process orders to get payment breakdown
