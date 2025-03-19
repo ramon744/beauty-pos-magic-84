@@ -1,4 +1,3 @@
-
 import { storageService, STORAGE_KEYS } from './storage-service';
 import { cashierService } from './cashier-service';
 import { toast } from 'sonner';
@@ -235,7 +234,7 @@ export const cashierOperationsService = {
   },
 
   // Add deposit to cashier
-  addDeposit: (cashierId: string, userId: string, amount: number, reason?: string): CashierOperation => {
+  addDeposit: (cashierId: string, userId: string, amount: number, reason?: string, managerName?: string, managerId?: string): CashierOperation => {
     // Check if cashier exists
     const cashier = cashierService.getCashier(cashierId);
     if (!cashier) {
@@ -255,7 +254,9 @@ export const cashierOperationsService = {
       operationType: 'deposit',
       amount,
       reason,
-      timestamp: new Date()
+      timestamp: new Date(),
+      managerName, // Add manager name
+      managerId    // Add manager ID
     };
     
     // Save operation
@@ -270,7 +271,7 @@ export const cashierOperationsService = {
   },
 
   // Add withdrawal from cashier
-  addWithdrawal: (cashierId: string, userId: string, amount: number, reason?: string): CashierOperation => {
+  addWithdrawal: (cashierId: string, userId: string, amount: number, reason?: string, managerName?: string, managerId?: string): CashierOperation => {
     // Check if cashier exists
     const cashier = cashierService.getCashier(cashierId);
     if (!cashier) {
@@ -296,7 +297,9 @@ export const cashierOperationsService = {
       operationType: 'withdrawal',
       amount,
       reason,
-      timestamp: new Date()
+      timestamp: new Date(),
+      managerName, // Add manager name
+      managerId    // Add manager ID
     };
     
     // Save operation

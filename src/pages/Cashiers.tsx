@@ -58,6 +58,8 @@ const Cashiers = () => {
   const [depositAmount, setDepositAmount] = useState('');
   const [depositReason, setDepositReason] = useState('');
   const [selectedCashierForOperation, setSelectedCashierForOperation] = useState('');
+  const [currentOperation, setCurrentOperation] = useState<'withdrawal' | 'deposit' | null>(null);
+  const [managerInfo, setManagerInfo] = useState<{id?: string, name?: string} | null>(null);
   
   const openCashiers = cashiers.filter(cashier => 
     cashier.isActive && isCashierOpen(cashier.id)
@@ -93,9 +95,46 @@ const Cashiers = () => {
       return;
     }
     
+    setCurrentOperation('withdrawal');
+    setIsManagerAuthOpen(true);
+  };
+  
+  const handleDeposit = async () => {
+    if (!selectedCashierForOperation || !depositAmount || parseFloat(depositAmount) <= 0) {
+      toast.error("Informe um valor válido para o suprimento");
+      return;
+    }
+    
+    setCurrentOperation('deposit');
+    setIsManagerAuthOpen(true);
+  };
+  
+  const handleManagerAuth = (managerId?: string, managerName?: string) => {
+    setIsManagerAuthOpen(false);
+    
+    if (managerId && managerName) {
+      setManagerInfo({ id: managerId, name: managerName });
+      
+      if (currentOperation === 'withdrawal') {
+        processWithdrawal(managerId, managerName);
+      } else if (currentOperation === 'deposit') {
+        processDeposit(managerId, managerName);
+      }
+    }
+    
+    setCurrentOperation(null);
+  };
+  
+  const processWithdrawal = async (managerId: string, managerName: string) => {
     try {
       const amount = parseFloat(withdrawalAmount);
-      const result = await addWithdrawal(selectedCashierForOperation, amount, withdrawalReason);
+      const result = await addWithdrawal(
+        selectedCashierForOperation, 
+        amount, 
+        withdrawalReason,
+        managerName,
+        managerId
+      );
       
       if (result) {
         toast.success("Sangria realizada com sucesso");
@@ -108,15 +147,16 @@ const Cashiers = () => {
     }
   };
   
-  const handleDeposit = async () => {
-    if (!selectedCashierForOperation || !depositAmount || parseFloat(depositAmount) <= 0) {
-      toast.error("Informe um valor válido para o suprimento");
-      return;
-    }
-    
+  const processDeposit = async (managerId: string, managerName: string) => {
     try {
       const amount = parseFloat(depositAmount);
-      const result = await addDeposit(selectedCashierForOperation, amount, depositReason);
+      const result = await addDeposit(
+        selectedCashierForOperation, 
+        amount, 
+        depositReason,
+        managerName,
+        managerId
+      );
       
       if (result) {
         toast.success("Suprimento adicionado com sucesso");
@@ -358,7 +398,7 @@ const Cashiers = () => {
                   Sangria de Caixa
                 </CardTitle>
                 <CardDescription>
-                  Registre a retirada de valores do caixa
+                  Registre a retirada de valores do caixa (requer autorização gerencial)
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -416,7 +456,7 @@ const Cashiers = () => {
                   Suprimento de Caixa
                 </CardTitle>
                 <CardDescription>
-                  Registre a entrada de valores no caixa
+                  Registre a entrada de valores no caixa (requer autorização gerencial)
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -528,12 +568,21 @@ const Cashiers = () => {
       
       <ManagerAuthDialog
         isOpen={isManagerAuthOpen}
-        onClose={() => setIsManagerAuthOpen(false)}
-        onConfirm={() => {
+        onClose={() => {
           setIsManagerAuthOpen(false);
+          setCurrentOperation(null);
         }}
-        title="Autorização Gerencial"
-        description="Esta operação requer autorização de um gerente ou administrador."
+        onConfirm={handleManagerAuth}
+        title={currentOperation === 'withdrawal' ? 
+          "Autorização para Sangria" : 
+          currentOperation === 'deposit' ? 
+          "Autorização para Suprimento" : 
+          "Autorização Gerencial"}
+        description={currentOperation === 'withdrawal' ? 
+          "Esta operação de sangria requer autorização de um gerente ou administrador." : 
+          currentOperation === 'deposit' ? 
+          "Esta operação de suprimento requer autorização de um gerente ou administrador." : 
+          "Esta operação requer autorização de um gerente ou administrador."}
       />
     </div>
   );

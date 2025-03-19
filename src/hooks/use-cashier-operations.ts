@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { cashierOperationsService, CashierOperation } from '@/services/cashier-operations-service';
 import { useAuth } from '@/contexts/AuthContext';
 import { cashierService } from '@/services/cashier-service';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 
 export function useCashierOperations() {
@@ -85,15 +85,15 @@ export function useCashierOperations() {
   }, [user, loadOperations]);
 
   // Add deposit to cashier
-  const addDeposit = useCallback(async (cashierId: string, amount: number, reason?: string) => {
+  const addDeposit = useCallback(async (cashierId: string, amount: number, reason?: string, managerName?: string, managerId?: string) => {
     if (!user) {
-      toast({ title: 'Usuário não autenticado', variant: 'destructive' });
+      toast.error('Usuário não autenticado');
       return null;
     }
     
     try {
       setError(null);
-      const operation = cashierOperationsService.addDeposit(cashierId, user.id, amount, reason);
+      const operation = cashierOperationsService.addDeposit(cashierId, user.id, amount, reason, managerName, managerId);
       loadOperations();
       return operation;
     } catch (err) {
@@ -105,15 +105,15 @@ export function useCashierOperations() {
   }, [user, loadOperations]);
 
   // Add withdrawal from cashier
-  const addWithdrawal = useCallback(async (cashierId: string, amount: number, reason?: string) => {
+  const addWithdrawal = useCallback(async (cashierId: string, amount: number, reason?: string, managerName?: string, managerId?: string) => {
     if (!user) {
-      toast({ title: 'Usuário não autenticado', variant: 'destructive' });
+      toast.error('Usuário não autenticado');
       return null;
     }
     
     try {
       setError(null);
-      const operation = cashierOperationsService.addWithdrawal(cashierId, user.id, amount, reason);
+      const operation = cashierOperationsService.addWithdrawal(cashierId, user.id, amount, reason, managerName, managerId);
       loadOperations();
       return operation;
     } catch (err) {
