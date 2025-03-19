@@ -57,9 +57,9 @@ const initializeSuppliers = () => {
 // Get all suppliers from Supabase with localStorage fallback
 const getSuppliers = async (): Promise<Supplier[]> => {
   try {
-    // Try to get from Supabase first
-    const { data, error } = await supabase
-      .from('suppliers')
+    // Try to get from Supabase first, using type assertion
+    const { data, error } = await (supabase
+      .from('suppliers' as any) as any)
       .select();
     
     if (error) {
@@ -68,7 +68,7 @@ const getSuppliers = async (): Promise<Supplier[]> => {
       return storageService.getItem<Supplier[]>(SUPPLIERS_STORAGE_KEY) || initializeSuppliers();
     }
     
-    if (data && data.length > 0) {
+    if (data && Array.isArray(data) && data.length > 0) {
       // Convert snake_case to camelCase
       const suppliers = data.map(item => ({
         id: item.id,
@@ -116,9 +116,9 @@ export function useFetchSupplier(id: string) {
       if (!id) return null;
       
       try {
-        // Try to get from Supabase first
-        const { data, error } = await supabase
-          .from('suppliers')
+        // Try to get from Supabase first, using type assertion
+        const { data, error } = await (supabase
+          .from('suppliers' as any) as any)
           .select()
           .eq('id', id)
           .single();
@@ -185,9 +185,9 @@ export function useSaveSupplier() {
           updated_at: supplier.updatedAt.toISOString()
         };
         
-        // Try to save to Supabase
-        const { data, error } = await supabase
-          .from('suppliers')
+        // Try to save to Supabase using type assertion
+        const { data, error } = await (supabase
+          .from('suppliers' as any) as any)
           .upsert(supplierData)
           .select();
         
@@ -213,7 +213,7 @@ export function useSaveSupplier() {
         }
         
         // Convert snake_case back to camelCase
-        if (data && data[0]) {
+        if (data && Array.isArray(data) && data[0]) {
           const savedSupplier = {
             id: data[0].id,
             name: data[0].name,
@@ -277,9 +277,9 @@ export function useDeleteSupplier() {
   return useMutation({
     mutationFn: async (supplierId: string) => {
       try {
-        // Try to delete from Supabase
-        const { error } = await supabase
-          .from('suppliers')
+        // Try to delete from Supabase using type assertion
+        const { error } = await (supabase
+          .from('suppliers' as any) as any)
           .delete()
           .eq('id', supplierId);
         

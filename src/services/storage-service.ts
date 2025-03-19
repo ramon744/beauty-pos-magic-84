@@ -16,16 +16,18 @@ export const storageService = {
     localStorage.clear();
   },
   
-  // Supabase methods - these work with both approaches
+  // Supabase methods with safe fallbacks to localStorage
   getFromSupabase: async <T>(table: string, column: string = '', value: any = null): Promise<T[]> => {
     try {
-      let query = supabase.from(table);
+      // Use type assertion to avoid TypeScript errors
+      let query = supabase.from(table as any);
       
       if (column && value !== null) {
-        query = query.eq(column, value);
+        // Need to use type assertion because the PostgrestQueryBuilder type is not properly defined
+        query = (query as any).eq(column, value);
       }
       
-      const { data, error } = await query.select();
+      const { data, error } = await (query as any).select();
       
       if (error) {
         console.error(`Error fetching from ${table}:`, error);
@@ -34,7 +36,7 @@ export const storageService = {
         return localData || [];
       }
       
-      return (data as any) || [];
+      return (data as T[]) || [];
     } catch (err) {
       console.error(`Error in getFromSupabase for ${table}:`, err);
       // Fallback to localStorage
@@ -52,8 +54,9 @@ export const storageService = {
         return acc;
       }, {} as any);
       
-      const { data, error } = await supabase
-        .from(table)
+      // Use type assertion to avoid TypeScript errors
+      const { data, error } = await (supabase
+        .from(table as any) as any)
         .upsert(transformed)
         .select();
       
@@ -98,8 +101,9 @@ export const storageService = {
   
   removeFromSupabase: async (table: string, id: string): Promise<boolean> => {
     try {
-      const { error } = await supabase
-        .from(table)
+      // Use type assertion to avoid TypeScript errors
+      const { error } = await (supabase
+        .from(table as any) as any)
         .delete()
         .eq('id', id);
       
