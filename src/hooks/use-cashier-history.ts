@@ -52,14 +52,20 @@ export function useCashierHistory(
 
   const calculateShortage = (operation: CashierOperation): number | null => {
     if (operation.operationType === 'close') {
+      // If there's already a recorded discrepancy and manager approval
+      if (operation.discrepancyReason && operation.openingBalance !== undefined) {
+        return operation.openingBalance - operation.amount;
+      }
+      
       const openOp = findMatchingOpenOperation(operation);
       
       if (openOp && openOp.amount) {
-        return openOp.amount - operation.amount;
+        return operation.amount < openOp.amount ? openOp.amount - operation.amount : 0;
       }
       
       if (operation.openingBalance !== undefined && operation.closingBalance !== undefined) {
-        return operation.openingBalance - operation.closingBalance;
+        return operation.openingBalance > operation.closingBalance ? 
+          operation.openingBalance - operation.closingBalance : 0;
       }
     }
     return null;
