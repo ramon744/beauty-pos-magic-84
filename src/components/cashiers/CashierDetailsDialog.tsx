@@ -78,11 +78,12 @@ export const CashierDetailsDialog = ({
       
       if (latestOpenOp) {
         const openTimestamp = new Date(latestOpenOp.timestamp).getTime();
+        const cashierUserId = latestOpenOp.userId;
         
-        // Get orders created after the cashier was opened
+        // Get orders created after the cashier was opened and by the specific operator
         const cashierOrders = orders.filter(order => {
           const orderDate = new Date(order.createdAt).getTime();
-          return orderDate >= openTimestamp;
+          return orderDate >= openTimestamp && order.userId === cashierUserId;
         });
         
         // Process each order's payment data
@@ -143,6 +144,8 @@ export const CashierDetailsDialog = ({
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
   
   const openingBalance = openingOperation?.amount || 0;
+  const operatorName = openingOperation ? 
+    `Operador: ${openingOperation.userName || 'ID: ' + openingOperation.userId.substring(0, 6)}` : '';
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -151,6 +154,7 @@ export const CashierDetailsDialog = ({
           <DialogTitle>Detalhes do Caixa: {cashierName}</DialogTitle>
           <DialogDescription>
             Visualização detalhada de operações e formas de pagamento
+            {operatorName && <div className="mt-1 font-medium text-sm">{operatorName}</div>}
           </DialogDescription>
         </DialogHeader>
 
@@ -283,7 +287,7 @@ export const CashierDetailsDialog = ({
                                   {operation.operationType === 'withdrawal' && 'Sangria'}
                                 </TableCell>
                                 <TableCell>{formatCurrency(operation.amount)}</TableCell>
-                                <TableCell>Usuário ID: {operation.userId.substring(0, 6)}</TableCell>
+                                <TableCell>{operation.userName || 'ID: ' + operation.userId.substring(0, 6)}</TableCell>
                                 <TableCell>{operation.reason || '-'}</TableCell>
                               </TableRow>
                             ))

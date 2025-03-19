@@ -52,7 +52,7 @@ export function useCashierOperations() {
     
     try {
       setError(null);
-      const operation = cashierOperationsService.openCashier(cashierId, user.id, initialAmount);
+      const operation = cashierOperationsService.openCashier(cashierId, user.id, initialAmount, user.name);
       loadOperations();
       return operation;
     } catch (err) {
@@ -72,7 +72,7 @@ export function useCashierOperations() {
     
     try {
       setError(null);
-      const operation = cashierOperationsService.closeCashier(cashierId, user.id, finalAmount, discrepancyReason, managerName, managerId);
+      const operation = cashierOperationsService.closeCashier(cashierId, user.id, finalAmount, discrepancyReason, managerName, managerId, user.name);
       loadOperations();
       return operation;
     } catch (err) {
@@ -92,7 +92,7 @@ export function useCashierOperations() {
     
     try {
       setError(null);
-      const operation = cashierOperationsService.addDeposit(cashierId, user.id, amount, reason, managerName, managerId);
+      const operation = cashierOperationsService.addDeposit(cashierId, user.id, amount, reason, managerName, managerId, user.name);
       
       // Force ensure the cashier is active after deposit
       const cashier = cashierService.getCashier(cashierId);
@@ -120,7 +120,7 @@ export function useCashierOperations() {
     
     try {
       setError(null);
-      const operation = cashierOperationsService.addWithdrawal(cashierId, user.id, amount, reason, managerName, managerId);
+      const operation = cashierOperationsService.addWithdrawal(cashierId, user.id, amount, reason, managerName, managerId, user.name);
       
       // Force ensure the cashier is active after withdrawal
       const cashier = cashierService.getCashier(cashierId);
