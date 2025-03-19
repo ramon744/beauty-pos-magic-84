@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Product, Category } from '@/types';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
@@ -253,7 +252,7 @@ export const useStockAdjustment = () => {
               timestamp: new Date(),
               previousStock: previousStock,
               newStock: newStock,
-              quantity: data.quantity,
+              quantity: data.adjustmentType === 'balance' ? Math.abs(newStock - previousStock) : data.quantity,
               adjustmentType: data.adjustmentType || 'add',
               reason: data.reason,
               userName: 'Current User', // This should be replaced with the actual user
