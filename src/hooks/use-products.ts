@@ -225,8 +225,8 @@ export const useStockAdjustment = () => {
             const previousStock = product.stock;
             
             // For balance adjustment, directly set the stock to the EXACT specified quantity
-            // without any other calculations
             if (data.adjustmentType === 'balance') {
+              // For balance, set the exact stock value that was entered
               products[productIndex].stock = data.quantity;
               products[productIndex].updatedAt = new Date();
               
