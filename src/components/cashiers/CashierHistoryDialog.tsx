@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -157,7 +158,7 @@ export const CashierHistoryDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh]">
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CalendarIcon className="h-5 w-5 text-primary" />
@@ -168,7 +169,7 @@ export const CashierHistoryDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="h-[600px] pr-4">
+        <ScrollArea className="flex-1 h-[calc(90vh-180px)] pr-4">
           {groupedOperations.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               Nenhuma operação registrada para este caixa
@@ -291,7 +292,7 @@ export const CashierHistoryDialog = ({
           )}
         </ScrollArea>
 
-        <DialogFooter>
+        <DialogFooter className="mt-4 pt-2 border-t">
           <Button onClick={onClose}>Fechar</Button>
         </DialogFooter>
       </DialogContent>
