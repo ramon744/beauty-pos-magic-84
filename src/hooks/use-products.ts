@@ -225,15 +225,15 @@ export const useStockAdjustment = () => {
             let newStock = previousStock;
             
             // Determine how to adjust the stock based on the adjustment type
-            if (data.adjustmentType === 'remove') {
+            if (data.adjustmentType === 'balance') {
+              // For balance, directly set the stock to the specified quantity
+              newStock = data.quantity;
+            } else if (data.adjustmentType === 'remove') {
               // If it's a removal, subtract the quantity
               newStock = previousStock - data.quantity;
             } else if (data.adjustmentType === 'add') {
               // If it's an addition, add the quantity
               newStock = previousStock + data.quantity;
-            } else if (data.adjustmentType === 'balance') {
-              // If it's a balance, set the stock to the exact quantity specified
-              newStock = data.quantity;
             }
             
             // Update product stock
