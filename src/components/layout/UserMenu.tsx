@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -61,11 +62,12 @@ const UserMenu: React.FC = () => {
     logout();
   };
 
-  const handleManagerAuth = (managerId?: string) => {
+  const handleManagerAuth = (managerId?: string, managerName?: string) => {
     if (managerId) {
       toast.success("Autorização gerencial concedida");
       logout();
     }
+    setIsManagerAuthOpen(false);
   };
 
   const { cashier, isOpen, balance } = getUserCashierStatus();

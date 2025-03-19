@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 interface ManagerAuthDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (managerId?: string) => void;
+  onConfirm: (managerId?: string, managerName?: string) => void;
   title?: string;
   description?: string;
   customContent?: React.ReactNode;
@@ -58,8 +58,7 @@ export const ManagerAuthDialog = ({
           title: "Autorização confirmada",
           description: "Operação permitida",
         });
-        onConfirm(manager.id); // Pass the manager ID to the callback
-        onClose();
+        onConfirm(manager.id, manager.name); // Pass the manager ID and name to the callback
         resetForm();
       } else {
         toast({

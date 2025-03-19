@@ -42,6 +42,7 @@ export const CloseCashierDialog = ({
   const [isDiscrepancy, setIsDiscrepancy] = useState(false);
   const [isManagerAuthOpen, setIsManagerAuthOpen] = useState(false);
   const [managerName, setManagerName] = useState<string>('');
+  const [managerId, setManagerId] = useState<string>('');
   const { closeCashier } = useCashierOperations();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,8 +64,10 @@ export const CloseCashierDialog = ({
         }
         
         // If reason is provided but no manager auth yet, show manager auth dialog
-        setIsManagerAuthOpen(true);
-        return;
+        if (!managerName) {
+          setIsManagerAuthOpen(true);
+          return;
+        }
       }
       
       // Continue with closing if no discrepancy or if already authorized
@@ -81,8 +84,9 @@ export const CloseCashierDialog = ({
       // Pass the shortage reason and manager name if there's a discrepancy
       const discrepancyReason = isDiscrepancy ? shortageReason : undefined;
       const managerNameToPass = isDiscrepancy ? managerName : undefined;
+      const managerIdToPass = isDiscrepancy ? managerId : undefined;
       
-      const result = await closeCashier(cashierId, amount, discrepancyReason, managerNameToPass);
+      const result = await closeCashier(cashierId, amount, discrepancyReason, managerNameToPass, managerIdToPass);
       
       if (result) {
         resetForm();
@@ -97,15 +101,16 @@ export const CloseCashierDialog = ({
   };
 
   const handleManagerAuth = (managerId?: string, managerNameValue?: string) => {
+    setIsManagerAuthOpen(false);
+    
     if (managerId && managerNameValue) {
-      // Store the manager name
+      // Store the manager information
       setManagerName(managerNameValue);
+      setManagerId(managerId);
       
       // Manager approved, proceed with closure
       const amount = parseFloat(finalAmount.replace(',', '.'));
       proceedWithClosure(amount);
-    } else {
-      setIsManagerAuthOpen(false);
     }
   };
 
@@ -114,6 +119,7 @@ export const CloseCashierDialog = ({
     setShortageReason('');
     setIsDiscrepancy(false);
     setManagerName('');
+    setManagerId('');
   };
 
   const handleCancel = () => {
@@ -195,7 +201,9 @@ export const CloseCashierDialog = ({
                     />
                     <p className="text-sm text-red-500 mt-1">
                       <BadgeAlertIcon className="h-4 w-4 inline-block mr-1" />
-                      É necessário informar o motivo e autorização gerencial
+                      {managerName ? 
+                        `Autorização concedida por: ${managerName}` : 
+                        "É necessário informar o motivo e autorização gerencial"}
                     </p>
                   </div>
                 </div>

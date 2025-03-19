@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { cashierOperationsService, CashierOperation } from '@/services/cashier-operations-service';
 import { useAuth } from '@/contexts/AuthContext';
@@ -64,7 +65,7 @@ export function useCashierOperations() {
   }, [user, loadOperations]);
 
   // Close a cashier
-  const closeCashier = useCallback(async (cashierId: string, finalAmount: number, discrepancyReason?: string, managerName?: string) => {
+  const closeCashier = useCallback(async (cashierId: string, finalAmount: number, discrepancyReason?: string, managerName?: string, managerId?: string) => {
     if (!user) {
       toast({ title: 'Usuário não autenticado', variant: 'destructive' });
       return null;
@@ -72,7 +73,7 @@ export function useCashierOperations() {
     
     try {
       setError(null);
-      const operation = cashierOperationsService.closeCashier(cashierId, user.id, finalAmount, discrepancyReason, managerName);
+      const operation = cashierOperationsService.closeCashier(cashierId, user.id, finalAmount, discrepancyReason, managerName, managerId);
       loadOperations();
       return operation;
     } catch (err) {

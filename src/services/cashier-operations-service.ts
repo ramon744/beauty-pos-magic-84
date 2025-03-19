@@ -1,3 +1,4 @@
+
 import { storageService, STORAGE_KEYS } from './storage-service';
 import { cashierService } from './cashier-service';
 import { toast } from 'sonner';
@@ -15,6 +16,7 @@ export interface CashierOperation {
   closingBalance?: number;
   discrepancyReason?: string; // Field for shortage reason
   managerName?: string; // Added field for manager who authorized the discrepancy
+  managerId?: string; // Added field for manager ID who authorized the discrepancy
 }
 
 // Initialize storage if empty
@@ -173,7 +175,7 @@ export const cashierOperationsService = {
   },
 
   // Close a cashier
-  closeCashier: (cashierId: string, userId: string, finalAmount: number, discrepancyReason?: string, managerName?: string): CashierOperation => {
+  closeCashier: (cashierId: string, userId: string, finalAmount: number, discrepancyReason?: string, managerName?: string, managerId?: string): CashierOperation => {
     // Check if cashier exists
     const cashier = cashierService.getCashier(cashierId);
     if (!cashier) {
@@ -203,6 +205,7 @@ export const cashierOperationsService = {
     if (finalAmount < expectedBalance && discrepancyReason) {
       operation.discrepancyReason = discrepancyReason;
       operation.managerName = managerName; // Add the manager name to the operation
+      operation.managerId = managerId; // Add the manager ID to the operation
     }
     
     // Save operation
