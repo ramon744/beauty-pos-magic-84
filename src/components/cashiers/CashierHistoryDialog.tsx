@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -59,12 +58,10 @@ export const CashierHistoryDialog = ({
 
   useEffect(() => {
     if (isOpen) {
-      // Filter operations for this cashier and sort by date (newest first)
       const cashierOps = operations
         .filter(op => op.cashierId === cashierId)
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       
-      // Group operations by day
       const opsByDay = new Map<string, CashierOperation[]>();
       
       cashierOps.forEach(op => {
@@ -78,7 +75,6 @@ export const CashierHistoryDialog = ({
         opsByDay.get(dateStr)!.push(op);
       });
       
-      // Convert map to array and sort by date (newest first)
       const groupedData: DayOperations[] = Array.from(opsByDay.entries())
         .map(([date, dayOps]) => ({
           date,
@@ -117,14 +113,27 @@ export const CashierHistoryDialog = ({
     return format(new Date(date), "HH:mm:ss");
   };
 
-  // Calculate shortage amount between opening and closing balances
-  const calculateShortage = (operation: CashierOperation) => {
-    if (operation.operationType === 'close' && 
-        operation.openingBalance !== undefined && 
-        operation.closingBalance !== undefined) {
-      return operation.openingBalance - operation.closingBalance;
+  const calculateShortage = (operation: CashierOperation): number => {
+    if (operation.operationType === 'close') {
+      if (operation.openingBalance !== undefined && operation.closingBalance !== undefined) {
+        return operation.openingBalance - operation.closingBalance;
+      }
+      
+      if (operation.amount && operation.openingBalance) {
+        return operation.openingBalance - operation.amount;
+      }
     }
     return 0;
+  };
+
+  const hasDiscrepancy = (operation: CashierOperation): boolean => {
+    if (operation.operationType === 'close') {
+      if (operation.discrepancyReason) return true;
+      
+      const shortage = calculateShortage(operation);
+      return shortage > 0;
+    }
+    return false;
   };
 
   return (
@@ -148,7 +157,6 @@ export const CashierHistoryDialog = ({
           ) : (
             <Accordion type="single" collapsible className="w-full">
               {groupedOperations.map((dayGroup) => {
-                // Find opening and closing operations for this day
                 const openOps = dayGroup.operations.filter(op => op.operationType === 'open');
                 const closeOps = dayGroup.operations.filter(op => op.operationType === 'close');
                 
@@ -174,15 +182,11 @@ export const CashierHistoryDialog = ({
                     </AccordionTrigger>
                     <AccordionContent>
                       {dayGroup.operations.map((operation, index) => {
-                        // Get previous and next operations to determine context
                         const isFirst = index === 0;
                         const isLast = index === dayGroup.operations.length - 1;
                         
-                        // Special handling for closing operations with discrepancy
                         const shortageAmount = calculateShortage(operation);
-                        const hasDiscrepancy = operation.operationType === 'close' && 
-                                              operation.discrepancyReason && 
-                                              shortageAmount > 0;
+                        const operationHasDiscrepancy = hasDiscrepancy(operation);
                         
                         return (
                           <Card key={operation.id} className="mb-4 border-l-4 border-l-primary">
@@ -200,7 +204,6 @@ export const CashierHistoryDialog = ({
                                 </div>
                               </div>
                               
-                              {/* Operation specific details */}
                               {operation.operationType === 'open' && (
                                 <div className="text-sm border-t pt-2 mt-2">
                                   <div className="flex items-center gap-1 text-green-600">
@@ -224,7 +227,7 @@ export const CashierHistoryDialog = ({
                                     </div>
                                   )}
                                   
-                                  {hasDiscrepancy && (
+                                  {operationHasDiscrepancy && shortageAmount > 0 && (
                                     <div className="mt-2 p-2 bg-red-50 rounded-md border border-red-100">
                                       <div className="flex items-start gap-1 text-red-600 mb-1">
                                         <AlertCircleIcon className="h-4 w-4 mt-0.5" />
@@ -232,13 +235,15 @@ export const CashierHistoryDialog = ({
                                           Quebra de caixa: {formatCurrency(shortageAmount)}
                                         </span>
                                       </div>
-                                      <div className="text-sm text-red-700">
-                                        <p className="mb-1"><strong>Motivo:</strong> {operation.discrepancyReason}</p>
-                                        <p className="flex items-center gap-1">
-                                          <ShieldAlertIcon className="h-4 w-4" />
-                                          <strong>Autorizado por:</strong> Gerente
-                                        </p>
-                                      </div>
+                                      {operation.discrepancyReason && (
+                                        <div className="text-sm text-red-700">
+                                          <p className="mb-1"><strong>Motivo:</strong> {operation.discrepancyReason}</p>
+                                          <p className="flex items-center gap-1">
+                                            <ShieldAlertIcon className="h-4 w-4" />
+                                            <strong>Autorizado por:</strong> {operation.managerName || "Gerente"}
+                                          </p>
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                 </div>
