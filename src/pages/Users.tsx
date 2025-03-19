@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Users as UsersIcon, UserPlus, Pencil, Trash2, Shield, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -493,7 +492,7 @@ const Users = () => {
             </TabsContent>
             
             <TabsContent value="access">
-              <AccessControlTab selectedUser={selectedUser} />
+              {selectedUser && <AccessControlTab selectedUser={selectedUser} />}
             </TabsContent>
           </Tabs>
         </DialogContent>
