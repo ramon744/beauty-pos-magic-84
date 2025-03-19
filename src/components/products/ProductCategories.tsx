@@ -68,7 +68,7 @@ const CATEGORIES_STORAGE_KEY = STORAGE_KEYS.CATEGORIES;
 export function ProductCategories({ fullWidth = false }: ProductCategoriesProps) {
   const { toast } = useToast();
   const { data: categories, isLoading, refetch } = useCategories();
-  const { data: products } = useFetchProducts();
+  const { data: products, refetch: refetchProducts } = useFetchProducts();
   const { mutate: saveProduct } = useSaveProduct();
   const [newCategory, setNewCategory] = useState('');
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -237,9 +237,9 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
   };
 
   const handleInitiateDelete = (category: Category) => {
-    const products = storageService.getItem<Product[]>(PRODUCTS_STORAGE_KEY) || [];
+    const productsData = storageService.getItem<Product[]>(PRODUCTS_STORAGE_KEY) || [];
     
-    const productsWithCategory = products.filter(product => product.category.id === category.id);
+    const productsWithCategory = productsData.filter(product => product.category.id === category.id);
     
     if (productsWithCategory.length > 0) {
       setCategoryToDelete(category);
@@ -253,7 +253,7 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
   const handleConfirmDelete = async (category: Category, targetCategoryId?: string) => {
     try {
       const currentCategories = storageService.getItem<Category[]>(STORAGE_KEYS.CATEGORIES) || [];
-      const products = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
+      const productsData = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
       
       const updatedCategories = currentCategories.filter(cat => cat.id !== category.id);
       
@@ -261,26 +261,32 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
         const targetCategory = currentCategories.find(cat => cat.id === targetCategoryId);
         
         if (targetCategory) {
-          const updatedProducts = products.map(product => {
+          const updatePromises = [];
+          
+          for (const product of productsData) {
             if (product.category.id === category.id) {
-              return {
+              const updatedProduct = {
                 ...product,
                 category: targetCategory,
                 updatedAt: new Date()
               };
-            }
-            return product;
-          });
-          
-          for (const product of updatedProducts) {
-            if (product.category.id === targetCategory.id) {
-              await storageService.saveToSupabase(STORAGE_KEYS.PRODUCTS, product);
+              
+              updatePromises.push(
+                saveProduct(updatedProduct, {
+                  onSuccess: () => {},
+                  onError: () => {}
+                })
+              );
             }
           }
+          
+          await Promise.all(updatePromises);
         }
       }
       
       await storageService.removeFromSupabase('categories', category.id);
+      
+      storageService.setItem(STORAGE_KEYS.CATEGORIES, updatedCategories);
       
       updateProductStatistics();
       
@@ -289,6 +295,7 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
         description: `A categoria "${category.name}" foi excluída com sucesso.`,
       });
       
+      refetchProducts();
       refetch();
       
       setCategoryToDelete(null);
@@ -357,24 +364,34 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
         throw new Error("Categoria não encontrada");
       }
       
+      const updatePromises = [];
+      
       for (const productId of selectedProducts) {
         const product = allProducts.find(p => p.id === productId);
         if (product) {
-          await saveProduct({
+          const updatedProduct = {
             ...product,
             category: targetCategory,
             updatedAt: new Date()
-          }, {
-            onSuccess: () => {},
-            onError: () => {}
-          });
+          };
+          
+          updatePromises.push(
+            saveProduct(updatedProduct, {
+              onSuccess: () => {},
+              onError: () => {}
+            })
+          );
         }
       }
+      
+      await Promise.all(updatePromises);
       
       toast({
         title: "Produtos movidos",
         description: `${selectedProducts.length} produto(s) movidos para a categoria "${targetCategory.name}".`,
       });
+      
+      refetchProducts();
       
       setSelectedProducts([]);
     } catch (error) {
@@ -901,7 +918,7 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
               
               {getActiveTemporaryAssignments().length === 0 ? (
                 <div className="text-center p-4 border rounded-md text-muted-foreground text-sm">
-                  Não há atribuições temporárias ativas no momento.
+                  Não há atribui��ões temporárias ativas no momento.
                 </div>
               ) : (
                 <div className="border rounded-md">
