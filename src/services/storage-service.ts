@@ -254,6 +254,21 @@ export const storageService = {
         console.error(`Failed to remove item ${id} from localStorage, forcing removal`);
         const forceRemove = checkItems.filter(item => item.id !== id);
         storageService.setItem(storageKey, forceRemove);
+        
+        // Triple check to be absolutely sure
+        const finalCheck = storageService.getItem<any[]>(storageKey) || [];
+        if (finalCheck.some(item => item.id === id)) {
+          console.error(`Still failed to remove item ${id} from localStorage after forced removal`);
+          
+          // One final desperate attempt - replace the entire array
+          const finalArray = [];
+          for (const item of finalCheck) {
+            if (item.id !== id) {
+              finalArray.push(item);
+            }
+          }
+          storageService.setItem(storageKey, finalArray);
+        }
       }
     }
     

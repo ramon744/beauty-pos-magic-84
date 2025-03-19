@@ -236,6 +236,18 @@ export const useDeleteProduct = () => {
       // Invalidate queries to refetch data
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['productStats'] });
+      
+      // Perform one final check to ensure the product is truly gone
+      setTimeout(() => {
+        const finalCheck = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
+        if (finalCheck.some(p => p.id === productId)) {
+          console.error('Product still exists in localStorage after all deletion attempts');
+          const finalRemove = finalCheck.filter(p => p.id !== productId);
+          storageService.setItem(STORAGE_KEYS.PRODUCTS, finalRemove);
+          // Force a re-query 
+          queryClient.invalidateQueries({ queryKey: ['products'] });
+        }
+      }, 500);
     }
   });
 };
@@ -401,3 +413,4 @@ export const useStatistics = () => {
     enabled: !!products && !!categories,
   });
 };
+

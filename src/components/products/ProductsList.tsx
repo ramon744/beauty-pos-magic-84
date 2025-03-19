@@ -28,6 +28,11 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
   const [deletionInProgress, setDeletionInProgress] = useState(false);
   const [deletedProductIds, setDeletedProductIds] = useState<string[]>([]);
   
+  // On component mount, ensure we're starting with fresh data
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+  
   // Effect to handle refetching after deletion
   useEffect(() => {
     if (deletionInProgress && !isDeleting) {
@@ -88,6 +93,14 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
         });
         
         setProductToDelete(null);
+        
+        // Verify the product is truly gone from localStorage after deletion
+        const verifyProducts = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
+        if (verifyProducts.some(p => p.id === productToDelete)) {
+          console.warn("Product still exists in localStorage after deletion, forcing removal");
+          const forceRemoval = verifyProducts.filter(p => p.id !== productToDelete);
+          storageService.setItem(STORAGE_KEYS.PRODUCTS, forceRemoval);
+        }
       },
       onError: (error) => {
         toast({
