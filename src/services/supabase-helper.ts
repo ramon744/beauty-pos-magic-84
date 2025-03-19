@@ -7,8 +7,9 @@ import { supabase } from '@/integrations/supabase/client';
  * when the Database type is not properly defined
  */
 export function fromTable(table: string) {
-  // Using direct return with any type to completely bypass TypeScript's type checking
-  return supabase.from(table) as any;
+  // Cast both the input argument and the return value to any to bypass TypeScript's type checking
+  // This approach works because it handles the deepest part of the type error
+  return (supabase as any).from(table);
 }
 
 /**
