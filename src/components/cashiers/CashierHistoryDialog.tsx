@@ -34,7 +34,8 @@ export const CashierHistoryDialog = ({
   const { users } = useAuth();
   const { 
     groupedOperations, 
-    calculateShortage
+    calculateShortage,
+    hasDiscrepancy
   } = useCashierHistory(isOpen, cashierId, operations);
 
   const getUserName = (userId: string): string => {
