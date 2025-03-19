@@ -1,4 +1,3 @@
-
 import { storageService, STORAGE_KEYS } from './storage-service';
 import { cashierService } from './cashier-service';
 import { toast } from 'sonner';
@@ -213,6 +212,7 @@ export const cashierOperationsService = {
     storageService.setItem(STORAGE_KEYS.CASHIER_OPERATIONS, [...operations, operation]);
     
     // Update cashier status to closed - ONLY HERE WE CLOSE THE CASHIER
+    // This is the only place where we should set isActive to false
     cashierService.updateCashier(cashierId, { isActive: false });
     
     // Check for discrepancies
@@ -264,8 +264,7 @@ export const cashierOperationsService = {
     const operations = cashierOperationsService.getOperations();
     storageService.setItem(STORAGE_KEYS.CASHIER_OPERATIONS, [...operations, operation]);
     
-    // DO NOT update cashier status - it should remain open
-    // Explicitly maintain the active status to ensure it doesn't change
+    // CRITICAL FIX: Explicitly set cashier to active to ensure it stays open
     cashierService.updateCashier(cashierId, { isActive: true });
     
     toast.success(`Suprimento de ${amount.toLocaleString('pt-BR', {
@@ -311,8 +310,7 @@ export const cashierOperationsService = {
     const operations = cashierOperationsService.getOperations();
     storageService.setItem(STORAGE_KEYS.CASHIER_OPERATIONS, [...operations, operation]);
     
-    // DO NOT update cashier status - it should remain open
-    // Explicitly maintain the active status to ensure it doesn't change
+    // CRITICAL FIX: Explicitly set cashier to active to ensure it stays open
     cashierService.updateCashier(cashierId, { isActive: true });
     
     toast.success(`Sangria de ${amount.toLocaleString('pt-BR', {

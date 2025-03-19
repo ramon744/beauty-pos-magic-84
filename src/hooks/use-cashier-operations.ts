@@ -93,6 +93,7 @@ export function useCashierOperations() {
     
     try {
       setError(null);
+      // This should NOT close the cashier
       const operation = cashierOperationsService.addDeposit(cashierId, user.id, amount, reason, managerName, managerId);
       loadOperations(); // Reload operations to update UI
       return operation;
@@ -113,6 +114,7 @@ export function useCashierOperations() {
     
     try {
       setError(null);
+      // This should NOT close the cashier
       const operation = cashierOperationsService.addWithdrawal(cashierId, user.id, amount, reason, managerName, managerId);
       loadOperations(); // Reload operations to update UI
       return operation;
@@ -209,6 +211,10 @@ export function useCashierOperations() {
   // Load operations on component mount
   useEffect(() => {
     loadOperations();
+    
+    // Set up a reload interval to ensure data is always fresh
+    const intervalId = setInterval(loadOperations, 5000);
+    return () => clearInterval(intervalId);
   }, [loadOperations]);
 
   return {

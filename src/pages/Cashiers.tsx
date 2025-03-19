@@ -141,8 +141,8 @@ const Cashiers = () => {
         toast.success("Sangria realizada com sucesso");
         setWithdrawalAmount('');
         setWithdrawalReason('');
-        loadOperations(); // Recarrega as operações para atualizar a UI
-        loadCashiers(); // Recarrega os caixas para garantir status atualizado
+        loadOperations();
+        loadCashiers();
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Erro ao realizar sangria";
@@ -165,8 +165,8 @@ const Cashiers = () => {
         toast.success("Suprimento adicionado com sucesso");
         setDepositAmount('');
         setDepositReason('');
-        loadOperations(); // Recarrega as operações para atualizar a UI
-        loadCashiers(); // Recarrega os caixas para garantir status atualizado
+        loadOperations();
+        loadCashiers();
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Erro ao adicionar suprimento";
@@ -192,8 +192,16 @@ const Cashiers = () => {
   };
   
   useEffect(() => {
-    loadOperations();
-    loadCashiers();
+    const loadData = () => {
+      loadOperations();
+      loadCashiers();
+    };
+    
+    loadData();
+    
+    const intervalId = setInterval(loadData, 5000);
+    
+    return () => clearInterval(intervalId);
   }, [activeTab, loadOperations, loadCashiers]);
 
   return (
