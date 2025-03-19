@@ -9,10 +9,12 @@ import { PaymentDetails, MixedPayment } from '@/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { DiscountFormValues, discountFormSchema } from '@/components/sales/DiscountForm';
+import { useCashierOperations } from '@/hooks/use-cashier-operations';
 
 export const useSalesManager = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { getUserCashierStatus } = useCashierOperations();
   
   const [isManagerAuthOpen, setIsManagerAuthOpen] = useState(false);
   const [productIdToDelete, setProductIdToDelete] = useState<string | null>(null);
@@ -168,6 +170,10 @@ export const useSalesManager = () => {
 
   const handlePaymentConfirm = (paymentDetails: PaymentDetails | MixedPayment) => {
     console.log("Payment confirmed with discountAuthorizedBy:", discountAuthorizedBy);
+    
+    // Get cashier status
+    const cashierStatus = getUserCashierStatus();
+    
     const order = {
       id: generateSaleId(),
       items: cart,
@@ -178,14 +184,17 @@ export const useSalesManager = () => {
       finalTotal: cartTotal,
       paymentDetails: paymentDetails,
       seller: user,
+      userId: user?.id, // Ensure userId is always set for proper cashier detection
       createdAt: new Date(),
       appliedPromotionId: appliedPromotion?.promotionId,
       promotionDiscountAmount: promotionDiscountAmount,
       discountAuthorizedBy: discountAuthorizedBy,
-      discountReason: discountReason
+      discountReason: discountReason,
+      // Add cashier information if available
+      cashierId: cashierStatus.cashier?.id || null
     };
     
-    console.log("Saving order with discountAuthorizedBy:", order.discountAuthorizedBy);
+    console.log("Saving order with userId:", order.userId, "and cashierId:", order.cashierId);
     
     const orders = storageService.getItem<any[]>(STORAGE_KEYS.ORDERS) || [];
     orders.push(order);

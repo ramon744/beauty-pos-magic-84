@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Promotion, Customer } from '@/types';
 import { formatPromotionBadge } from '@/utils/promotions-utils';
 import { CustomerLinking } from './CustomerLinking';
+import { useCashierOperations } from '@/hooks/use-cashier-operations';
 
 interface SaleSummaryProps {
   cart: any[];
@@ -51,10 +52,27 @@ export const SaleSummary: React.FC<SaleSummaryProps> = ({
   onLinkCustomer,
   onUnlinkCustomer,
 }) => {
+  // Get current cashier status
+  const { getUserCashierStatus } = useCashierOperations();
+  const { cashier, isOpen } = getUserCashierStatus();
+
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-lg">Resumo da Venda</CardTitle>
+        {cashier && (
+          <div className="text-xs text-muted-foreground">
+            {isOpen ? (
+              <span className="text-green-600">
+                Caixa: {cashier.name} (Aberto)
+              </span>
+            ) : (
+              <span className="text-yellow-600">
+                Caixa: {cashier.name} (Fechado)
+              </span>
+            )}
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         {/* Customer linking component */}

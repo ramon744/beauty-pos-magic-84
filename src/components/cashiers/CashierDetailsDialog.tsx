@@ -71,7 +71,7 @@ export const CashierDetailsDialog = ({
       // Get all orders from storage
       const orders = storageService.getItem<any[]>(STORAGE_KEYS.ORDERS) || [];
       
-      // Find orders associated with this cashier
+      // Find latest open operation for this cashier
       const latestOpenOp = operations
         .filter(op => op.cashierId === cashierId && op.operationType === 'open')
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
@@ -80,15 +80,20 @@ export const CashierDetailsDialog = ({
         const openTimestamp = new Date(latestOpenOp.timestamp).getTime();
         const cashierUserId = latestOpenOp.userId;
         
-        // Get orders created after the cashier was opened and by the specific operator
+        // Filter sales by date and cashier operator
         const cashierOrders = orders.filter(order => {
           const orderDate = new Date(order.createdAt).getTime();
-          return orderDate >= openTimestamp && order.userId === cashierUserId;
+          // Check if order is after cashier opening AND either matches userId OR seller.id
+          return orderDate >= openTimestamp && 
+                 (order.userId === cashierUserId || 
+                 (order.seller && order.seller.id === cashierUserId));
         });
+        
+        console.log('Found cashier orders:', cashierOrders.length, 'for cashier user:', cashierUserId);
         
         // Process each order's payment data
         cashierOrders.forEach(order => {
-          if (order.paymentMethod === 'mixed' && order.paymentDetails.payments) {
+          if (order.paymentMethod === 'mixed' && order.paymentDetails && order.paymentDetails.payments) {
             // Handle mixed payments
             order.paymentDetails.payments.forEach((payment: any) => {
               const methodName = getMethodDisplayName(payment.method);
@@ -100,7 +105,7 @@ export const CashierDetailsDialog = ({
                 });
               }
             });
-          } else {
+          } else if (order.paymentDetails && order.paymentMethod) {
             // Handle single payment method
             const methodName = getMethodDisplayName(order.paymentMethod);
             if (methodsMap.has(methodName)) {

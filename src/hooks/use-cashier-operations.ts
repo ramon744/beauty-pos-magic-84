@@ -166,13 +166,18 @@ export function useCashierOperations() {
     if (!latestOpenOp) return 0;
     
     const openingTimestamp = new Date(latestOpenOp.timestamp).getTime();
+    const cashierUserId = latestOpenOp.userId;
     
-    // Calculate total sales since the cashier was opened
+    // Calculate total sales for this cashier since the cashier was opened
     let totalSales = 0;
     
     orders.forEach(order => {
       const orderDate = new Date(order.createdAt).getTime();
-      if (orderDate >= openingTimestamp) {
+      // Only count sales for this specific cashier operator
+      if (orderDate >= openingTimestamp && 
+          (order.userId === cashierUserId || 
+           (order.seller && order.seller.id === cashierUserId) || 
+           order.cashierId === cashierId)) {
         totalSales += order.finalTotal;
       }
     });
@@ -200,12 +205,22 @@ export function useCashierOperations() {
     if (!latestOpenOp) return Object.fromEntries(methodsMap);
     
     const openingTimestamp = new Date(latestOpenOp.timestamp).getTime();
+    const cashierUserId = latestOpenOp.userId;
+    
+    console.log(`Processing payment breakdown for cashier ${cashierId}, user ${cashierUserId}, since ${new Date(openingTimestamp).toLocaleString()}`);
     
     // Process each order
     orders.forEach(order => {
       const orderDate = new Date(order.createdAt).getTime();
-      if (orderDate >= openingTimestamp) {
-        if (order.paymentMethod === 'mixed' && order.paymentDetails.payments) {
+      // Only count sales for this specific cashier operator
+      if (orderDate >= openingTimestamp && 
+          (order.userId === cashierUserId || 
+           (order.seller && order.seller.id === cashierUserId) || 
+           order.cashierId === cashierId)) {
+        
+        console.log(`Including order ${order.id} with payment method ${order.paymentMethod} for ${order.finalTotal}`);
+        
+        if (order.paymentMethod === 'mixed' && order.paymentDetails?.payments) {
           // Handle mixed payments
           order.paymentDetails.payments.forEach((payment: any) => {
             const method = payment.method;
@@ -214,7 +229,9 @@ export function useCashierOperations() {
         } else {
           // Handle single payment method
           const method = order.paymentMethod;
-          methodsMap.set(method, (methodsMap.get(method) || 0) + order.finalTotal);
+          if (method) { // Make sure method exists
+            methodsMap.set(method, (methodsMap.get(method) || 0) + order.finalTotal);
+          }
         }
       }
     });
