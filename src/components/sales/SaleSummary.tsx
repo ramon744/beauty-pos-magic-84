@@ -148,12 +148,18 @@ export const SaleSummary: React.FC<SaleSummaryProps> = ({
         <Button 
           className="w-full" 
           size="lg" 
-          disabled={cart.length === 0}
+          disabled={cart.length === 0 || !isOpen}
           onClick={finalizeSale}
         >
           <CreditCard className="mr-2 h-5 w-5" />
           Finalizar Venda
         </Button>
+        
+        {!isOpen && cashier && (
+          <div className="text-center text-amber-600 text-sm">
+            O caixa precisa estar aberto para finalizar vendas
+          </div>
+        )}
         
         <div className="flex gap-2 w-full">
           <Button 

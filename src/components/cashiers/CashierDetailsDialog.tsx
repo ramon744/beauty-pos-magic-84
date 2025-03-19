@@ -61,68 +61,102 @@ export const CashierDetailsDialog = ({
   // Load payment data when dialog opens
   useEffect(() => {
     if (isOpen) {
-      // Start with default zero values
-      const methodsMap = new Map<string, PaymentMethodSummary>();
+      loadPaymentData();
+    }
+  }, [isOpen, cashierId, operations]);
+
+  const loadPaymentData = () => {
+    // Start with default zero values
+    const methodsMap = new Map<string, PaymentMethodSummary>();
       
-      DEFAULT_PAYMENT_METHODS.forEach(method => {
-        methodsMap.set(method.method, {...method, amount: 0});
+    DEFAULT_PAYMENT_METHODS.forEach(method => {
+      methodsMap.set(method.method, {...method, amount: 0});
+    });
+    
+    // Get all orders from storage
+    const orders = storageService.getItem<any[]>(STORAGE_KEYS.ORDERS) || [];
+    
+    // Find latest open operation for this cashier
+    const latestOpenOp = operations
+      .filter(op => op.cashierId === cashierId && op.operationType === 'open')
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+    
+    if (latestOpenOp) {
+      const openTimestamp = new Date(latestOpenOp.timestamp).getTime();
+      const cashierUserId = latestOpenOp.userId;
+      
+      console.log(`Loading payment data for cashier: ${cashierId}, operator: ${cashierUserId}`);
+      
+      // Filter sales by date and cashier operator
+      const cashierOrders = orders.filter(order => {
+        const orderDate = new Date(order.createdAt).getTime();
+        
+        // Match orders that are either:
+        // 1. Created by the same user (userId) OR
+        // 2. Have a seller with the same ID OR 
+        // 3. Explicitly linked to this cashier
+        const isMatchingOrder = orderDate >= openTimestamp && 
+                              (order.userId === cashierUserId || 
+                               (order.seller && order.seller.id === cashierUserId) ||
+                               order.cashierId === cashierId);
+        
+        return isMatchingOrder;
       });
       
-      // Get all orders from storage
-      const orders = storageService.getItem<any[]>(STORAGE_KEYS.ORDERS) || [];
+      console.log('Found cashier orders:', cashierOrders.length, 'for cashier user:', cashierUserId);
+      cashierOrders.forEach(order => console.log('Order details:', order.id, order.paymentMethod, order.finalTotal));
       
-      // Find latest open operation for this cashier
-      const latestOpenOp = operations
-        .filter(op => op.cashierId === cashierId && op.operationType === 'open')
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
-      
-      if (latestOpenOp) {
-        const openTimestamp = new Date(latestOpenOp.timestamp).getTime();
-        const cashierUserId = latestOpenOp.userId;
-        
-        // Filter sales by date and cashier operator
-        const cashierOrders = orders.filter(order => {
-          const orderDate = new Date(order.createdAt).getTime();
-          // Check if order is after cashier opening AND either matches userId OR seller.id
-          return orderDate >= openTimestamp && 
-                 (order.userId === cashierUserId || 
-                 (order.seller && order.seller.id === cashierUserId));
-        });
-        
-        console.log('Found cashier orders:', cashierOrders.length, 'for cashier user:', cashierUserId);
-        
-        // Process each order's payment data
-        cashierOrders.forEach(order => {
-          if (order.paymentMethod === 'mixed' && order.paymentDetails && order.paymentDetails.payments) {
-            // Handle mixed payments
-            order.paymentDetails.payments.forEach((payment: any) => {
-              const methodName = getMethodDisplayName(payment.method);
-              if (methodsMap.has(methodName)) {
-                const current = methodsMap.get(methodName)!;
-                methodsMap.set(methodName, {
-                  ...current,
-                  amount: current.amount + payment.amount
-                });
-              }
-            });
-          } else if (order.paymentDetails && order.paymentMethod) {
-            // Handle single payment method
-            const methodName = getMethodDisplayName(order.paymentMethod);
+      // Process each order's payment data
+      cashierOrders.forEach(order => {
+        if (order.paymentMethod === 'mixed' && order.paymentDetails && order.paymentDetails.payments) {
+          // Handle mixed payments
+          order.paymentDetails.payments.forEach((payment: any) => {
+            const methodName = getMethodDisplayName(payment.method);
             if (methodsMap.has(methodName)) {
               const current = methodsMap.get(methodName)!;
               methodsMap.set(methodName, {
                 ...current,
-                amount: current.amount + order.finalTotal
+                amount: current.amount + payment.amount
+              });
+            } else {
+              // If we don't have this method in our map yet, add it
+              methodsMap.set(methodName, {
+                method: methodName,
+                amount: payment.amount,
+                color: getRandomColor()
               });
             }
+          });
+        } else if (order.paymentMethod) {
+          // Handle single payment method
+          const methodName = getMethodDisplayName(order.paymentMethod);
+          if (methodsMap.has(methodName)) {
+            const current = methodsMap.get(methodName)!;
+            methodsMap.set(methodName, {
+              ...current,
+              amount: current.amount + order.finalTotal
+            });
+          } else {
+            // If we don't have this method in our map yet, add it
+            methodsMap.set(methodName, {
+              method: methodName,
+              amount: order.finalTotal,
+              color: getRandomColor()
+            });
           }
-        });
-      }
-      
-      // Convert map back to array
-      setPaymentMethods(Array.from(methodsMap.values()));
+        }
+      });
     }
-  }, [isOpen, cashierId, operations]);
+    
+    // Convert map back to array and update state
+    setPaymentMethods(Array.from(methodsMap.values()));
+  };
+
+  // Helper function to generate a random color for new payment methods
+  const getRandomColor = (): string => {
+    const colors = ['#16a34a', '#2563eb', '#9333ea', '#eab308', '#dc2626', '#7c3aed', '#f97316'];
+    return colors[Math.floor(Math.random() * colors.length)];
+  };
 
   // Helper function to convert payment method codes to display names
   const getMethodDisplayName = (methodCode: string): string => {

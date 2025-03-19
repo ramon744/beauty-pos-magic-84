@@ -171,7 +171,7 @@ export const useSalesManager = () => {
   const handlePaymentConfirm = (paymentDetails: PaymentDetails | MixedPayment) => {
     console.log("Payment confirmed with discountAuthorizedBy:", discountAuthorizedBy);
     
-    // Get cashier status
+    // Get cashier status to properly associate this sale with a cashier
     const cashierStatus = getUserCashierStatus();
     
     const order = {
@@ -190,8 +190,9 @@ export const useSalesManager = () => {
       promotionDiscountAmount: promotionDiscountAmount,
       discountAuthorizedBy: discountAuthorizedBy,
       discountReason: discountReason,
-      // Add cashier information if available
-      cashierId: cashierStatus.cashier?.id || null
+      // Add cashier information if available - critical for payment tracking
+      cashierId: cashierStatus.cashier?.id || null,
+      cashierName: cashierStatus.cashier?.name || null
     };
     
     console.log("Saving order with userId:", order.userId, "and cashierId:", order.cashierId);

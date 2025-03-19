@@ -212,25 +212,35 @@ export function useCashierOperations() {
     // Process each order
     orders.forEach(order => {
       const orderDate = new Date(order.createdAt).getTime();
-      // Only count sales for this specific cashier operator
-      if (orderDate >= openingTimestamp && 
-          (order.userId === cashierUserId || 
-           (order.seller && order.seller.id === cashierUserId) || 
-           order.cashierId === cashierId)) {
-        
+      
+      // Include all orders that match either the cashier ID OR the cashier user ID
+      const isMatchingOrder = orderDate >= openingTimestamp && 
+        (order.userId === cashierUserId || 
+         (order.seller && order.seller.id === cashierUserId) || 
+         order.cashierId === cashierId);
+      
+      if (isMatchingOrder) {
         console.log(`Including order ${order.id} with payment method ${order.paymentMethod} for ${order.finalTotal}`);
         
+        // For mixed payments, add each payment separately
         if (order.paymentMethod === 'mixed' && order.paymentDetails?.payments) {
-          // Handle mixed payments
           order.paymentDetails.payments.forEach((payment: any) => {
             const method = payment.method;
-            methodsMap.set(method, (methodsMap.get(method) || 0) + payment.amount);
+            if (methodsMap.has(method)) {
+              methodsMap.set(method, (methodsMap.get(method) || 0) + payment.amount);
+            } else {
+              // If the method doesn't exist in our map, add it
+              methodsMap.set(method, payment.amount);
+            }
           });
-        } else {
-          // Handle single payment method
-          const method = order.paymentMethod;
-          if (method) { // Make sure method exists
-            methodsMap.set(method, (methodsMap.get(method) || 0) + order.finalTotal);
+        } 
+        // For single payment method
+        else if (order.paymentMethod) { 
+          if (methodsMap.has(order.paymentMethod)) {
+            methodsMap.set(order.paymentMethod, (methodsMap.get(order.paymentMethod) || 0) + order.finalTotal);
+          } else {
+            // If the method doesn't exist in our map, add it
+            methodsMap.set(order.paymentMethod, order.finalTotal);
           }
         }
       }
