@@ -3,7 +3,7 @@ import React from 'react';
 import { formatCurrency } from '@/lib/formatters';
 import { CashierOperation } from '@/services/cashier-operations-service';
 import { format } from 'date-fns';
-import { AlertCircleIcon, BanknoteIcon, ShieldAlertIcon } from 'lucide-react';
+import { AlertCircleIcon, BanknoteIcon, ShieldAlertIcon, UserIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
@@ -47,7 +47,8 @@ export const CashierOperationCard: React.FC<CashierOperationCardProps> = ({
           </div>
           <div className="text-right">
             <div className="font-medium">{formatCurrency(operation.amount)}</div>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground flex items-center justify-end gap-1">
+              <UserIcon className="h-3.5 w-3.5" />
               Operador: {getUserName(operation.userId)}
             </div>
           </div>
@@ -104,7 +105,7 @@ export const CashierOperationCard: React.FC<CashierOperationCardProps> = ({
           <div className="text-sm border-t pt-2 mt-2">
             {operation.reason && (
               <div className="italic text-muted-foreground">
-                Motivo: {operation.reason}
+                <strong>Motivo:</strong> {operation.reason}
               </div>
             )}
             {operation.managerName && (
