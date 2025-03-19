@@ -222,8 +222,8 @@ export function useCashierOperations() {
     loadOperations,
     loadUserOperations,
     getUserCashierStatus,
-    getCashierSalesTotal,
-    getCashierPaymentBreakdown,
+    getCashierSalesTotal: getCashierSalesTotal,
+    getCashierPaymentBreakdown: getCashierPaymentBreakdown,
     isCashierOpen: cashierOperationsService.isCashierOpen,
     getCashierBalance: cashierOperationsService.getCashierBalance,
     getLatestCashierOperation: cashierOperationsService.getLatestCashierOperation

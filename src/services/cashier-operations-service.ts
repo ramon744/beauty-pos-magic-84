@@ -211,7 +211,7 @@ export const cashierOperationsService = {
     const operations = cashierOperationsService.getOperations();
     storageService.setItem(STORAGE_KEYS.CASHIER_OPERATIONS, [...operations, operation]);
     
-    // Update cashier status
+    // Update cashier status to closed
     cashierService.updateCashier(cashierId, { isActive: false });
     
     // Check for discrepancies
@@ -263,8 +263,7 @@ export const cashierOperationsService = {
     const operations = cashierOperationsService.getOperations();
     storageService.setItem(STORAGE_KEYS.CASHIER_OPERATIONS, [...operations, operation]);
     
-    // NÃO atualizar o status do caixa - ele permanece aberto
-    // REMOVIDO: cashierService.updateCashier(cashierId, { isActive: false });
+    // IMPORTANTE: Não atualizar o status do caixa - ele deve permanecer aberto
     
     toast.success(`Suprimento de ${amount.toLocaleString('pt-BR', {
       style: 'currency',
@@ -309,8 +308,7 @@ export const cashierOperationsService = {
     const operations = cashierOperationsService.getOperations();
     storageService.setItem(STORAGE_KEYS.CASHIER_OPERATIONS, [...operations, operation]);
     
-    // NÃO atualizar o status do caixa - ele permanece aberto
-    // REMOVIDO: cashierService.updateCashier(cashierId, { isActive: false });
+    // IMPORTANTE: Não atualizar o status do caixa - ele deve permanecer aberto
     
     toast.success(`Sangria de ${amount.toLocaleString('pt-BR', {
       style: 'currency',

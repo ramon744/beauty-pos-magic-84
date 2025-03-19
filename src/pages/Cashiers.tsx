@@ -34,7 +34,7 @@ import { ManagerAuthDialog } from '@/components/auth/ManagerAuthDialog';
 
 const Cashiers = () => {
   const [activeTab, setActiveTab] = useState('open');
-  const { cashiers, isLoading } = useCashiers();
+  const { cashiers, isLoading, loadCashiers } = useCashiers();
   const { 
     operations, 
     getUserCashierStatus, 
@@ -142,6 +142,7 @@ const Cashiers = () => {
         setWithdrawalAmount('');
         setWithdrawalReason('');
         loadOperations(); // Recarrega as operações para atualizar a UI
+        loadCashiers(); // Recarrega os caixas para garantir status atualizado
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Erro ao realizar sangria";
@@ -165,6 +166,7 @@ const Cashiers = () => {
         setDepositAmount('');
         setDepositReason('');
         loadOperations(); // Recarrega as operações para atualizar a UI
+        loadCashiers(); // Recarrega os caixas para garantir status atualizado
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Erro ao adicionar suprimento";
@@ -189,6 +191,11 @@ const Cashiers = () => {
     return user ? user.name : "Usuário desconhecido";
   };
   
+  useEffect(() => {
+    loadOperations();
+    loadCashiers();
+  }, [activeTab, loadOperations, loadCashiers]);
+
   return (
     <div className="container p-6 space-y-6">
       <div className="flex flex-col space-y-2">
@@ -592,3 +599,4 @@ const Cashiers = () => {
 };
 
 export default Cashiers;
+
