@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { cashierOperationsService, CashierOperation } from '@/services/cashier-operations-service';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
@@ -52,6 +51,9 @@ export function useCashierOperationsReport(
       // Get all operations
       const allOperations = cashierOperationsService.getOperations();
       
+      // Get users to populate userName
+      const users = storageService.getItem(STORAGE_KEYS.USERS) || [];
+      
       // Filter operations by date range and operator
       let filteredOperations = allOperations.filter(op => {
         const opDate = new Date(op.timestamp);
@@ -59,6 +61,15 @@ export function useCashierOperationsReport(
         const isMatchingOperator = operatorId === 'all' || op.userId === operatorId;
         
         return isInRange && isMatchingOperator;
+      });
+      
+      // Add userName to operations
+      filteredOperations = filteredOperations.map(op => {
+        const user = users.find((u: any) => u.id === op.userId);
+        return {
+          ...op,
+          userName: user?.name || undefined
+        };
       });
       
       // Further filter based on report type

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,12 +41,10 @@ const CashierOperationsReportContent = () => {
   const { users } = useAuth();
   const { data, isLoading, refetch } = useCashierOperationsReport(dateRange, selectedOperator, reportType);
 
-  // Format date for display
   const formatDate = (date: Date) => {
     return format(date, 'dd/MM/yyyy', { locale: ptBR });
   };
 
-  // Handle export
   const handleExport = (format: 'excel' | 'pdf') => {
     if (!data) {
       toast.error('Não há dados para exportar');
@@ -84,24 +81,20 @@ const CashierOperationsReportContent = () => {
     }
   };
 
-  // Calculate total shortages if applicable
   const getTotalShortages = () => {
     if (!data || !data.shortages || data.shortages.length === 0) return 0;
     
     return data.shortages.reduce((total, shortage) => total + shortage.amount, 0);
   };
 
-  // Helper to find user name
   const getUserName = (userId: string) => {
     const user = users.find(u => u.id === userId);
     return user ? user.name : `ID: ${userId.substring(0, 6)}`;
   };
 
-  // Helper to format the discrepancy reason, removing any internal manager info
   const formatReason = (reason?: string): string => {
     if (!reason) return '-';
     
-    // Check if the reason includes the "Autorizado por:" text
     const parts = reason.split('\nAutorizado por:');
     if (parts.length > 1) {
       return parts[0].trim();
@@ -140,7 +133,6 @@ const CashierOperationsReportContent = () => {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-3">
-            {/* Date Range Selector */}
             <div className="space-y-1.5">
               <Label>Período</Label>
               <Popover>
@@ -177,7 +169,6 @@ const CashierOperationsReportContent = () => {
               </Popover>
             </div>
 
-            {/* Operator Selector */}
             <div className="space-y-1.5">
               <Label>Operador</Label>
               <Select
@@ -198,7 +189,6 @@ const CashierOperationsReportContent = () => {
               </Select>
             </div>
 
-            {/* Report Type Selector */}
             <div className="space-y-1.5">
               <Label>Tipo de Relatório</Label>
               <Select 
@@ -217,7 +207,6 @@ const CashierOperationsReportContent = () => {
               </Select>
             </div>
             
-            {/* Generate Button */}
             <div className="md:col-span-3 mt-4">
               <Button 
                 onClick={() => refetch()} 
@@ -231,7 +220,6 @@ const CashierOperationsReportContent = () => {
         </CardContent>
       </Card>
 
-      {/* Report Results */}
       {data && (
         <Card>
           <CardHeader>
@@ -252,7 +240,6 @@ const CashierOperationsReportContent = () => {
               </Alert>
             ) : (
               <div className="space-y-4">
-                {/* Summary Section */}
                 <div className="grid gap-4 grid-cols-1 md:grid-cols-3 mb-6">
                   <Card>
                     <CardContent className="pt-6">
@@ -318,7 +305,6 @@ const CashierOperationsReportContent = () => {
                   )}
                 </div>
 
-                {/* Data Table */}
                 <div className="rounded-md border">
                   <div className="overflow-x-auto">
                     <table className="w-full table-auto">
