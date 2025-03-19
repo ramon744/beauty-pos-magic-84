@@ -263,6 +263,8 @@ export const cashierOperationsService = {
     const operations = cashierOperationsService.getOperations();
     storageService.setItem(STORAGE_KEYS.CASHIER_OPERATIONS, [...operations, operation]);
     
+    // Don't update cashier status - keep it open
+    
     toast.success(`Suprimento de ${amount.toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL'
@@ -305,6 +307,8 @@ export const cashierOperationsService = {
     // Save operation
     const operations = cashierOperationsService.getOperations();
     storageService.setItem(STORAGE_KEYS.CASHIER_OPERATIONS, [...operations, operation]);
+    
+    // Don't update cashier status - keep it open
     
     toast.success(`Sangria de ${amount.toLocaleString('pt-BR', {
       style: 'currency',

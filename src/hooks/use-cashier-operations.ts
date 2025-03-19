@@ -47,7 +47,7 @@ export function useCashierOperations() {
   // Open a cashier
   const openCashier = useCallback(async (cashierId: string, initialAmount: number) => {
     if (!user) {
-      toast({ title: 'Usuário não autenticado', variant: 'destructive' });
+      toast.error('Usuário não autenticado');
       return null;
     }
     
@@ -67,7 +67,7 @@ export function useCashierOperations() {
   // Close a cashier
   const closeCashier = useCallback(async (cashierId: string, finalAmount: number, discrepancyReason?: string, managerName?: string, managerId?: string) => {
     if (!user) {
-      toast({ title: 'Usuário não autenticado', variant: 'destructive' });
+      toast.error('Usuário não autenticado');
       return null;
     }
     
