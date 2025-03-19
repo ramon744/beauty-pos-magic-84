@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { ColumnDef } from '@tanstack/react-table';
-import { User, UserRole } from '@/types';
+import { User as UserType, UserRole } from '@/types';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -42,7 +42,7 @@ const Users = () => {
   const { users, addUser, updateUser, removeUser, hasPermission } = useAuth();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
   const [activeTab, setActiveTab] = useState<string>("profile");
 
   const addForm = useForm<UserFormValues>({
@@ -103,7 +103,7 @@ const Users = () => {
     }
   };
 
-  const openEditDialog = (user: User) => {
+  const openEditDialog = (user: UserType) => {
     setSelectedUser(user);
     editForm.setValue('id', user.id);
     editForm.setValue('name', user.name);
@@ -135,6 +135,7 @@ const Users = () => {
         email: string; 
         role: UserRole;
         password?: string;
+        accessRights?: string[];
       } = {
         id: data.id,
         name: data.name,
@@ -195,7 +196,7 @@ const Users = () => {
     }
   };
 
-  const columns: ColumnDef<User>[] = [
+  const columns: ColumnDef<UserType>[] = [
     {
       accessorKey: 'id',
       header: 'ID',
