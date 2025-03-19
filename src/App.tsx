@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,44 +21,50 @@ import Labels from "./pages/Labels";
 import Cashiers from "./pages/Cashiers";
 import CashierLink from "./pages/CashierLink";
 import MainLayout from "./components/layout/MainLayout";
+import { useDataMigration } from './hooks/use-data-migration';
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <Toaster />
-          <Sonner />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            
-            {/* Protected routes with MainLayout */}
-            <Route element={<MainLayout />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/sales" element={<Sales />} />
-              <Route path="/products" element={<Products />} />
-              <Route path="/suppliers" element={<Suppliers />} />
-              <Route path="/users" element={<Users />} />
-              <Route path="/customers" element={<Customers />} />
-              <Route path="/promotions" element={<Promotions />} />
-              <Route path="/orders" element={<Orders />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/history" element={<HistoryPage />} />
-              <Route path="/printers" element={<Printers />} />
-              <Route path="/labels" element={<Labels />} />
-              <Route path="/cashiers" element={<Cashiers />} />
-              <Route path="/cashiers/link" element={<CashierLink />} />
-            </Route>
-            
-            {/* Catch-all route */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+function App() {
+  // Initialize data migration
+  const { isMigrating, isCompleted, error } = useDataMigration();
+  
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <Toaster />
+            <Sonner />
+            <Routes>
+              <Route path="/" element={<Index />} />
+              
+              {/* Protected routes with MainLayout */}
+              <Route element={<MainLayout />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/sales" element={<Sales />} />
+                <Route path="/products" element={<Products />} />
+                <Route path="/suppliers" element={<Suppliers />} />
+                <Route path="/users" element={<Users />} />
+                <Route path="/customers" element={<Customers />} />
+                <Route path="/promotions" element={<Promotions />} />
+                <Route path="/orders" element={<Orders />} />
+                <Route path="/reports" element={<Reports />} />
+                <Route path="/history" element={<HistoryPage />} />
+                <Route path="/printers" element={<Printers />} />
+                <Route path="/labels" element={<Labels />} />
+                <Route path="/cashiers" element={<Cashiers />} />
+                <Route path="/cashiers/link" element={<CashierLink />} />
+              </Route>
+              
+              {/* Catch-all route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;
