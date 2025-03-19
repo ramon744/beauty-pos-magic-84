@@ -33,13 +33,13 @@ interface NavItemProps {
   to: string;
   icon: React.ReactNode;
   label: string;
-  requiredRoles?: UserRole[];
+  pageId: string;
 }
 
-const NavItem: React.FC<NavItemProps> = ({ to, icon, label, requiredRoles = ['admin', 'manager', 'employee'] }) => {
-  const { hasPermission } = useAuth();
+const NavItem: React.FC<NavItemProps> = ({ to, icon, label, pageId }) => {
+  const { hasPageAccess } = useAuth();
   
-  if (!hasPermission(requiredRoles)) return null;
+  if (!hasPageAccess(pageId)) return null;
   
   return (
     <NavLink
@@ -67,13 +67,13 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, label, requiredRoles = ['ad
 interface SubNavItemProps {
   to: string;
   label: string;
-  requiredRoles?: UserRole[];
+  pageId: string;
 }
 
-const SubNavItem: React.FC<SubNavItemProps> = ({ to, label, requiredRoles = ['admin', 'manager', 'employee'] }) => {
-  const { hasPermission } = useAuth();
+const SubNavItem: React.FC<SubNavItemProps> = ({ to, label, pageId }) => {
+  const { hasPageAccess } = useAuth();
   
-  if (!hasPermission(requiredRoles)) return null;
+  if (!hasPageAccess(pageId)) return null;
   
   return (
     <NavLink
@@ -128,81 +128,86 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle }) => {
             to="/dashboard" 
             icon={<LayoutDashboard size={20} />} 
             label="Dashboard" 
+            pageId="dashboard"
           />
           <NavItem 
             to="/sales" 
             icon={<CircleDollarSign size={20} />} 
             label="PDV" 
+            pageId="sales"
           />
           <NavItem 
             to="/cashiers" 
             icon={<Wallet size={20} />} 
             label="Caixa" 
-            requiredRoles={['admin', 'manager']}
+            pageId="cashiers"
           />
           {isOpen && (
             <SubNavItem
               to="/cashiers/link"
               label="Vincular Caixa"
-              requiredRoles={['admin']}
+              pageId="cashiers"
             />
           )}
           <NavItem 
             to="/products" 
             icon={<PackageSearch size={20} />} 
             label="Produtos" 
-            requiredRoles={['admin', 'manager']}
+            pageId="products"
           />
           <NavItem 
             to="/suppliers" 
             icon={<Truck size={20} />} 
             label="Fornecedores" 
-            requiredRoles={['admin', 'manager']}
+            pageId="suppliers"
           />
           <NavItem 
             to="/customers" 
             icon={<Users size={20} />} 
             label="Clientes" 
+            pageId="customers"
           />
           <NavItem 
             to="/orders" 
             icon={<ShoppingBag size={20} />} 
             label="Pedidos" 
-            requiredRoles={['admin', 'manager']}
+            pageId="orders"
           />
           <NavItem 
             to="/promotions" 
             icon={<Percent size={20} />} 
             label="Promoções" 
-            requiredRoles={['admin', 'manager']}
+            pageId="promotions"
           />
           <NavItem 
             to="/reports" 
             icon={<BarChart3 size={20} />} 
             label="Relatórios" 
-            requiredRoles={['admin', 'manager']}
+            pageId="reports"
           />
           <NavItem 
             to="/labels" 
             icon={<Tag size={20} />} 
             label="Etiquetas" 
+            pageId="labels"
           />
           <NavItem 
             to="/printers" 
             icon={<Printer size={20} />} 
             label="Impressoras" 
-            requiredRoles={['admin', 'manager']}
+            pageId="printers"
           />
           <NavItem 
             to="/history" 
             icon={<Clock size={20} />} 
             label="Histórico" 
+            pageId="history"
           />
           <NavItem 
             to="/users" 
             icon={<UserCog size={20} />} 
             label="Usuários" 
-            requiredRoles={['admin']}
+            pageId="users"
           />
         </div>
       </div>

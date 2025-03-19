@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -43,8 +44,9 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   hasPermission: (requiredRoles: UserRole[]) => boolean;
+  hasPageAccess: (pageId: string) => boolean;
   addUser: (userData: { id: string; name: string; email: string; password: string; role: UserRole }) => Promise<User>;
-  updateUser: (id: string, userData: { id: string; name: string; email: string; role: UserRole; password?: string }) => Promise<User>;
+  updateUser: (id: string, userData: Partial<User> & { id: string }) => Promise<User>;
   removeUser: (id: string) => Promise<boolean>;
   assignCashierToUser: (userId: string, cashierId: string) => Promise<void>;
   unassignCashierFromUser: (userId: string) => Promise<void>;
@@ -143,15 +145,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Update an existing user
-  const updateUser = async (id: string, userData: { 
-    id: string;
-    name: string; 
-    email: string; 
-    role: UserRole;
-    password?: string 
-  }): Promise<User> => {
+  const updateUser = async (id: string, userData: Partial<User> & { id: string }): Promise<User> => {
     // Check if email already exists and belongs to a different user
-    if (users.some(u => u.email === userData.email && u.id !== id)) {
+    if (userData.email && users.some(u => u.email === userData.email && u.id !== id)) {
       throw new Error('Email já está em uso');
     }
     
@@ -162,19 +158,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     const updatedUsers = users.map(u => {
       if (u.id === id) {
-        // Create updated user object with new ID
-        const updatedUser = { 
-          ...u,
-          id: userData.id,
-          name: userData.name,
-          email: userData.email,
-          role: userData.role
-        };
-        
-        // Update password only if it was provided
-        if (userData.password) {
-          updatedUser.password = userData.password;
-        }
+        // Create updated user object
+        const updatedUser = { ...u, ...userData };
         
         // If this is the currently logged in user, update the auth state too
         if (user && user.id === id) {
@@ -315,6 +300,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return requiredRoles.includes(user.role);
   };
 
+  // Check if user has access to a specific page
+  const hasPageAccess = (pageId: string): boolean => {
+    if (!user) return false;
+    
+    // Admin always has access to everything
+    if (user.role === 'admin') return true;
+    
+    // If user has specific access rights defined, check those
+    if (user.accessRights) {
+      return user.accessRights.includes(pageId);
+    }
+    
+    // Default page access based on role
+    const pageAccess: Record<string, UserRole[]> = {
+      dashboard: ['admin', 'manager', 'employee'],
+      sales: ['admin', 'manager', 'employee'],
+      products: ['admin', 'manager'],
+      suppliers: ['admin', 'manager'],
+      customers: ['admin', 'manager', 'employee'],
+      orders: ['admin', 'manager'],
+      promotions: ['admin', 'manager'],
+      reports: ['admin', 'manager'],
+      labels: ['admin', 'manager', 'employee'],
+      printers: ['admin', 'manager'],
+      history: ['admin', 'manager', 'employee'],
+      cashiers: ['admin', 'manager'],
+      users: ['admin'],
+    };
+    
+    return pageAccess[pageId]?.includes(user.role) || false;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -325,6 +342,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         logout,
         hasPermission,
+        hasPageAccess,
         addUser,
         updateUser,
         removeUser,

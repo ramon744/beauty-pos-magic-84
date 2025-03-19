@@ -1,10 +1,12 @@
+
 import React, { useState } from 'react';
-import { Users as UsersIcon, UserPlus, Pencil, Trash2 } from 'lucide-react';
+import { Users as UsersIcon, UserPlus, Pencil, Trash2, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/common/DataTable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { ColumnDef } from '@tanstack/react-table';
@@ -13,6 +15,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { UserRoleSelect } from '@/components/users/UserRoleSelect';
+import { AccessControlTab } from '@/components/users/AccessControlTab';
 
 // Form validation schema
 const userFormSchema = z.object({
@@ -40,6 +43,7 @@ const Users = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [activeTab, setActiveTab] = useState<string>("profile");
 
   const addForm = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
@@ -107,6 +111,7 @@ const Users = () => {
     editForm.setValue('role', user.role);
     editForm.setValue('password', ''); // Reset password field
     setIsEditDialogOpen(true);
+    setActiveTab("profile"); // Reset to profile tab when opening dialog
   };
 
   const handleEditUser = async (data: UserEditFormValues) => {
@@ -142,14 +147,29 @@ const Users = () => {
         updateData.password = data.password;
       }
       
+      // Preserve the access rights if they exist
+      if (selectedUser.accessRights) {
+        updateData.accessRights = selectedUser.accessRights;
+      }
+      
       await updateUser(selectedUser.id, updateData);
       
       toast({
         title: 'Usuário atualizado',
         description: `${data.name} foi atualizado com sucesso`,
       });
-      setIsEditDialogOpen(false);
-      editForm.reset();
+      
+      // Don't close the dialog if we're on the access control tab
+      if (activeTab === "profile") {
+        setIsEditDialogOpen(false);
+        editForm.reset();
+      } else {
+        // Update the selected user with the new data
+        setSelectedUser({
+          ...selectedUser,
+          ...updateData,
+        });
+      }
     } catch (error) {
       toast({
         title: 'Erro',
@@ -369,92 +389,112 @@ const Users = () => {
 
       {/* Edit User Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Editar Usuário</DialogTitle>
           </DialogHeader>
-          <Form {...editForm}>
-            <form onSubmit={editForm.handleSubmit(handleEditUser)} className="space-y-4">
-              <FormField
-                control={editForm.control}
-                name="id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>ID (máx. 6 dígitos)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="ID numérico" 
-                        {...field} 
-                        maxLength={6}
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={editForm.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nome do usuário" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={editForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="email@exemplo.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={editForm.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nova Senha (opcional)</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="Deixe em branco para manter a senha atual" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={editForm.control}
-                name="role"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Perfil</FormLabel>
-                    <FormControl>
-                      <UserRoleSelect 
-                        value={field.value} 
-                        onValueChange={field.onChange} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <Button type="submit">Atualizar</Button>
-              </DialogFooter>
-            </form>
-          </Form>
+          
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="profile">
+                <User className="h-4 w-4 mr-2" />
+                Perfil
+              </TabsTrigger>
+              <TabsTrigger value="access">
+                <Shield className="h-4 w-4 mr-2" />
+                Controle de Acesso
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="profile">
+              <Form {...editForm}>
+                <form onSubmit={editForm.handleSubmit(handleEditUser)} className="space-y-4">
+                  <FormField
+                    control={editForm.control}
+                    name="id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>ID (máx. 6 dígitos)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="ID numérico" 
+                            {...field} 
+                            maxLength={6}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nome</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Nome do usuário" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="email@exemplo.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nova Senha (opcional)</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="Deixe em branco para manter a senha atual" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="role"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Perfil</FormLabel>
+                        <FormControl>
+                          <UserRoleSelect 
+                            value={field.value} 
+                            onValueChange={field.onChange} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <DialogFooter>
+                    <Button type="submit">Atualizar</Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </TabsContent>
+            
+            <TabsContent value="access">
+              <AccessControlTab selectedUser={selectedUser} />
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     </div>
