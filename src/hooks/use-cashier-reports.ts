@@ -53,7 +53,7 @@ export function useCashierOperationsReport(
       // Get all operations
       const allOperations = cashierOperationsService.getOperations();
       
-      // Get users to populate userName
+      // Get users to populate userName - fix TypeScript error by adding proper type annotation
       const users = storageService.getItem<User[]>(STORAGE_KEYS.USERS) || [];
       
       // Filter operations by date range and operator
