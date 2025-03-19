@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useFetchProducts, useStockAdjustment, useStockHistory } from '@/hooks/use-products';
 import { DataTable } from '@/components/common/DataTable';
@@ -122,7 +123,8 @@ const InventoryControl = () => {
       {
         productId: product.id,
         quantity: Math.abs(adjustment),
-        reason: 'Ajuste rápido de estoque'
+        reason: 'Ajuste rápido de estoque',
+        adjustmentType: adjustment > 0 ? 'add' : 'remove'
       },
       {
         onSuccess: () => {
@@ -173,8 +175,11 @@ const InventoryControl = () => {
     adjustStock(
       {
         productId: selectedProduct.id,
-        quantity: Math.abs(newStock - selectedProduct.stock),
-        reason: adjustmentReason || `Ajuste de estoque (${adjustmentType})`
+        quantity: adjustmentType === 'balance' 
+          ? Math.abs(newStock - selectedProduct.stock) 
+          : adjustmentQuantity,
+        reason: adjustmentReason || `Ajuste de estoque (${adjustmentType})`,
+        adjustmentType: adjustmentType
       },
       {
         onSuccess: () => {
@@ -533,7 +538,7 @@ const InventoryControl = () => {
                           <TableCell className="whitespace-nowrap">
                             <div className="flex items-center space-x-1">
                               <User className="h-3 w-3" />
-                              <span>{entry.userName}</span>
+                              <span>{entry.userName || user?.name || "Usuário do Sistema"}</span>
                             </div>
                           </TableCell>
                           <TableCell className="max-w-xs truncate">
@@ -574,7 +579,7 @@ const InventoryControl = () => {
 
             <div className="flex items-center space-x-2">
               <div className="font-medium min-w-[120px]">Responsável:</div>
-              <div className="font-bold">{user?.name} ({user?.role === 'admin' ? 'Administrador' : 'Gerente'})</div>
+              <div className="font-bold">{user?.name || 'Usuário do Sistema'} ({user?.role === 'admin' ? 'Administrador' : 'Gerente'})</div>
             </div>
 
             {adjustmentType === 'balance' ? (
@@ -697,4 +702,3 @@ const InventoryControl = () => {
 };
 
 export default InventoryControl;
-

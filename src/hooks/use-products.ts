@@ -209,7 +209,7 @@ export const useStockAdjustment = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (data: { productId: string, quantity: number, reason: string }) => {
+    mutationFn: (data: { productId: string, quantity: number, reason: string, adjustmentType?: 'add' | 'remove' | 'balance' }) => {
       return new Promise<typeof data>((resolve) => {
         setTimeout(() => {
           console.log('Adjusting stock:', data);
@@ -221,8 +221,24 @@ export const useStockAdjustment = () => {
           const productIndex = products.findIndex(p => p.id === data.productId);
           
           if (productIndex >= 0) {
+            const product = products[productIndex];
+            const previousStock = product.stock;
+            let newStock = previousStock;
+            
+            // Determine how to adjust the stock based on the adjustment type
+            if (data.adjustmentType === 'remove') {
+              // If it's a removal, subtract the quantity
+              newStock = previousStock - data.quantity;
+            } else if (data.adjustmentType === 'add' || !data.adjustmentType) {
+              // If it's an addition or the type is not specified, add the quantity
+              newStock = previousStock + data.quantity;
+            } else if (data.adjustmentType === 'balance') {
+              // If it's a balance, set the stock to the quantity
+              newStock = data.quantity;
+            }
+            
             // Update product stock
-            products[productIndex].stock += data.quantity;
+            products[productIndex].stock = newStock;
             products[productIndex].updatedAt = new Date();
             
             // Save updated products to storage
@@ -233,10 +249,14 @@ export const useStockAdjustment = () => {
             stockHistory.push({
               id: crypto.randomUUID(),
               productId: data.productId,
-              date: new Date(),
+              productName: product.name,
+              timestamp: new Date(),
+              previousStock: previousStock,
+              newStock: newStock,
               quantity: data.quantity,
-              type: data.quantity > 0 ? 'increase' : 'decrease',
-              reason: data.reason
+              adjustmentType: data.adjustmentType || 'add',
+              reason: data.reason,
+              userName: 'Current User', // This should be replaced with the actual user
             });
             storageService.setItem(STORAGE_KEYS.STOCKS, stockHistory);
           }
@@ -262,12 +282,17 @@ export const useStockHistory = (productId: string) => {
       return new Promise<any[]>((resolve) => {
         setTimeout(() => {
           const stockHistory = storageService.getItem<any[]>(STORAGE_KEYS.STOCKS) || [];
-          const productHistory = stockHistory.filter(item => item.productId === productId);
-          resolve(productHistory);
+          const filteredHistory = productId 
+            ? stockHistory.filter(item => item.productId === productId)
+            : stockHistory;
+            
+          // Sort by timestamp, most recent first
+          filteredHistory.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+          
+          resolve(filteredHistory);
         }, 300);
       });
     },
-    enabled: !!productId,
   });
 };
 
