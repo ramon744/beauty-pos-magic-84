@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { cashierOperationsService, CashierOperation } from '@/services/cashier-operations-service';
 import { useAuth } from '@/contexts/AuthContext';

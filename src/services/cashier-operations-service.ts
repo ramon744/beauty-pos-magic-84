@@ -150,7 +150,7 @@ export const cashierOperationsService = {
   },
 
   // Open a cashier
-  openCashier: (cashierId: string, userId: string, initialAmount: number): CashierOperation => {
+  openCashier: (cashierId: string, userId: string, initialAmount: number, userName?: string): CashierOperation => {
     // Check if cashier exists
     const cashier = cashierService.getCashier(cashierId);
     if (!cashier) {
@@ -167,6 +167,7 @@ export const cashierOperationsService = {
       id: crypto.randomUUID(),
       cashierId,
       userId,
+      userName,
       operationType: 'open',
       amount: initialAmount,
       timestamp: new Date(),
@@ -187,7 +188,7 @@ export const cashierOperationsService = {
   },
 
   // Close a cashier
-  closeCashier: (cashierId: string, userId: string, finalAmount: number, discrepancyReason?: string, managerName?: string, managerId?: string): CashierOperation => {
+  closeCashier: (cashierId: string, userId: string, finalAmount: number, discrepancyReason?: string, managerName?: string, managerId?: string, userName?: string): CashierOperation => {
     // Check if cashier exists
     const cashier = cashierService.getCashier(cashierId);
     if (!cashier) {
@@ -207,6 +208,7 @@ export const cashierOperationsService = {
       id: crypto.randomUUID(),
       cashierId,
       userId,
+      userName,
       operationType: 'close',
       amount: finalAmount,
       timestamp: new Date(),
@@ -252,7 +254,7 @@ export const cashierOperationsService = {
   },
 
   // Add deposit to cashier
-  addDeposit: (cashierId: string, userId: string, amount: number, reason?: string, managerName?: string, managerId?: string): CashierOperation => {
+  addDeposit: (cashierId: string, userId: string, amount: number, reason?: string, managerName?: string, managerId?: string, userName?: string): CashierOperation => {
     // Check if cashier exists
     const cashier = cashierService.getCashier(cashierId);
     if (!cashier) {
@@ -276,6 +278,7 @@ export const cashierOperationsService = {
       id: crypto.randomUUID(),
       cashierId,
       userId,
+      userName,
       operationType: 'deposit',
       amount,
       reason: enhancedReason,
@@ -302,7 +305,7 @@ export const cashierOperationsService = {
   },
 
   // Add withdrawal from cashier
-  addWithdrawal: (cashierId: string, userId: string, amount: number, reason?: string, managerName?: string, managerId?: string): CashierOperation => {
+  addWithdrawal: (cashierId: string, userId: string, amount: number, reason?: string, managerName?: string, managerId?: string, userName?: string): CashierOperation => {
     // Check if cashier exists
     const cashier = cashierService.getCashier(cashierId);
     if (!cashier) {
@@ -332,6 +335,7 @@ export const cashierOperationsService = {
       id: crypto.randomUUID(),
       cashierId,
       userId,
+      userName,
       operationType: 'withdrawal',
       amount,
       reason: enhancedReason,
