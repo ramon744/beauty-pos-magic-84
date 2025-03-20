@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Product, Category } from '@/types';
-import { storageService, STORAGE_KEYS } from '@/services/storage-service';
+import { storageService, STORAGE_KEYS, fromSupabase } from '@/services/storage-service';
 import { toast } from '@/hooks/use-toast';
 
 // Get products from storage or use mock data if not available
@@ -255,7 +255,7 @@ export const useSaveProduct = () => {
       try {
         const supabaseProduct = mapProductToSupabase(product);
         
-        const { data, error } = await storageService.fromSupabase('products')
+        const { data, error } = await fromSupabase('products')
           .upsert(supabaseProduct)
           .select();
         
