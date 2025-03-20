@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useFetchPromotions, useDeletePromotion } from '@/hooks/use-promotions';
 import { useFetchProducts } from '@/hooks/use-products';
@@ -33,7 +32,6 @@ interface PromotionsListProps {
   onEditPromotion: (promotionId: string) => void;
 }
 
-// Utility function to get promotion type display name
 const getPromotionTypeLabel = (type: PromotionType): string => {
   const labels: Record<PromotionType, string> = {
     discount_percentage: 'Desconto Percentual',
@@ -58,34 +56,29 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
   const [promotionToDelete, setPromotionToDelete] = useState<string | null>(null);
   const [deletedPromotionIds, setDeletedPromotionIds] = useState<string[]>([]);
 
-  // Load deleted promotion IDs from localStorage on component mount
   useEffect(() => {
     const deletedIds = JSON.parse(localStorage.getItem('deletedPromotionIds') || '[]');
     setDeletedPromotionIds(deletedIds);
   }, []);
 
-  // Save deleted promotion IDs to localStorage when they change
   useEffect(() => {
     if (deletedPromotionIds.length > 0) {
       localStorage.setItem('deletedPromotionIds', JSON.stringify(deletedPromotionIds));
     }
   }, [deletedPromotionIds]);
 
-  // Get product name by id
   const getProductName = (productId?: string) => {
     if (!productId) return 'Todos os produtos';
     const product = products.find(p => p.id === productId);
     return product ? product.name : 'Produto não encontrado';
   };
 
-  // Get category name by id
   const getCategoryName = (categoryId?: string) => {
     if (!categoryId) return 'Todas as categorias';
     const category = categories.find(c => c.id === categoryId);
     return category ? category.name : 'Categoria não encontrada';
   };
 
-  // Format promotion details
   const getPromotionDetails = (promotion: Promotion): string => {
     switch (promotion.type) {
       case 'discount_percentage':
@@ -110,7 +103,6 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
     }
   };
 
-  // Check if a promotion is active
   const isPromotionActive = (promotion: Promotion): boolean => {
     const now = new Date();
     return promotion.isActive && 
@@ -118,7 +110,6 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
            promotion.endDate >= now;
   };
 
-  // Get status badge for promotion
   const getStatusBadge = (promotion: Promotion) => {
     const now = new Date();
     
@@ -137,19 +128,15 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
     return <Badge className="bg-green-500">Ativo</Badge>;
   };
 
-  // Filter promotions based on search and filters
   const filteredPromotions = promotions
     .filter(promotion => !deletedPromotionIds.includes(promotion.id))
     .filter((promotion: Promotion) => {
-    // Filter by search term
     const matchesSearch = 
       promotion.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       promotion.description.toLowerCase().includes(searchTerm.toLowerCase());
     
-    // Filter by type
     const matchesType = typeFilter === 'all' || promotion.type === typeFilter;
     
-    // Filter by status
     let matchesStatus = true;
     const now = new Date();
     
@@ -166,15 +153,12 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
     return matchesSearch && matchesType && matchesStatus;
   });
 
-  // Handle delete confirmation
   const handleDeleteClick = (promotionId: string) => {
     setPromotionToDelete(promotionId);
   };
 
-  // Handle actual deletion
   const handleConfirmDelete = () => {
     if (promotionToDelete) {
-      // Add to deleted promotions state
       setDeletedPromotionIds(prev => [...prev, promotionToDelete]);
       
       deletePromotion(promotionToDelete, {
@@ -185,7 +169,6 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
           });
           setPromotionToDelete(null);
           
-          // Store the deleted ID in localStorage for persistence
           const deletedIds = JSON.parse(localStorage.getItem('deletedPromotionIds') || '[]');
           if (!deletedIds.includes(promotionToDelete)) {
             deletedIds.push(promotionToDelete);
@@ -193,7 +176,6 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
           }
         },
         onError: () => {
-          // Remove from deleted promotions state in case of error
           setDeletedPromotionIds(prev => prev.filter(id => id !== promotionToDelete));
           
           toast({
@@ -310,7 +292,6 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
         </div>
       )}
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog 
         open={promotionToDelete !== null} 
         onOpenChange={(open) => !open && setPromotionToDelete(null)}

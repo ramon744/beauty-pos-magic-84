@@ -59,8 +59,8 @@ export const useDiscounts = (cart: CartItem[], cartSubtotal: number) => {
 
   const availablePromotions = useMemo(() => {
     if (cart.length === 0) return [];
-    // Make sure we're passing an array type
-    return getAvailablePromotions(cartItemsForPromotions, promotions);
+    // Ensure we're working with an array of Promotion objects
+    return getAvailablePromotions(cartItemsForPromotions, Array.isArray(promotions[0]) ? (promotions as unknown as Promotion[][])[0] : promotions as Promotion[]);
   }, [cartItemsForPromotions, promotions, cart.length]);
 
   const appliedPromotion = useMemo((): AppliedPromotion | null => {
