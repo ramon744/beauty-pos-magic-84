@@ -60,7 +60,7 @@ export const useDiscounts = (cart: CartItem[], cartSubtotal: number) => {
   const availablePromotions = useMemo(() => {
     if (cart.length === 0) return [];
     // Make sure we're passing an array type
-    return getAvailablePromotions(cartItemsForPromotions, promotions as Promotion[]);
+    return getAvailablePromotions(cartItemsForPromotions, promotions);
   }, [cartItemsForPromotions, promotions, cart.length]);
 
   const appliedPromotion = useMemo((): AppliedPromotion | null => {
@@ -68,7 +68,7 @@ export const useDiscounts = (cart: CartItem[], cartSubtotal: number) => {
     
     // Only apply a promotion if explicitly selected
     if (selectedPromotionId) {
-      const selectedPromotion = availablePromotions.find((p: Promotion) => p.id === selectedPromotionId);
+      const selectedPromotion = availablePromotions.find((p) => p.id === selectedPromotionId);
       if (selectedPromotion) {
         return calculatePromotionDiscount(cartItemsForPromotions, selectedPromotion, products);
       }

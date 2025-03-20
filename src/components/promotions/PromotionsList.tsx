@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useFetchPromotions, useDeletePromotion } from '@/hooks/use-promotions';
 import { useFetchProducts } from '@/hooks/use-products';
