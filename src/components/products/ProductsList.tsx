@@ -82,20 +82,19 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
       const processedProducts = filtered.map(product => {
         // Make sure we have a valid category object
         const category = product.category || 
-                        (product.category_id && product.category_name 
-                          ? { id: product.category_id, name: product.category_name } 
-                          : { id: '', name: 'Sem categoria' });
+                        { id: '', name: 'Sem categoria' };
                           
         return {
           ...product,
           category,
           salePrice: typeof product.salePrice === 'number' ? product.salePrice : 
-                     typeof product.sale_price === 'number' ? product.sale_price : 0,
+                     Number(product.salePrice) || 0,
           costPrice: typeof product.costPrice === 'number' ? product.costPrice : 
-                     typeof product.cost_price === 'number' ? product.cost_price : 0,
-          stock: typeof product.stock === 'number' ? product.stock : 0,
+                     Number(product.costPrice) || 0,
+          stock: typeof product.stock === 'number' ? product.stock : 
+                Number(product.stock) || 0,
           minimumStock: typeof product.minimumStock === 'number' ? product.minimumStock : 
-                       typeof product.minimum_stock === 'number' ? product.minimum_stock : 0
+                       Number(product.minimumStock) || 0
         };
       });
       
@@ -189,7 +188,7 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
       accessorKey: "expirationDate",
       header: "Data de Validade",
       cell: ({ row }) => {
-        const expDate = row.original.expirationDate || row.original.expiration_date;
+        const expDate = row.original.expirationDate;
         console.log('Expiration date for', row.original.name, ':', expDate);
         return <ExpirationDate expirationDate={expDate} />;
       },
@@ -205,7 +204,7 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
       accessorKey: "salePrice",
       header: "Preço de Venda",
       cell: ({ row }) => {
-        const price = row.original.salePrice || row.original.sale_price || 0;
+        const price = row.original.salePrice || 0;
         console.log('Sale price for', row.original.name, ':', price);
         return <div className="font-medium">{formatCurrency(price)}</div>;
       },

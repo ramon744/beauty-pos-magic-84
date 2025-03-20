@@ -28,13 +28,12 @@ export function ExpirationDate({ expirationDate }: ExpirationDateProps) {
           expDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
         }
       }
+      
+      if (!isValid(expDate)) {
+        return <span className="text-muted-foreground">Formato inválido</span>;
+      }
     } else {
       return <span className="text-muted-foreground">Formato inválido</span>;
-    }
-    
-    if (!isValid(expDate)) {
-      console.log('Data inválida:', expirationDate);
-      return <span className="text-muted-foreground">Data inválida</span>;
     }
     
     const daysUntilExpiration = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));

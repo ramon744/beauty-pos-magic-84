@@ -45,26 +45,16 @@ const Products = () => {
   // Process products to ensure all required properties exist
   const safeProducts = (products || []).map((product: any) => {
     // Ensure category exists
-    const category = product.category || 
-                   (product.category_id && product.category_name 
-                     ? { id: product.category_id, name: product.category_name } 
-                     : { id: '', name: 'Sem categoria' });
+    const category = product.category || { id: '', name: 'Sem categoria' };
     
     // Ensure numeric values are properly handled               
     return {
       ...product,
       category,
-      salePrice: typeof product.salePrice === 'number' ? product.salePrice : 
-                typeof product.sale_price === 'number' ? product.sale_price : 
-                Number(product.salePrice || product.sale_price) || 0,
-      costPrice: typeof product.costPrice === 'number' ? product.costPrice : 
-                typeof product.cost_price === 'number' ? product.cost_price : 
-                Number(product.costPrice || product.cost_price) || 0,
-      stock: typeof product.stock === 'number' ? product.stock : 
-            Number(product.stock) || 0,
-      minimumStock: typeof product.minimumStock === 'number' ? product.minimumStock : 
-                  typeof product.minimum_stock === 'number' ? product.minimum_stock : 
-                  Number(product.minimumStock || product.minimum_stock) || 0
+      salePrice: typeof product.salePrice === 'number' ? product.salePrice : Number(product.salePrice) || 0,
+      costPrice: typeof product.costPrice === 'number' ? product.costPrice : Number(product.costPrice) || 0,
+      stock: typeof product.stock === 'number' ? product.stock : Number(product.stock) || 0,
+      minimumStock: typeof product.minimumStock === 'number' ? product.minimumStock : Number(product.minimumStock) || 0
     };
   });
 
