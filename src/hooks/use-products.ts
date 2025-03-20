@@ -201,20 +201,32 @@ const mapProductToSupabase = (product: Product) => {
   const stock = typeof product.stock === 'number' ? product.stock : Number(product.stock) || 0;
   const minimumStock = typeof product.minimumStock === 'number' ? product.minimumStock : Number(product.minimumStock) || 0;
   
+  // Garantir que a categoria seja válida
+  const categoryId = product.category?.id || '';
+  const categoryName = product.category?.name || 'Sem categoria';
+  
+  // Processar data de validade
+  let expirationDate = null;
+  if (product.expirationDate) {
+    expirationDate = product.expirationDate instanceof Date ? 
+      product.expirationDate.toISOString() : 
+      new Date(product.expirationDate).toISOString();
+  }
+  
   return {
     id: product.id,
     name: product.name,
     description: product.description || '',
     code: product.code,
-    category_id: product.category?.id || '',
-    category_name: product.category?.name || 'Sem categoria',
+    category_id: categoryId,
+    category_name: categoryName,
     sale_price: salePrice,
     cost_price: costPrice,
     stock: stock,
     minimum_stock: minimumStock,
     image: product.image || '',
     supplier_ids: product.supplierIds || [],
-    expiration_date: product.expirationDate || null,
+    expiration_date: expirationDate,
     created_at: product.createdAt || new Date(),
     updated_at: new Date(),
   };
@@ -233,19 +245,26 @@ const mapSupabaseToProduct = (data: any): Product => {
   // Processar a data de validade
   let expirationDate = null;
   if (data.expiration_date) {
-    const parsedDate = new Date(data.expiration_date);
-    expirationDate = isNaN(parsedDate.getTime()) ? null : parsedDate;
+    try {
+      const parsedDate = new Date(data.expiration_date);
+      expirationDate = isNaN(parsedDate.getTime()) ? null : parsedDate;
+    } catch (error) {
+      console.error("Error parsing expiration date:", error, data.expiration_date);
+    }
   }
+  
+  // Criar o objeto categoria
+  const category = {
+    id: data.category_id || '',
+    name: data.category_name || 'Sem categoria'
+  };
   
   return {
     id: data.id,
     name: data.name,
     description: data.description || '',
     code: data.code,
-    category: {
-      id: data.category_id || '',
-      name: data.category_name || 'Sem categoria'
-    },
+    category: category,
     salePrice: salePrice,
     costPrice: costPrice,
     stock: stock,
@@ -277,7 +296,7 @@ export const useSaveProduct = () => {
       
       try {
         // Garantir que o produto tenha uma categoria válida
-        if (!product.category || !product.category.id || !product.category.name) {
+        if (!product.category || !product.category.id) {
           product.category = {
             id: product.category?.id || '',
             name: product.category?.name || 'Sem categoria'
@@ -294,9 +313,13 @@ export const useSaveProduct = () => {
         
         // Se a expirationDate for uma string de data válida, converta para um objeto Date
         if (product.expirationDate && typeof product.expirationDate === 'string') {
-          const parsedDate = new Date(product.expirationDate);
-          if (!isNaN(parsedDate.getTime())) {
-            product.expirationDate = parsedDate;
+          try {
+            const parsedDate = new Date(product.expirationDate);
+            if (!isNaN(parsedDate.getTime())) {
+              product.expirationDate = parsedDate;
+            }
+          } catch (error) {
+            console.error("Error parsing expiration date string:", error);
           }
         }
         

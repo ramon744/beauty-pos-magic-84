@@ -134,6 +134,8 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
         minimumStock: typeof product.minimumStock === 'number' ? product.minimumStock : Number(product.minimumStock) || 0,
       };
       
+      console.log("Safe product for form:", safeProduct);
+      
       const productSuppliers = safeProduct.supplierIds 
         ? suppliers?.filter(s => safeProduct.supplierIds?.includes(s.id)) || []
         : [];
@@ -154,6 +156,8 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
         expirationDate: safeProduct.expirationDate ? new Date(safeProduct.expirationDate) : null,
         expirationDateInput: safeProduct.expirationDate ? format(new Date(safeProduct.expirationDate), 'dd/MM/yyyy') : '',
       });
+      
+      console.log("Form reset with values:", form.getValues());
     }
   }, [product, productId, form, suppliers]);
 
@@ -207,6 +211,18 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
 
   const onSubmit = (data: ProductFormValues) => {
     console.log("Form submission data:", data);
+    
+    // Find the selected category from the categories list
+    const selectedCategory = categories?.find(c => c.id === data.categoryId);
+    
+    // If category not found in list, create a fallback
+    const category = selectedCategory || { 
+      id: data.categoryId, 
+      name: 'Unknown Category' 
+    };
+    
+    console.log("Selected category:", category);
+    
     const productSuppliers = selectedSuppliers.length > 0 ? selectedSuppliers : undefined;
     const supplierIds = selectedSuppliers.map(s => s.id);
     
@@ -215,7 +231,7 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
       name: data.name,
       description: data.description || '',
       code: data.code,
-      category: categories?.find(c => c.id === data.categoryId) || { id: data.categoryId, name: 'Unknown' },
+      category: category,
       salePrice: data.salePrice,
       costPrice: data.costPrice,
       stock: data.stock,
