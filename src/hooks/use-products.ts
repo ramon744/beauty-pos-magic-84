@@ -2,12 +2,57 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Product, Category } from '@/types';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
+import { supabase } from '@/integrations/supabase/client';
 
-// Get products from storage or use mock data if not available
-const getProductsFromStorage = (): Product[] => {
-  const storedProducts = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS);
-  if (storedProducts && storedProducts.length > 0) {
-    return storedProducts;
+// Get products from storage or Supabase
+const getProductsFromStorage = async (): Promise<Product[]> => {
+  try {
+    // Try to fetch from Supabase first
+    const { data: supabaseProducts, error } = await supabase
+      .from('products')
+      .select('*');
+    
+    if (error) {
+      console.error('Error fetching products from Supabase:', error);
+      throw error;
+    }
+
+    if (supabaseProducts && supabaseProducts.length > 0) {
+      // Map Supabase data to our Product type
+      return supabaseProducts.map(p => ({
+        id: p.id,
+        name: p.name,
+        description: p.description || '',
+        code: p.code,
+        category: { 
+          id: p.category_id, 
+          name: p.category_name 
+        },
+        salePrice: Number(p.sale_price),
+        costPrice: Number(p.cost_price),
+        stock: p.stock,
+        minimumStock: p.minimum_stock,
+        image: p.image,
+        supplierIds: p.supplier_ids,
+        expirationDate: p.expiration_date ? new Date(p.expiration_date) : null,
+        createdAt: new Date(p.created_at),
+        updatedAt: new Date(p.updated_at)
+      }));
+    }
+    
+    // Fall back to localStorage if Supabase returns no data
+    const storedProducts = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS);
+    if (storedProducts && storedProducts.length > 0) {
+      return storedProducts;
+    }
+  } catch (err) {
+    console.error('Error in getProductsFromStorage:', err);
+    
+    // Fall back to localStorage if Supabase fails
+    const storedProducts = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS);
+    if (storedProducts && storedProducts.length > 0) {
+      return storedProducts;
+    }
   }
   
   // If no products in storage, use mock data
@@ -55,15 +100,40 @@ const getProductsFromStorage = (): Product[] => {
   
   // Initialize storage with mock data
   storageService.setItem(STORAGE_KEYS.PRODUCTS, mockProducts);
+  
+  // Also save to Supabase if possible
+  try {
+    for (const product of mockProducts) {
+      await supabase.from('products').insert({
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        code: product.code,
+        category_id: product.category.id,
+        category_name: product.category.name,
+        sale_price: product.salePrice,
+        cost_price: product.costPrice,
+        stock: product.stock,
+        minimum_stock: product.minimumStock,
+        image: product.image,
+        expiration_date: product.expirationDate,
+        created_at: product.createdAt,
+        updated_at: product.updatedAt
+      });
+    }
+  } catch (err) {
+    console.error('Error saving mock products to Supabase:', err);
+  }
+  
   return mockProducts;
 };
 
-// Function to fetch products from storage
+// Function to fetch products
 const fetchProducts = async (): Promise<Product[]> => {
   // Simulate API call delay
   return new Promise((resolve) => {
-    setTimeout(() => {
-      const products = getProductsFromStorage();
+    setTimeout(async () => {
+      const products = await getProductsFromStorage();
       resolve(products);
     }, 500);
   });
@@ -85,10 +155,50 @@ export const useFetchProduct = (productId: string) => {
   return useQuery({
     queryKey: ['product', productId],
     queryFn: async () => {
-      // Simulate API call
+      if (!productId) return undefined;
+      
+      try {
+        // Try to fetch from Supabase first
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', productId)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching product from Supabase:', error);
+          throw error;
+        }
+        
+        if (data) {
+          return {
+            id: data.id,
+            name: data.name,
+            description: data.description || '',
+            code: data.code,
+            category: { 
+              id: data.category_id, 
+              name: data.category_name 
+            },
+            salePrice: Number(data.sale_price),
+            costPrice: Number(data.cost_price),
+            stock: data.stock,
+            minimumStock: data.minimum_stock,
+            image: data.image,
+            supplierIds: data.supplier_ids,
+            expirationDate: data.expiration_date ? new Date(data.expiration_date) : null,
+            createdAt: new Date(data.created_at),
+            updatedAt: new Date(data.updated_at)
+          };
+        }
+      } catch (err) {
+        console.error('Error in useFetchProduct:', err);
+      }
+      
+      // Fall back to localStorage if Supabase fails
       return new Promise<Product | undefined>((resolve) => {
         setTimeout(() => {
-          const products = getProductsFromStorage();
+          const products = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
           const product = products.find(p => p.id === productId);
           resolve(product);
         }, 300);
@@ -98,11 +208,40 @@ export const useFetchProduct = (productId: string) => {
   });
 };
 
-// Get categories from storage or use mock data if not available
-const getCategoriesFromStorage = (): Category[] => {
-  const storedCategories = storageService.getItem<Category[]>(STORAGE_KEYS.CATEGORIES);
-  if (storedCategories && storedCategories.length > 0) {
-    return storedCategories;
+// Get categories from Supabase or localStorage
+const getCategoriesFromStorage = async (): Promise<Category[]> => {
+  try {
+    // Try to fetch from Supabase first
+    const { data: supabaseCategories, error } = await supabase
+      .from('categories')
+      .select('*');
+    
+    if (error) {
+      console.error('Error fetching categories from Supabase:', error);
+      throw error;
+    }
+
+    if (supabaseCategories && supabaseCategories.length > 0) {
+      // Map Supabase data to our Category type
+      return supabaseCategories.map(c => ({
+        id: c.id,
+        name: c.name
+      }));
+    }
+    
+    // Fall back to localStorage if Supabase returns no data
+    const storedCategories = storageService.getItem<Category[]>(STORAGE_KEYS.CATEGORIES);
+    if (storedCategories && storedCategories.length > 0) {
+      return storedCategories;
+    }
+  } catch (err) {
+    console.error('Error in getCategoriesFromStorage:', err);
+    
+    // Fall back to localStorage if Supabase fails
+    const storedCategories = storageService.getItem<Category[]>(STORAGE_KEYS.CATEGORIES);
+    if (storedCategories && storedCategories.length > 0) {
+      return storedCategories;
+    }
   }
   
   // If no categories in storage, use mock data
@@ -114,6 +253,19 @@ const getCategoriesFromStorage = (): Category[] => {
   
   // Initialize storage with mock data
   storageService.setItem(STORAGE_KEYS.CATEGORIES, mockCategories);
+  
+  // Also save to Supabase if possible
+  try {
+    for (const category of mockCategories) {
+      await supabase.from('categories').insert({
+        id: category.id,
+        name: category.name
+      });
+    }
+  } catch (err) {
+    console.error('Error saving mock categories to Supabase:', err);
+  }
+  
   return mockCategories;
 };
 
@@ -122,47 +274,99 @@ export const useCategories = () => {
   return useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
-      // Simulate API call
-      return new Promise<Category[]>((resolve) => {
-        setTimeout(() => {
-          const categories = getCategoriesFromStorage();
-          resolve(categories);
-        }, 300);
-      });
+      return await getCategoriesFromStorage();
     },
   });
 };
 
-// Improved save product function that updates localStorage
+// Improved save product function that updates both Supabase and localStorage
 export const useSaveProduct = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (product: Product) => {
-      return new Promise<Product>((resolve) => {
-        setTimeout(() => {
-          console.log('Saving product:', product);
-          
-          // Get current products from storage
-          const products = getProductsFromStorage();
-          
-          // Find if product already exists
-          const existingProductIndex = products.findIndex(p => p.id === product.id);
-          
-          if (existingProductIndex >= 0) {
-            // Update existing product
-            products[existingProductIndex] = product;
-          } else {
-            // Add new product
-            products.push(product);
-          }
-          
-          // Save updated products to storage
-          storageService.setItem(STORAGE_KEYS.PRODUCTS, products);
-          
-          resolve(product);
-        }, 500);
-      });
+    mutationFn: async (product: Product) => {
+      console.log('Saving product to Supabase:', product);
+      
+      try {
+        // Prepare data for Supabase
+        const supabaseProduct = {
+          id: product.id,
+          name: product.name,
+          description: product.description,
+          code: product.code,
+          category_id: product.category.id,
+          category_name: product.category.name,
+          sale_price: product.salePrice,
+          cost_price: product.costPrice,
+          stock: product.stock,
+          minimum_stock: product.minimumStock,
+          image: product.image,
+          supplier_ids: product.supplierIds,
+          expiration_date: product.expirationDate,
+          updated_at: new Date()
+        };
+        
+        // Check if product exists
+        const { data: existingProduct, error: fetchError } = await supabase
+          .from('products')
+          .select('id')
+          .eq('id', product.id)
+          .maybeSingle();
+        
+        if (fetchError && fetchError.code !== 'PGRST116') {
+          console.error('Error checking if product exists:', fetchError);
+          throw fetchError;
+        }
+        
+        let result;
+        if (existingProduct) {
+          // Update existing product
+          result = await supabase
+            .from('products')
+            .update(supabaseProduct)
+            .eq('id', product.id);
+        } else {
+          // Create new product
+          result = await supabase
+            .from('products')
+            .insert(supabaseProduct);
+        }
+        
+        if (result.error) {
+          console.error('Error saving product to Supabase:', result.error);
+          throw result.error;
+        }
+        
+        // Also update localStorage for fallback
+        const products = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
+        const existingProductIndex = products.findIndex(p => p.id === product.id);
+        
+        if (existingProductIndex >= 0) {
+          products[existingProductIndex] = product;
+        } else {
+          products.push(product);
+        }
+        
+        storageService.setItem(STORAGE_KEYS.PRODUCTS, products);
+        
+        return product;
+      } catch (err) {
+        console.error('Error in useSaveProduct:', err);
+        
+        // Fall back to localStorage only if Supabase fails
+        const products = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
+        const existingProductIndex = products.findIndex(p => p.id === product.id);
+        
+        if (existingProductIndex >= 0) {
+          products[existingProductIndex] = product;
+        } else {
+          products.push(product);
+        }
+        
+        storageService.setItem(STORAGE_KEYS.PRODUCTS, products);
+        
+        return product;
+      }
     },
     onSuccess: () => {
       // Invalidate queries to refetch data
