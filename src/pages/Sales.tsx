@@ -1,6 +1,6 @@
 
 import React from 'react';
-import SalesContent from '@/components/sales/SalesContent';
+import { SalesContent } from '@/components/sales/SalesContent';
 
 const Sales = () => {
   return (
