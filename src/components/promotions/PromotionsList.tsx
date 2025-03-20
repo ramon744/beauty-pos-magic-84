@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useFetchPromotions, useDeletePromotion } from '@/hooks/use-promotions';
 import { useFetchProducts } from '@/hooks/use-products';
@@ -44,11 +45,14 @@ const getPromotionTypeLabel = (type: PromotionType): string => {
 };
 
 export default function PromotionsList({ onEditPromotion }: PromotionsListProps) {
-  const { data: promotions = [], isLoading } = useFetchPromotions();
+  const { data: promotionsData = [], isLoading } = useFetchPromotions();
   const { data: products = [] } = useFetchProducts();
   const { data: categories = [] } = useCategories();
   const { mutate: deletePromotion } = useDeletePromotion();
   const { toast } = useToast();
+  
+  // Ensure promotionsData is treated as an array of Promotion objects
+  const promotions = Array.isArray(promotionsData) ? promotionsData : [];
   
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');

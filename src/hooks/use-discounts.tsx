@@ -89,7 +89,9 @@ export const useDiscounts = (cart: CartItem[], cartSubtotal: number) => {
 
   const appliedPromotionDetails = useMemo(() => {
     if (!appliedPromotion) return null;
-    const promotion = promotionsData.find(p => p.id === appliedPromotion.promotionId);
+    // Ensure promotionsData is treated as an array of Promotion objects
+    const promotions = Array.isArray(promotionsData) ? promotionsData : [];
+    const promotion = promotions.find(p => p.id === appliedPromotion.promotionId);
     return promotion || null;
   }, [appliedPromotion, promotionsData]);
 
