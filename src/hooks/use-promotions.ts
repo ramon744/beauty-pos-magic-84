@@ -175,7 +175,9 @@ export function useFetchPromotions() {
         
         // Filter out deleted promotions
         const deletedIds = getDeletedPromotionIds();
-        return allPromotions.filter((promotion: Promotion) => !deletedIds.includes(promotion.id));
+        return Array.isArray(allPromotions) 
+          ? allPromotions.filter((promotion) => !deletedIds.includes(promotion.id)) 
+          : [];
       } catch (error) {
         console.error("Erro ao buscar promoções:", error);
         
@@ -221,10 +223,9 @@ export function useFetchPromotion(id: string) {
         // Try fetching from Supabase first
         const promotions = await storageService.getFromSupabase<Promotion[]>('promotions', 'id', id);
         
-        if (promotions && promotions.length > 0) {
+        if (promotions && Array.isArray(promotions) && promotions.length > 0) {
           // Convert the first item to Promotion type explicitly
-          const promotion = promotions[0] as Promotion;
-          return promotion;
+          return promotions[0] as Promotion;
         }
         
         throw new Error('Promotion not found');
@@ -263,19 +264,19 @@ export function usePromotionStatistics() {
         
         // Filter out deleted promotions
         const deletedIds = getDeletedPromotionIds();
-        const availablePromotions = promotions.filter(
-          (promotion: Promotion) => !deletedIds.includes(promotion.id)
-        );
+        const availablePromotions = Array.isArray(promotions) 
+          ? promotions.filter(promotion => !deletedIds.includes(promotion.id))
+          : [];
         
         const now = new Date();
         
         const statistics: PromotionStatistics = {
           totalPromotions: availablePromotions.length,
-          activePromotions: availablePromotions.filter((p: Promotion) => p.isActive).length,
-          upcomingPromotions: availablePromotions.filter((p: Promotion) => {
+          activePromotions: availablePromotions.filter(p => p.isActive).length,
+          upcomingPromotions: availablePromotions.filter(p => {
             return p.isActive && new Date(p.startDate) > now;
           }).length,
-          expiredPromotions: availablePromotions.filter((p: Promotion) => {
+          expiredPromotions: availablePromotions.filter(p => {
             return new Date(p.endDate) < now;
           }).length,
         };
@@ -442,7 +443,7 @@ export function useRemoveProductFromPromotion() {
         // Fetch promotion from Supabase
         const promotions = await storageService.getFromSupabase<Promotion[]>('promotions', 'id', promotionId);
         
-        if (!promotions || promotions.length === 0) {
+        if (!promotions || !Array.isArray(promotions) || promotions.length === 0) {
           throw new Error('Promotion not found');
         }
         

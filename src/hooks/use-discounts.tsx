@@ -59,11 +59,14 @@ export const useDiscounts = (cart: CartItem[], cartSubtotal: number) => {
 
   const availablePromotions = useMemo(() => {
     if (cart.length === 0) return [];
+    
     // Ensure we're working with an array of Promotion objects
+    const promotionsArray = Array.isArray(promotionsData) ? promotionsData : [];
+    
+    // Ensure we're passing a Promotion[] array
     return getAvailablePromotions(
       cartItemsForPromotions, 
-      // Ensure we're passing a Promotion[] array
-      Array.isArray(promotionsData) ? promotionsData : []
+      promotionsArray
     );
   }, [cartItemsForPromotions, promotionsData, cart.length]);
 
@@ -89,9 +92,11 @@ export const useDiscounts = (cart: CartItem[], cartSubtotal: number) => {
 
   const appliedPromotionDetails = useMemo(() => {
     if (!appliedPromotion) return null;
+    
     // Ensure promotionsData is treated as an array of Promotion objects
-    const promotions = Array.isArray(promotionsData) ? promotionsData : [];
-    const promotion = promotions.find(p => p.id === appliedPromotion.promotionId);
+    const promotionsArray = Array.isArray(promotionsData) ? promotionsData : [];
+    const promotion = promotionsArray.find(p => p.id === appliedPromotion.promotionId);
+    
     return promotion || null;
   }, [appliedPromotion, promotionsData]);
 
