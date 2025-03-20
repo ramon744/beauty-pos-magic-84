@@ -165,21 +165,21 @@ export function useFetchPromotions() {
     queryKey: ['promotions'],
     queryFn: async () => {
       try {
-        // Tentar buscar do Supabase primeiro
+        // Try fetching from Supabase first
         const allPromotions = await storageService.getFromSupabase<Promotion[]>('promotions');
         
-        // Atualizar o localStorage com os dados mais recentes
+        // Update localStorage with latest data
         if (allPromotions && allPromotions.length > 0) {
           storageService.setItem(STORAGE_KEYS.PROMOTIONS, allPromotions);
         }
         
         // Filter out deleted promotions
         const deletedIds = getDeletedPromotionIds();
-        return allPromotions.filter((promotion) => !deletedIds.includes(promotion.id));
+        return allPromotions.filter((promotion: Promotion) => !deletedIds.includes(promotion.id));
       } catch (error) {
         console.error("Erro ao buscar promoções:", error);
         
-        // Se offline ou erro, mostrar mensagem
+        // Show message if offline or error
         if (!navigator.onLine) {
           toast({
             variant: "destructive",
@@ -194,7 +194,7 @@ export function useFetchPromotions() {
           });
         }
         
-        // Retornar dados do localStorage como fallback
+        // Return data from localStorage as fallback
         const localPromotions = storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS) || [];
         const deletedIds = getDeletedPromotionIds();
         return localPromotions.filter(promotion => !deletedIds.includes(promotion.id));
@@ -218,19 +218,19 @@ export function useFetchPromotion(id: string) {
       }
       
       try {
-        // Tentar buscar do Supabase primeiro
+        // Try fetching from Supabase first
         const promotions = await storageService.getFromSupabase<Promotion[]>('promotions', 'id', id);
         
         if (promotions && promotions.length > 0) {
           // Convert the first item to Promotion type explicitly
-          return promotions[0];
+          return promotions[0] as Promotion;
         }
         
         throw new Error('Promotion not found');
       } catch (error) {
         console.error(`Erro ao buscar promoção ${id}:`, error);
         
-        // Se offline ou erro, mostrar mensagem
+        // Show message if offline
         if (!navigator.onLine) {
           toast({
             variant: "destructive",
@@ -239,7 +239,7 @@ export function useFetchPromotion(id: string) {
           });
         }
         
-        // Tentar buscar do localStorage como fallback
+        // Try to get from localStorage as fallback
         const promotions = storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS) || [];
         const promotion = promotions.find(p => p.id === id);
         if (!promotion) throw new Error('Promotion not found');
@@ -257,36 +257,36 @@ export function usePromotionStatistics() {
     queryKey: ['promotion-statistics'],
     queryFn: async (): Promise<PromotionStatistics> => {
       try {
-        // Buscar todas as promoções para calcular estatísticas atualizadas
+        // Fetch all promotions to calculate updated statistics
         const promotions = await storageService.getFromSupabase<Promotion[]>('promotions');
         
         // Filter out deleted promotions
         const deletedIds = getDeletedPromotionIds();
         const availablePromotions = promotions.filter(
-          (promotion) => !deletedIds.includes(promotion.id)
+          (promotion: Promotion) => !deletedIds.includes(promotion.id)
         );
         
         const now = new Date();
         
         const statistics: PromotionStatistics = {
           totalPromotions: availablePromotions.length,
-          activePromotions: availablePromotions.filter((p) => p.isActive).length,
-          upcomingPromotions: availablePromotions.filter((p) => {
+          activePromotions: availablePromotions.filter((p: Promotion) => p.isActive).length,
+          upcomingPromotions: availablePromotions.filter((p: Promotion) => {
             return p.isActive && new Date(p.startDate) > now;
           }).length,
-          expiredPromotions: availablePromotions.filter((p) => {
+          expiredPromotions: availablePromotions.filter((p: Promotion) => {
             return new Date(p.endDate) < now;
           }).length,
         };
         
-        // Salvar estatísticas no localStorage para compatibilidade
+        // Save statistics to localStorage for compatibility
         storageService.setItem(STORAGE_KEYS.PROMOTIONS_STATISTICS, statistics);
         
         return statistics;
       } catch (error) {
         console.error("Erro ao buscar estatísticas:", error);
         
-        // Se offline ou erro, mostrar mensagem
+        // Show message if offline
         if (!navigator.onLine) {
           toast({
             variant: "destructive",
@@ -295,13 +295,13 @@ export function usePromotionStatistics() {
           });
         }
         
-        // Usar estatísticas do localStorage como fallback
+        // Use localStorage statistics as fallback
         const stats = storageService.getItem<PromotionStatistics>(STORAGE_KEYS.PROMOTIONS_STATISTICS);
         if (stats) {
           return stats;
         }
         
-        // Se não houver estatísticas no localStorage, calcular com base nas promoções locais
+        // Calculate based on local promotions if no stats in localStorage
         return updateStatistics();
       }
     },
@@ -438,7 +438,7 @@ export function useRemoveProductFromPromotion() {
       }
       
       try {
-        // Buscar a promoção do Supabase
+        // Fetch promotion from Supabase
         const promotions = await storageService.getFromSupabase<Promotion[]>('promotions', 'id', promotionId);
         
         if (!promotions || promotions.length === 0) {
@@ -446,7 +446,7 @@ export function useRemoveProductFromPromotion() {
         }
         
         // Explicitly cast to Promotion to fix TypeScript type issues
-        const promotion = promotions[0];
+        const promotion = promotions[0] as Promotion;
         
         // Handle based on promotion type
         if (promotion.type === 'bundle' && promotion.bundleProducts) {
@@ -463,10 +463,10 @@ export function useRemoveProductFromPromotion() {
           promotion.secondaryProductId = undefined;
         }
         
-        // Salvar a promoção atualizada no Supabase
+        // Save updated promotion to Supabase
         await storageService.saveToSupabase('promotions', promotion);
         
-        // Atualizar o localStorage para compatibilidade
+        // Update localStorage for compatibility
         const localPromotions = storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS) || [];
         const promotionIndex = localPromotions.findIndex(p => p.id === promotionId);
         
@@ -475,7 +475,7 @@ export function useRemoveProductFromPromotion() {
           storageService.setItem(STORAGE_KEYS.PROMOTIONS, localPromotions);
         }
         
-        // Atualizar estatísticas
+        // Update statistics
         updateStatistics();
         
         return { promotionId, productId };

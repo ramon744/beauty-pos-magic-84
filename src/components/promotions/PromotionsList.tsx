@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useFetchPromotions, useDeletePromotion } from '@/hooks/use-promotions';
 import { useFetchProducts } from '@/hooks/use-products';
@@ -140,7 +139,7 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
   // Filter promotions based on search and filters
   const filteredPromotions = promotions
     .filter(promotion => !deletedPromotionIds.includes(promotion.id))
-    .filter(promotion => {
+    .filter((promotion: Promotion) => {
     // Filter by search term
     const matchesSearch = 
       promotion.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
