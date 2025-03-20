@@ -25,8 +25,9 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 // Função para criar um procedimento armazenado
 const createRpcFunction = async () => {
   try {
-    // Criar função para criar tabelas sob demanda
-    const { error } = await supabase.rpc('create_table_if_not_exists', { table_name: 'dummy' });
+    // Use supabaseClient.rpc with any type to bypass TypeScript restrictions
+    // since the RPC function is not defined in the Database type
+    const { error } = await (supabase as any).rpc('create_table_if_not_exists', { table_name: 'dummy' });
     
     if (error && error.message.includes('function "create_table_if_not_exists" does not exist')) {
       console.log('RPC function does not exist, but tables are already created directly. This is normal.');
