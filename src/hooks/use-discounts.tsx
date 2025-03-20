@@ -23,7 +23,7 @@ export const useDiscounts = (cart: CartItem[], cartSubtotal: number) => {
   const [selectedPromotionId, setSelectedPromotionId] = useState<string | null>(null);
   
   const { data: products = [] } = useFetchProducts();
-  const { data: promotions = [] } = useFetchPromotions();
+  const { data: promotionsData = [] } = useFetchPromotions();
 
   const cartItemsForPromotions = useMemo(() => {
     return cart.map(item => {
@@ -60,8 +60,12 @@ export const useDiscounts = (cart: CartItem[], cartSubtotal: number) => {
   const availablePromotions = useMemo(() => {
     if (cart.length === 0) return [];
     // Ensure we're working with an array of Promotion objects
-    return getAvailablePromotions(cartItemsForPromotions, Array.isArray(promotions[0]) ? (promotions as unknown as Promotion[][])[0] : promotions as Promotion[]);
-  }, [cartItemsForPromotions, promotions, cart.length]);
+    return getAvailablePromotions(
+      cartItemsForPromotions, 
+      // Ensure we're passing a Promotion[] array
+      Array.isArray(promotionsData) ? promotionsData : []
+    );
+  }, [cartItemsForPromotions, promotionsData, cart.length]);
 
   const appliedPromotion = useMemo((): AppliedPromotion | null => {
     if (cart.length === 0 || availablePromotions.length === 0) return null;
@@ -85,9 +89,9 @@ export const useDiscounts = (cart: CartItem[], cartSubtotal: number) => {
 
   const appliedPromotionDetails = useMemo(() => {
     if (!appliedPromotion) return null;
-    const promotion = promotions.find(p => p.id === appliedPromotion.promotionId);
+    const promotion = promotionsData.find(p => p.id === appliedPromotion.promotionId);
     return promotion || null;
-  }, [appliedPromotion, promotions]);
+  }, [appliedPromotion, promotionsData]);
 
   const manualDiscountAmount = useMemo(() => {
     return manualDiscount 

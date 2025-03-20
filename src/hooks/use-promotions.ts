@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Promotion } from '@/types';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
@@ -222,7 +223,8 @@ export function useFetchPromotion(id: string) {
         
         if (promotions && promotions.length > 0) {
           // Convert the first item to Promotion type explicitly
-          return promotions[0];
+          const promotion = promotions[0];
+          return promotion;
         }
         
         throw new Error('Promotion not found');
@@ -445,7 +447,7 @@ export function useRemoveProductFromPromotion() {
         }
         
         // Explicitly cast to Promotion
-        const promotion = promotions[0];
+        const promotion = promotions[0] as Promotion;
         
         // Handle based on promotion type
         if (promotion.type === 'bundle' && promotion.bundleProducts) {
