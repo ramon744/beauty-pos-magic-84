@@ -175,7 +175,7 @@ export function useFetchPromotions() {
         
         // Filter out deleted promotions
         const deletedIds = getDeletedPromotionIds();
-        return allPromotions.filter((promotion: Promotion) => !deletedIds.includes(promotion.id));
+        return allPromotions.filter((promotion) => !deletedIds.includes(promotion.id));
       } catch (error) {
         console.error("Erro ao buscar promoções:", error);
         
@@ -223,7 +223,7 @@ export function useFetchPromotion(id: string) {
         
         if (promotions && promotions.length > 0) {
           // Convert the first item to Promotion type explicitly
-          return promotions[0] as Promotion;
+          return promotions[0];
         }
         
         throw new Error('Promotion not found');
@@ -263,18 +263,18 @@ export function usePromotionStatistics() {
         // Filter out deleted promotions
         const deletedIds = getDeletedPromotionIds();
         const availablePromotions = promotions.filter(
-          (promotion: Promotion) => !deletedIds.includes(promotion.id)
+          (promotion) => !deletedIds.includes(promotion.id)
         );
         
         const now = new Date();
         
         const statistics: PromotionStatistics = {
           totalPromotions: availablePromotions.length,
-          activePromotions: availablePromotions.filter((p: Promotion) => p.isActive).length,
-          upcomingPromotions: availablePromotions.filter((p: Promotion) => {
+          activePromotions: availablePromotions.filter((p) => p.isActive).length,
+          upcomingPromotions: availablePromotions.filter((p) => {
             return p.isActive && new Date(p.startDate) > now;
           }).length,
-          expiredPromotions: availablePromotions.filter((p: Promotion) => {
+          expiredPromotions: availablePromotions.filter((p) => {
             return new Date(p.endDate) < now;
           }).length,
         };
@@ -446,7 +446,7 @@ export function useRemoveProductFromPromotion() {
         }
         
         // Explicitly cast to Promotion to fix TypeScript type issues
-        const promotion = promotions[0] as Promotion;
+        const promotion = promotions[0];
         
         // Handle based on promotion type
         if (promotion.type === 'bundle' && promotion.bundleProducts) {
