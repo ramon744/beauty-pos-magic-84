@@ -198,8 +198,8 @@ const mapProductToSupabase = (product: Product) => {
     name: product.name,
     description: product.description,
     code: product.code,
-    category_id: product.category.id,
-    category_name: product.category.name,
+    category_id: product.category?.id || '',
+    category_name: product.category?.name || 'Sem categoria',
     sale_price: product.salePrice,
     cost_price: product.costPrice,
     stock: product.stock,
@@ -220,8 +220,8 @@ const mapSupabaseToProduct = (data: any): Product => {
     description: data.description,
     code: data.code,
     category: {
-      id: data.category_id,
-      name: data.category_name
+      id: data.category_id || '',
+      name: data.category_name || 'Sem categoria'
     },
     salePrice: data.sale_price,
     costPrice: data.cost_price,
@@ -253,6 +253,14 @@ export const useSaveProduct = () => {
       console.log('Saving product:', product);
       
       try {
+        // Garantir que o produto tenha uma categoria válida
+        if (!product.category || !product.category.id || !product.category.name) {
+          product.category = {
+            id: product.category?.id || '',
+            name: product.category?.name || 'Sem categoria'
+          };
+        }
+        
         const supabaseProduct = mapProductToSupabase(product);
         
         const { data, error } = await fromSupabase('products')

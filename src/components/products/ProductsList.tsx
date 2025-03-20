@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { DataTable } from '@/components/common/DataTable';
 import { Badge } from '@/components/ui/badge';
@@ -154,9 +155,11 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
     {
       accessorKey: "category",
       header: "Categoria",
-      cell: ({ row }) => (
-        <Badge variant="outline">{row.original.category.name}</Badge>
-      ),
+      cell: ({ row }) => {
+        // Garantir que category existe antes de acessar name
+        const categoryName = row.original.category?.name || 'Sem categoria';
+        return <Badge variant="outline">{categoryName}</Badge>;
+      },
     },
     {
       accessorKey: "expirationDate",

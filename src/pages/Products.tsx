@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import ProductsList from '@/components/products/ProductsList';
 import ProductForm from '@/components/products/ProductForm';
@@ -40,11 +41,17 @@ const Products = () => {
     refetch();
   };
 
-  const productsWithLowStock = products?.filter(
+  // Garantir que produtos com categoria indefinida não causem problemas
+  const safeProducts = products?.map(product => ({
+    ...product,
+    category: product.category || { id: '', name: 'Sem categoria' }
+  })) || [];
+
+  const productsWithLowStock = safeProducts?.filter(
     product => product.minimumStock && product.stock <= product.minimumStock
   ) || [];
 
-  const productsApproachingMinStock = products?.filter(
+  const productsApproachingMinStock = safeProducts?.filter(
     product => product.minimumStock && 
               product.stock > product.minimumStock && 
               product.stock <= product.minimumStock * 1.5
