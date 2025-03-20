@@ -4,12 +4,12 @@ import { SalesContent } from '@/components/sales/SalesContent';
 import { useCart } from '@/hooks/use-cart';
 import { useDiscounts } from '@/hooks/use-discounts';
 import { useProductSearch } from '@/hooks/use-product-search';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useSalesManager } from '@/hooks/use-sales-manager';
 import { Customer } from '@/types';
 
 const Sales = () => {
-  const { isMobile } = useMobile();
+  const isMobile = useIsMobile();
   const [linkedCustomer, setLinkedCustomer] = useState<Customer | null>(null);
   
   // Cart functionality
@@ -30,7 +30,7 @@ const Sales = () => {
     hasSearched, 
     isScanning, 
     toggleScanner 
-  } = useProductSearch();
+  } = useProductSearch(addProductToCart);
   
   // Discounts functionality
   const {
@@ -57,20 +57,7 @@ const Sales = () => {
     handleOpenPromotions,
     handleShowDiscountsList,
     initiateRemoveFromCart,
-  } = useSalesManager({
-    cart,
-    cartTotal,
-    cartSubtotal,
-    linkedCustomer,
-    manualDiscount,
-    removeFromCart,
-    clearCart,
-    resetDiscounts,
-    applyManualDiscount,
-    handleSelectPromotion,
-    availablePromotions,
-    selectedPromotionId,
-  });
+  } = useSalesManager();
 
   // Customer management
   const handleLinkCustomer = (customer: Customer) => {
