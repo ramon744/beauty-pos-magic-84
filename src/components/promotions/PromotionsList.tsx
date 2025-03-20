@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useFetchPromotions, useDeletePromotion } from '@/hooks/use-promotions';
 import { useFetchProducts } from '@/hooks/use-products';
@@ -51,7 +50,6 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
   const { mutate: deletePromotion } = useDeletePromotion();
   const { toast } = useToast();
   
-  // Ensure promotionsData is treated as an array of Promotion objects
   const promotions = Array.isArray(promotionsData) ? promotionsData : [];
   
   const [searchTerm, setSearchTerm] = useState('');

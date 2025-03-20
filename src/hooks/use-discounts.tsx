@@ -57,13 +57,25 @@ export const useDiscounts = (cart: CartItem[], cartSubtotal: number) => {
     });
   }, [cart, products]);
 
+  // Helper function to ensure we're working with an array of Promotion objects
+  const ensurePromotionsArray = (data: any): Promotion[] => {
+    if (!data) return [];
+    if (Array.isArray(data) && data.length > 0 && 'id' in data[0]) {
+      return data as Promotion[];
+    }
+    if (Array.isArray(data) && Array.isArray(data[0])) {
+      return data[0] as Promotion[];
+    }
+    return [];
+  };
+
   const availablePromotions = useMemo(() => {
     if (cart.length === 0) return [];
     
     // Ensure we're working with an array of Promotion objects
-    const promotionsArray = Array.isArray(promotionsData) ? promotionsData : [];
+    const promotionsArray = ensurePromotionsArray(promotionsData);
     
-    // Ensure we're passing a Promotion[] array
+    // Pass the properly typed promotions array to the function
     return getAvailablePromotions(
       cartItemsForPromotions, 
       promotionsArray
@@ -94,7 +106,9 @@ export const useDiscounts = (cart: CartItem[], cartSubtotal: number) => {
     if (!appliedPromotion) return null;
     
     // Ensure promotionsData is treated as an array of Promotion objects
-    const promotionsArray = Array.isArray(promotionsData) ? promotionsData : [];
+    const promotionsArray = ensurePromotionsArray(promotionsData);
+    
+    // Find the promotion with the matching ID
     const promotion = promotionsArray.find(p => p.id === appliedPromotion.promotionId);
     
     return promotion || null;

@@ -159,6 +159,28 @@ const getDeletedPromotionIds = (): string[] => {
   return JSON.parse(localStorage.getItem('deletedPromotionIds') || '[]');
 };
 
+// Helper function to ensure we're working with a proper Promotion array
+const ensurePromotionArray = (data: any): Promotion[] => {
+  if (!data) return [];
+  
+  // If it's already an array of Promotion objects
+  if (Array.isArray(data) && data.length > 0 && 'id' in data[0]) {
+    return data as Promotion[];
+  }
+  
+  // If it's a nested array, try to flatten it
+  if (Array.isArray(data) && Array.isArray(data[0])) {
+    return data[0] as Promotion[];
+  }
+  
+  // If it's a single Promotion object
+  if (!Array.isArray(data) && 'id' in data) {
+    return [data as Promotion];
+  }
+  
+  return [];
+};
+
 // Hook for fetching all promotions
 export function useFetchPromotions() {
   return useQuery({
@@ -168,16 +190,17 @@ export function useFetchPromotions() {
         // Try fetching from Supabase first
         const allPromotions = await storageService.getFromSupabase<Promotion[]>('promotions');
         
+        // Ensure we have a proper array of Promotion objects
+        const promotionsArray = ensurePromotionArray(allPromotions);
+        
         // Update localStorage with latest data
-        if (allPromotions && allPromotions.length > 0) {
-          storageService.setItem(STORAGE_KEYS.PROMOTIONS, allPromotions);
+        if (promotionsArray.length > 0) {
+          storageService.setItem(STORAGE_KEYS.PROMOTIONS, promotionsArray);
         }
         
         // Filter out deleted promotions
         const deletedIds = getDeletedPromotionIds();
-        return Array.isArray(allPromotions) 
-          ? allPromotions.filter((promotion) => !deletedIds.includes(promotion.id)) 
-          : [];
+        return promotionsArray.filter(promotion => !deletedIds.includes(promotion.id));
       } catch (error) {
         console.error("Erro ao buscar promoções:", error);
         
@@ -221,11 +244,13 @@ export function useFetchPromotion(id: string) {
       
       try {
         // Try fetching from Supabase first
-        const promotions = await storageService.getFromSupabase<Promotion[]>('promotions', 'id', id);
+        const promotionsData = await storageService.getFromSupabase<Promotion[]>('promotions', 'id', id);
         
-        if (promotions && Array.isArray(promotions) && promotions.length > 0) {
-          // Convert the first item to Promotion type explicitly
-          return promotions[0] as Promotion;
+        // Ensure we have a proper array of Promotion objects
+        const promotions = ensurePromotionArray(promotionsData);
+        
+        if (promotions.length > 0) {
+          return promotions[0];
         }
         
         throw new Error('Promotion not found');
@@ -260,13 +285,14 @@ export function usePromotionStatistics() {
     queryFn: async (): Promise<PromotionStatistics> => {
       try {
         // Fetch all promotions to calculate updated statistics
-        const promotions = await storageService.getFromSupabase<Promotion[]>('promotions');
+        const promotionsData = await storageService.getFromSupabase<Promotion[]>('promotions');
+        
+        // Ensure we have a proper array of Promotion objects
+        const promotions = ensurePromotionArray(promotionsData);
         
         // Filter out deleted promotions
         const deletedIds = getDeletedPromotionIds();
-        const availablePromotions = Array.isArray(promotions) 
-          ? promotions.filter(promotion => !deletedIds.includes(promotion.id))
-          : [];
+        const availablePromotions = promotions.filter(promotion => !deletedIds.includes(promotion.id));
         
         const now = new Date();
         
@@ -441,14 +467,17 @@ export function useRemoveProductFromPromotion() {
       
       try {
         // Fetch promotion from Supabase
-        const promotions = await storageService.getFromSupabase<Promotion[]>('promotions', 'id', promotionId);
+        const promotionsData = await storageService.getFromSupabase<Promotion[]>('promotions', 'id', promotionId);
         
-        if (!promotions || !Array.isArray(promotions) || promotions.length === 0) {
+        // Ensure we have a proper array of Promotion objects
+        const promotions = ensurePromotionArray(promotionsData);
+        
+        if (promotions.length === 0) {
           throw new Error('Promotion not found');
         }
         
-        // Explicitly cast to Promotion
-        const promotion = promotions[0] as Promotion;
+        // Get the promotion object
+        const promotion = promotions[0];
         
         // Handle based on promotion type
         if (promotion.type === 'bundle' && promotion.bundleProducts) {
