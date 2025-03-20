@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Promotion } from '@/types';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
@@ -222,7 +221,8 @@ export function useFetchPromotion(id: string) {
         const promotions = await storageService.getFromSupabase<Promotion[]>('promotions', 'id', id);
         
         if (promotions && promotions.length > 0) {
-          return promotions[0] as Promotion;  // Return the first item as a Promotion
+          // Explicitly cast to Promotion to fix TypeScript type issues
+          return promotions[0] as Promotion;
         }
         
         throw new Error('Promotion not found');
@@ -243,7 +243,7 @@ export function useFetchPromotion(id: string) {
         const promotion = promotions.find(p => p.id === id);
         if (!promotion) throw new Error('Promotion not found');
         
-        return promotion as Promotion;  // Explicitly type as Promotion
+        return promotion as Promotion;
       }
     },
     enabled: !!id, // Only run the query if id is provided

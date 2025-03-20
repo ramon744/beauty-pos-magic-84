@@ -27,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface PromotionsListProps {
   onEditPromotion: (promotionId: string) => void;
@@ -58,13 +58,13 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
   const [promotionToDelete, setPromotionToDelete] = useState<string | null>(null);
   const [deletedPromotionIds, setDeletedPromotionIds] = useState<string[]>([]);
 
-  // Carregar IDs de promoções excluídas do localStorage ao montar o componente
+  // Load deleted promotion IDs from localStorage on component mount
   useEffect(() => {
     const deletedIds = JSON.parse(localStorage.getItem('deletedPromotionIds') || '[]');
     setDeletedPromotionIds(deletedIds);
   }, []);
 
-  // Salvar IDs de promoções excluídas no localStorage quando eles mudarem
+  // Save deleted promotion IDs to localStorage when they change
   useEffect(() => {
     if (deletedPromotionIds.length > 0) {
       localStorage.setItem('deletedPromotionIds', JSON.stringify(deletedPromotionIds));
@@ -174,7 +174,7 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
   // Handle actual deletion
   const handleConfirmDelete = () => {
     if (promotionToDelete) {
-      // Adicionar ao estado de promoções excluídas
+      // Add to deleted promotions state
       setDeletedPromotionIds(prev => [...prev, promotionToDelete]);
       
       deletePromotion(promotionToDelete, {
@@ -185,7 +185,7 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
           });
           setPromotionToDelete(null);
           
-          // Gravar o ID excluído no localStorage para persistência
+          // Store the deleted ID in localStorage for persistence
           const deletedIds = JSON.parse(localStorage.getItem('deletedPromotionIds') || '[]');
           if (!deletedIds.includes(promotionToDelete)) {
             deletedIds.push(promotionToDelete);
@@ -193,7 +193,7 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
           }
         },
         onError: () => {
-          // Em caso de erro, remover do estado de promoções excluídas
+          // Remove from deleted promotions state in case of error
           setDeletedPromotionIds(prev => prev.filter(id => id !== promotionToDelete));
           
           toast({
