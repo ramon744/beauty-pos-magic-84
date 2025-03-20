@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -122,25 +123,36 @@ export default function ProductForm({ productId, onSubmitted }: ProductFormProps
   useEffect(() => {
     if (product && productId) {
       console.log("Loading product data for edit:", product);
-      const productSuppliers = product.supplierIds 
-        ? suppliers?.filter(s => product.supplierIds?.includes(s.id)) || []
+      
+      // Make sure product has all required properties before setting form values
+      const safeProduct = {
+        ...product,
+        category: product.category || { id: '', name: 'Sem categoria' },
+        salePrice: typeof product.salePrice === 'number' ? product.salePrice : Number(product.salePrice) || 0,
+        costPrice: typeof product.costPrice === 'number' ? product.costPrice : Number(product.costPrice) || 0,
+        stock: typeof product.stock === 'number' ? product.stock : Number(product.stock) || 0,
+        minimumStock: typeof product.minimumStock === 'number' ? product.minimumStock : Number(product.minimumStock) || 0,
+      };
+      
+      const productSuppliers = safeProduct.supplierIds 
+        ? suppliers?.filter(s => safeProduct.supplierIds?.includes(s.id)) || []
         : [];
       
       setSelectedSuppliers(productSuppliers);
       
       form.reset({
-        name: product.name,
-        description: product.description,
-        code: product.code,
-        categoryId: product.category.id,
-        salePrice: product.salePrice,
-        costPrice: product.costPrice,
-        stock: product.stock,
-        minimumStock: product.minimumStock || 0,
-        image: product.image,
-        supplierIds: product.supplierIds || [],
-        expirationDate: product.expirationDate ? new Date(product.expirationDate) : null,
-        expirationDateInput: product.expirationDate ? format(new Date(product.expirationDate), 'dd/MM/yyyy') : '',
+        name: safeProduct.name,
+        description: safeProduct.description || '',
+        code: safeProduct.code || '',
+        categoryId: safeProduct.category?.id || '',
+        salePrice: safeProduct.salePrice,
+        costPrice: safeProduct.costPrice,
+        stock: safeProduct.stock,
+        minimumStock: safeProduct.minimumStock || 0,
+        image: safeProduct.image || '',
+        supplierIds: safeProduct.supplierIds || [],
+        expirationDate: safeProduct.expirationDate ? new Date(safeProduct.expirationDate) : null,
+        expirationDateInput: safeProduct.expirationDate ? format(new Date(safeProduct.expirationDate), 'dd/MM/yyyy') : '',
       });
     }
   }, [product, productId, form, suppliers]);

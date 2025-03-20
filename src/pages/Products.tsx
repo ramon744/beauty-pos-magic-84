@@ -32,6 +32,7 @@ const Products = () => {
   };
 
   const handleEditProduct = (productId: string) => {
+    console.log("Editing product with ID:", productId);
     setEditProductId(productId);
     setActiveTab('form');
   };
