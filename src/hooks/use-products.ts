@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Product, Category } from '@/types';
 import { storageService, STORAGE_KEYS, fromSupabase } from '@/services/storage-service';
@@ -194,6 +193,14 @@ export const useCategories = () => {
 
 // Função auxiliar para mapear um objeto Product para o formato aceito pelo Supabase
 const mapProductToSupabase = (product: Product) => {
+  console.log('Mapping product to Supabase format:', product);
+  
+  // Garantir que valores numéricos sejam corretamente formatados
+  const salePrice = typeof product.salePrice === 'number' ? product.salePrice : Number(product.salePrice) || 0;
+  const costPrice = typeof product.costPrice === 'number' ? product.costPrice : Number(product.costPrice) || 0;
+  const stock = typeof product.stock === 'number' ? product.stock : Number(product.stock) || 0;
+  const minimumStock = typeof product.minimumStock === 'number' ? product.minimumStock : Number(product.minimumStock) || 0;
+  
   return {
     id: product.id,
     name: product.name,
@@ -201,10 +208,10 @@ const mapProductToSupabase = (product: Product) => {
     code: product.code,
     category_id: product.category?.id || '',
     category_name: product.category?.name || 'Sem categoria',
-    sale_price: Number(product.salePrice) || 0,
-    cost_price: Number(product.costPrice) || 0,
-    stock: Number(product.stock) || 0,
-    minimum_stock: Number(product.minimumStock) || 0,
+    sale_price: salePrice,
+    cost_price: costPrice,
+    stock: stock,
+    minimum_stock: minimumStock,
     image: product.image || '',
     supplier_ids: product.supplierIds || [],
     expiration_date: product.expirationDate || null,
@@ -215,6 +222,21 @@ const mapProductToSupabase = (product: Product) => {
 
 // Função auxiliar para mapear dados do Supabase para o formato Product
 const mapSupabaseToProduct = (data: any): Product => {
+  console.log('Mapping Supabase data to Product:', data);
+  
+  // Garantir que valores numéricos sejam corretamente interpretados
+  const salePrice = typeof data.sale_price === 'number' ? data.sale_price : Number(data.sale_price) || 0;
+  const costPrice = typeof data.cost_price === 'number' ? data.cost_price : Number(data.cost_price) || 0;
+  const stock = typeof data.stock === 'number' ? data.stock : Number(data.stock) || 0;
+  const minimumStock = typeof data.minimum_stock === 'number' ? data.minimum_stock : Number(data.minimum_stock) || 0;
+  
+  // Processar a data de validade
+  let expirationDate = null;
+  if (data.expiration_date) {
+    const parsedDate = new Date(data.expiration_date);
+    expirationDate = isNaN(parsedDate.getTime()) ? null : parsedDate;
+  }
+  
   return {
     id: data.id,
     name: data.name,
@@ -224,13 +246,13 @@ const mapSupabaseToProduct = (data: any): Product => {
       id: data.category_id || '',
       name: data.category_name || 'Sem categoria'
     },
-    salePrice: Number(data.sale_price) || 0,
-    costPrice: Number(data.cost_price) || 0,
-    stock: Number(data.stock) || 0,
-    minimumStock: Number(data.minimum_stock) || 0,
+    salePrice: salePrice,
+    costPrice: costPrice,
+    stock: stock,
+    minimumStock: minimumStock,
     image: data.image || '',
     supplierIds: data.supplier_ids || [],
-    expirationDate: data.expiration_date ? new Date(data.expiration_date) : null,
+    expirationDate: expirationDate,
     createdAt: new Date(data.created_at),
     updatedAt: new Date(data.updated_at),
   };
@@ -263,12 +285,20 @@ export const useSaveProduct = () => {
         }
         
         // Garantir que os valores numéricos são adequados
-        product.salePrice = Number(product.salePrice) || 0;
-        product.costPrice = Number(product.costPrice) || 0;
-        product.stock = Number(product.stock) || 0;
-        product.minimumStock = Number(product.minimumStock) || 0;
+        product.salePrice = typeof product.salePrice === 'number' ? product.salePrice : Number(product.salePrice) || 0;
+        product.costPrice = typeof product.costPrice === 'number' ? product.costPrice : Number(product.costPrice) || 0;
+        product.stock = typeof product.stock === 'number' ? product.stock : Number(product.stock) || 0;
+        product.minimumStock = typeof product.minimumStock === 'number' ? product.minimumStock : Number(product.minimumStock) || 0;
         
         console.log('Product after validation:', product);
+        
+        // Se a expirationDate for uma string de data válida, converta para um objeto Date
+        if (product.expirationDate && typeof product.expirationDate === 'string') {
+          const parsedDate = new Date(product.expirationDate);
+          if (!isNaN(parsedDate.getTime())) {
+            product.expirationDate = parsedDate;
+          }
+        }
         
         const supabaseProduct = mapProductToSupabase(product);
         console.log('Product mapped for Supabase:', supabaseProduct);

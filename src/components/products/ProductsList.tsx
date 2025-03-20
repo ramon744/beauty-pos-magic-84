@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { DataTable } from '@/components/common/DataTable';
 import { Badge } from '@/components/ui/badge';
@@ -61,6 +60,8 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
   // Filter products based on search input and exclude deleted products
   useEffect(() => {
     if (products) {
+      console.log('Processing products:', products);
+      
       // Filter out already deleted products
       const availableProducts = products.filter(product => 
         !deletedProductIds.includes(product.id)
@@ -76,7 +77,18 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
         );
       });
       
-      setFilteredProducts(filtered);
+      // Ensure all products have the required properties
+      const processedProducts = filtered.map(product => ({
+        ...product,
+        category: product.category || { id: '', name: 'Sem categoria' },
+        salePrice: typeof product.salePrice === 'number' ? product.salePrice : 0,
+        costPrice: typeof product.costPrice === 'number' ? product.costPrice : 0,
+        stock: typeof product.stock === 'number' ? product.stock : 0,
+        minimumStock: typeof product.minimumStock === 'number' ? product.minimumStock : 0
+      }));
+      
+      console.log('Filtered products:', processedProducts);
+      setFilteredProducts(processedProducts);
     } else {
       setFilteredProducts([]);
     }
@@ -164,9 +176,10 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
     {
       accessorKey: "expirationDate",
       header: "Data de Validade",
-      cell: ({ row }) => (
-        <ExpirationDate expirationDate={row.original.expirationDate} />
-      ),
+      cell: ({ row }) => {
+        console.log('Expiration date for', row.original.name, ':', row.original.expirationDate);
+        return <ExpirationDate expirationDate={row.original.expirationDate} />;
+      },
     },
     {
       accessorKey: "stock",
@@ -178,9 +191,11 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
     {
       accessorKey: "salePrice",
       header: "Preço de Venda",
-      cell: ({ row }) => (
-        <div className="font-medium">{formatCurrency(row.original.salePrice)}</div>
-      ),
+      cell: ({ row }) => {
+        const price = typeof row.original.salePrice === 'number' ? row.original.salePrice : 0;
+        console.log('Sale price for', row.original.name, ':', price);
+        return <div className="font-medium">{formatCurrency(price)}</div>;
+      },
     },
     {
       id: "actions",

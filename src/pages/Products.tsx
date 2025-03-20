@@ -13,13 +13,14 @@ import { useFetchProducts } from '@/hooks/use-products';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/components/ui/use-toast';
 import SyncStatusIndicator from '@/components/products/SyncStatusIndicator';
-import { storageService, STORAGE_KEYS } from '@/services/storage-service';
+import { Product } from '@/types';
 
 const Products = () => {
   const [activeTab, setActiveTab] = useState('list');
   const [editProductId, setEditProductId] = useState<string | null>(null);
   const { data: products, isLoading, error, refetch } = useFetchProducts();
   const { toast } = useToast();
+  const [tabError, setTabError] = useState<string | null>(null);
 
   useEffect(() => {
     refetch();
@@ -42,13 +43,13 @@ const Products = () => {
   };
 
   // Garantir que produtos com categoria indefinida não causem problemas
-  const safeProducts = products?.map(product => ({
+  const safeProducts = products?.map((product: Product) => ({
     ...product,
     category: product.category || { id: '', name: 'Sem categoria' },
-    salePrice: product.salePrice || 0,
-    costPrice: product.costPrice || 0,
-    stock: product.stock || 0,
-    minimumStock: product.minimumStock || 0
+    salePrice: typeof product.salePrice === 'number' ? product.salePrice : Number(product.salePrice) || 0,
+    costPrice: typeof product.costPrice === 'number' ? product.costPrice : Number(product.costPrice) || 0,
+    stock: typeof product.stock === 'number' ? product.stock : Number(product.stock) || 0,
+    minimumStock: typeof product.minimumStock === 'number' ? product.minimumStock : Number(product.minimumStock) || 0
   })) || [];
 
   const productsWithLowStock = safeProducts?.filter(
@@ -65,9 +66,11 @@ const Products = () => {
   const handleTabChange = (value: string) => {
     // Se algum dos tabs está falhando, capture o erro e avise
     try {
+      setTabError(null);
       setActiveTab(value);
     } catch (error) {
       console.error('Error changing tab:', error);
+      setTabError('Ocorreu um erro ao mudar para esta aba. Por favor, tente novamente.');
       toast({
         variant: 'destructive',
         title: 'Erro ao mudar de aba',
@@ -109,6 +112,13 @@ const Products = () => {
         </Alert>
       )}
       
+      {tabError && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{tabError}</AlertDescription>
+        </Alert>
+      )}
+      
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="list">Lista de Produtos</TabsTrigger>
@@ -134,10 +144,14 @@ const Products = () => {
           </div>
         </TabsContent>
         <TabsContent value="inventory">
-          <InventoryControl />
+          <div className="p-4 rounded-md border border-gray-200">
+            <InventoryControl />
+          </div>
         </TabsContent>
         <TabsContent value="expiration">
-          <ExpirationControl />
+          <div className="p-4 rounded-md border border-gray-200">
+            <ExpirationControl />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

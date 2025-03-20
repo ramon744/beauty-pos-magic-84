@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 
 interface ExpirationDateProps {
   expirationDate?: Date | string | null;
@@ -12,9 +12,10 @@ export function ExpirationDate({ expirationDate }: ExpirationDateProps) {
   
   try {
     const today = new Date();
-    const expDate = new Date(expirationDate);
+    const expDate = expirationDate instanceof Date ? expirationDate : new Date(expirationDate);
     
-    if (isNaN(expDate.getTime())) {
+    if (!isValid(expDate)) {
+      console.log('Data inválida:', expirationDate);
       return <span className="text-muted-foreground">Data inválida</span>;
     }
     
@@ -33,7 +34,7 @@ export function ExpirationDate({ expirationDate }: ExpirationDateProps) {
       </Badge>
     );
   } catch (error) {
-    console.error('Error formatting expiration date:', error);
+    console.error('Error formatting expiration date:', error, 'Value was:', expirationDate);
     return <span className="text-muted-foreground">Formato inválido</span>;
   }
 }
