@@ -263,7 +263,7 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredPromotions.map((promotion) => (
+          {filteredPromotions.map((promotion: Promotion) => (
             <Card key={promotion.id} className="overflow-hidden">
               <CardContent className="p-0">
                 <div className="p-6">
