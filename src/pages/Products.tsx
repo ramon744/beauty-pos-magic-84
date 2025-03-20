@@ -44,7 +44,11 @@ const Products = () => {
   // Garantir que produtos com categoria indefinida não causem problemas
   const safeProducts = products?.map(product => ({
     ...product,
-    category: product.category || { id: '', name: 'Sem categoria' }
+    category: product.category || { id: '', name: 'Sem categoria' },
+    salePrice: product.salePrice || 0,
+    costPrice: product.costPrice || 0,
+    stock: product.stock || 0,
+    minimumStock: product.minimumStock || 0
   })) || [];
 
   const productsWithLowStock = safeProducts?.filter(
@@ -56,6 +60,21 @@ const Products = () => {
               product.stock > product.minimumStock && 
               product.stock <= product.minimumStock * 1.5
   ) || [];
+
+  // Certifique-se de que os tabs não quebram quando mudam
+  const handleTabChange = (value: string) => {
+    // Se algum dos tabs está falhando, capture o erro e avise
+    try {
+      setActiveTab(value);
+    } catch (error) {
+      console.error('Error changing tab:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao mudar de aba',
+        description: 'Ocorreu um erro ao tentar mudar para esta aba.',
+      });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -90,7 +109,7 @@ const Products = () => {
         </Alert>
       )}
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="list">Lista de Produtos</TabsTrigger>
           <TabsTrigger value="form">

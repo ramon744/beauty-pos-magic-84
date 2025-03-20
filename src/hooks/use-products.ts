@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Product, Category } from '@/types';
 import { storageService, STORAGE_KEYS, fromSupabase } from '@/services/storage-service';
@@ -196,19 +197,19 @@ const mapProductToSupabase = (product: Product) => {
   return {
     id: product.id,
     name: product.name,
-    description: product.description,
+    description: product.description || '',
     code: product.code,
     category_id: product.category?.id || '',
     category_name: product.category?.name || 'Sem categoria',
-    sale_price: product.salePrice,
-    cost_price: product.costPrice,
-    stock: product.stock,
-    minimum_stock: product.minimumStock,
-    image: product.image,
-    supplier_ids: product.supplierIds,
-    expiration_date: product.expirationDate,
-    created_at: product.createdAt,
-    updated_at: product.updatedAt,
+    sale_price: Number(product.salePrice) || 0,
+    cost_price: Number(product.costPrice) || 0,
+    stock: Number(product.stock) || 0,
+    minimum_stock: Number(product.minimumStock) || 0,
+    image: product.image || '',
+    supplier_ids: product.supplierIds || [],
+    expiration_date: product.expirationDate || null,
+    created_at: product.createdAt || new Date(),
+    updated_at: new Date(),
   };
 };
 
@@ -217,18 +218,18 @@ const mapSupabaseToProduct = (data: any): Product => {
   return {
     id: data.id,
     name: data.name,
-    description: data.description,
+    description: data.description || '',
     code: data.code,
     category: {
       id: data.category_id || '',
       name: data.category_name || 'Sem categoria'
     },
-    salePrice: data.sale_price,
-    costPrice: data.cost_price,
-    stock: data.stock,
-    minimumStock: data.minimum_stock,
-    image: data.image,
-    supplierIds: data.supplier_ids,
+    salePrice: Number(data.sale_price) || 0,
+    costPrice: Number(data.cost_price) || 0,
+    stock: Number(data.stock) || 0,
+    minimumStock: Number(data.minimum_stock) || 0,
+    image: data.image || '',
+    supplierIds: data.supplier_ids || [],
     expirationDate: data.expiration_date ? new Date(data.expiration_date) : null,
     createdAt: new Date(data.created_at),
     updatedAt: new Date(data.updated_at),
@@ -261,7 +262,16 @@ export const useSaveProduct = () => {
           };
         }
         
+        // Garantir que os valores numéricos são adequados
+        product.salePrice = Number(product.salePrice) || 0;
+        product.costPrice = Number(product.costPrice) || 0;
+        product.stock = Number(product.stock) || 0;
+        product.minimumStock = Number(product.minimumStock) || 0;
+        
+        console.log('Product after validation:', product);
+        
         const supabaseProduct = mapProductToSupabase(product);
+        console.log('Product mapped for Supabase:', supabaseProduct);
         
         const { data, error } = await fromSupabase('products')
           .upsert(supabaseProduct)
@@ -272,9 +282,13 @@ export const useSaveProduct = () => {
           throw error;
         }
         
+        console.log('Supabase response data:', data);
+        
         const savedProduct = data && data.length > 0 
           ? mapSupabaseToProduct(data[0]) 
           : product;
+        
+        console.log('Product mapped back from Supabase:', savedProduct);
         
         const products = getProductsFromStorage();
         const existingProductIndex = products.findIndex(p => p.id === product.id);
