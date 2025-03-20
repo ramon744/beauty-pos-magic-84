@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { DataTable } from '@/components/common/DataTable';
 import { Badge } from '@/components/ui/badge';
@@ -73,19 +74,30 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
         const searchLower = searchValue.toLowerCase();
         return (
           product.name.toLowerCase().includes(searchLower) ||
-          product.code.toLowerCase().includes(searchLower)
+          (product.code && product.code.toLowerCase().includes(searchLower))
         );
       });
       
       // Ensure all products have the required properties
-      const processedProducts = filtered.map(product => ({
-        ...product,
-        category: product.category || { id: '', name: 'Sem categoria' },
-        salePrice: typeof product.salePrice === 'number' ? product.salePrice : 0,
-        costPrice: typeof product.costPrice === 'number' ? product.costPrice : 0,
-        stock: typeof product.stock === 'number' ? product.stock : 0,
-        minimumStock: typeof product.minimumStock === 'number' ? product.minimumStock : 0
-      }));
+      const processedProducts = filtered.map(product => {
+        // Make sure we have a valid category object
+        const category = product.category || 
+                        (product.category_id && product.category_name 
+                          ? { id: product.category_id, name: product.category_name } 
+                          : { id: '', name: 'Sem categoria' });
+                          
+        return {
+          ...product,
+          category,
+          salePrice: typeof product.salePrice === 'number' ? product.salePrice : 
+                     typeof product.sale_price === 'number' ? product.sale_price : 0,
+          costPrice: typeof product.costPrice === 'number' ? product.costPrice : 
+                     typeof product.cost_price === 'number' ? product.cost_price : 0,
+          stock: typeof product.stock === 'number' ? product.stock : 0,
+          minimumStock: typeof product.minimumStock === 'number' ? product.minimumStock : 
+                       typeof product.minimum_stock === 'number' ? product.minimum_stock : 0
+        };
+      });
       
       console.log('Filtered products:', processedProducts);
       setFilteredProducts(processedProducts);
@@ -177,8 +189,9 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
       accessorKey: "expirationDate",
       header: "Data de Validade",
       cell: ({ row }) => {
-        console.log('Expiration date for', row.original.name, ':', row.original.expirationDate);
-        return <ExpirationDate expirationDate={row.original.expirationDate} />;
+        const expDate = row.original.expirationDate || row.original.expiration_date;
+        console.log('Expiration date for', row.original.name, ':', expDate);
+        return <ExpirationDate expirationDate={expDate} />;
       },
     },
     {
@@ -192,7 +205,7 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
       accessorKey: "salePrice",
       header: "Preço de Venda",
       cell: ({ row }) => {
-        const price = typeof row.original.salePrice === 'number' ? row.original.salePrice : 0;
+        const price = row.original.salePrice || row.original.sale_price || 0;
         console.log('Sale price for', row.original.name, ':', price);
         return <div className="font-medium">{formatCurrency(price)}</div>;
       },

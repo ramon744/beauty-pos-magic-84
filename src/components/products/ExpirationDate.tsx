@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { format, isValid } from 'date-fns';
+import { format, isValid, parseISO } from 'date-fns';
 
 interface ExpirationDateProps {
   expirationDate?: Date | string | null;
@@ -12,7 +12,25 @@ export function ExpirationDate({ expirationDate }: ExpirationDateProps) {
   
   try {
     const today = new Date();
-    const expDate = expirationDate instanceof Date ? expirationDate : new Date(expirationDate);
+    let expDate: Date;
+    
+    if (expirationDate instanceof Date) {
+      expDate = expirationDate;
+    } else if (typeof expirationDate === 'string') {
+      // Try to parse ISO format first (from database)
+      expDate = parseISO(expirationDate);
+      
+      // If invalid, try other date formats
+      if (!isValid(expDate)) {
+        const parts = expirationDate.split(/[-\/]/);
+        if (parts.length === 3) {
+          // Try DD/MM/YYYY format
+          expDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+        }
+      }
+    } else {
+      return <span className="text-muted-foreground">Formato inválido</span>;
+    }
     
     if (!isValid(expDate)) {
       console.log('Data inválida:', expirationDate);

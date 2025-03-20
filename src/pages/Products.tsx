@@ -42,15 +42,31 @@ const Products = () => {
     refetch();
   };
 
-  // Garantir que produtos com categoria indefinida não causem problemas
-  const safeProducts = products?.map((product: Product) => ({
-    ...product,
-    category: product.category || { id: '', name: 'Sem categoria' },
-    salePrice: typeof product.salePrice === 'number' ? product.salePrice : Number(product.salePrice) || 0,
-    costPrice: typeof product.costPrice === 'number' ? product.costPrice : Number(product.costPrice) || 0,
-    stock: typeof product.stock === 'number' ? product.stock : Number(product.stock) || 0,
-    minimumStock: typeof product.minimumStock === 'number' ? product.minimumStock : Number(product.minimumStock) || 0
-  })) || [];
+  // Process products to ensure all required properties exist
+  const safeProducts = (products || []).map((product: any) => {
+    // Ensure category exists
+    const category = product.category || 
+                   (product.category_id && product.category_name 
+                     ? { id: product.category_id, name: product.category_name } 
+                     : { id: '', name: 'Sem categoria' });
+    
+    // Ensure numeric values are properly handled               
+    return {
+      ...product,
+      category,
+      salePrice: typeof product.salePrice === 'number' ? product.salePrice : 
+                typeof product.sale_price === 'number' ? product.sale_price : 
+                Number(product.salePrice || product.sale_price) || 0,
+      costPrice: typeof product.costPrice === 'number' ? product.costPrice : 
+                typeof product.cost_price === 'number' ? product.cost_price : 
+                Number(product.costPrice || product.cost_price) || 0,
+      stock: typeof product.stock === 'number' ? product.stock : 
+            Number(product.stock) || 0,
+      minimumStock: typeof product.minimumStock === 'number' ? product.minimumStock : 
+                  typeof product.minimum_stock === 'number' ? product.minimum_stock : 
+                  Number(product.minimumStock || product.minimum_stock) || 0
+    };
+  });
 
   const productsWithLowStock = safeProducts?.filter(
     product => product.minimumStock && product.stock <= product.minimumStock
@@ -62,9 +78,8 @@ const Products = () => {
               product.stock <= product.minimumStock * 1.5
   ) || [];
 
-  // Certifique-se de que os tabs não quebram quando mudam
+  // Error handling for tab changes
   const handleTabChange = (value: string) => {
-    // Se algum dos tabs está falhando, capture o erro e avise
     try {
       setTabError(null);
       setActiveTab(value);
@@ -116,6 +131,15 @@ const Products = () => {
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>{tabError}</AlertDescription>
+        </Alert>
+      )}
+      
+      {error && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Erro ao carregar dados: {error.toString()}. Por favor, recarregue a página.
+          </AlertDescription>
         </Alert>
       )}
       
