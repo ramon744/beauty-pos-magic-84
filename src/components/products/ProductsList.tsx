@@ -1,17 +1,20 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { DataTable } from '@/components/common/DataTable';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Edit, Trash2, BarChart2, Eye, Package, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { Badge } from '@/components/ui/badge';
 import { useFetchProducts, useDeleteProduct } from '@/hooks/use-products';
 import { Product } from '@/types';
 import { ColumnDef } from '@tanstack/react-table';
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, 
+  AlertDialogHeader, AlertDialogTitle, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { formatCurrency } from '@/lib/formatters';
-import { SearchBar } from './SearchBar';
-import { StockStatus } from './StockStatus';
-import { ProductActions } from './ProductActions';
-import { ExpirationDate } from './ExpirationDate';
-import { ProductDisplay } from './ProductDisplay';
-import { storageService, STORAGE_KEYS } from '@/services/storage-service';
+import { Input } from '@/components/ui/input';
+import { Search, X } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface ProductsListProps {
   onEditProduct: (productId: string) => void;
@@ -19,105 +22,13 @@ interface ProductsListProps {
 
 export default function ProductsList({ onEditProduct }: ProductsListProps) {
   const { toast } = useToast();
-  const { data: products, isLoading, error, refetch } = useFetchProducts();
+  const { data: products, isLoading, error } = useFetchProducts();
   const { mutate: deleteProduct, isPending: isDeleting } = useDeleteProduct();
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
   const [searchValue, setSearchValue] = useState('');
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [deletionInProgress, setDeletionInProgress] = useState(false);
-  const [deletedProductIds, setDeletedProductIds] = useState<string[]>([]);
-  
-  // On component mount, load deleted IDs from localStorage
-  useEffect(() => {
-    console.log('ProductsList mounted or route changed, refetching data');
-    refetch();
-    
-    // Get deleted IDs from localStorage
-    const deletedIds = JSON.parse(localStorage.getItem('deletedProductIds') || '[]');
-    setDeletedProductIds(deletedIds);
-  }, [refetch]);
-  
-  // Save deleted product IDs to localStorage when they change
-  useEffect(() => {
-    if (deletedProductIds.length > 0) {
-      localStorage.setItem('deletedProductIds', JSON.stringify(deletedProductIds));
-    }
-  }, [deletedProductIds]);
-  
-  // Effect to handle refetching after deletion
-  useEffect(() => {
-    if (deletionInProgress && !isDeleting) {
-      // Small delay to ensure localStorage is updated before refetching
-      const timer = setTimeout(() => {
-        console.log('Deletion completed, refetching products');
-        refetch();
-        setDeletionInProgress(false);
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [deletionInProgress, isDeleting, refetch]);
-  
-  // Filter products based on search input and exclude deleted products
-  useEffect(() => {
-    if (products) {
-      console.log('Processing products:', products);
-      
-      // Filter out already deleted products
-      const availableProducts = products.filter(product => 
-        !deletedProductIds.includes(product.id)
-      );
-      
-      const filtered = availableProducts.filter(product => {
-        if (!searchValue) return true;
-        
-        const searchLower = searchValue.toLowerCase();
-        return (
-          product.name.toLowerCase().includes(searchLower) ||
-          (product.code && product.code.toLowerCase().includes(searchLower))
-        );
-      });
-      
-      // Ensure all products have the required properties
-      const processedProducts = filtered.map(product => {
-        // Make sure we have a valid category object
-        const category = product.category || { id: '', name: 'Sem categoria' };
-                          
-        return {
-          ...product,
-          category,
-          salePrice: typeof product.salePrice === 'number' ? product.salePrice : 
-                     Number(product.salePrice) || 0,
-          costPrice: typeof product.costPrice === 'number' ? product.costPrice : 
-                     Number(product.costPrice) || 0,
-          stock: typeof product.stock === 'number' ? product.stock : 
-                Number(product.stock) || 0,
-          minimumStock: typeof product.minimumStock === 'number' ? product.minimumStock : 
-                       Number(product.minimumStock) || 0
-        };
-      });
-      
-      console.log('Filtered products:', processedProducts);
-      setFilteredProducts(processedProducts);
-    } else {
-      setFilteredProducts([]);
-    }
-  }, [products, searchValue, deletedProductIds]);
   
   const handleDeleteProduct = async () => {
     if (!productToDelete) return;
-    
-    setDeletionInProgress(true);
-    
-    // Add this product to our deleted products list
-    setDeletedProductIds(prev => [...prev, productToDelete]);
-    
-    // Immediately remove the product from filtered list
-    setFilteredProducts(prev => prev.filter(p => p.id !== productToDelete));
-    
-    // Force removal from localStorage first for immediate UI update
-    const localProducts = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
-    const updatedProducts = localProducts.filter(p => p.id !== productToDelete);
-    storageService.setItem(STORAGE_KEYS.PRODUCTS, updatedProducts);
     
     deleteProduct(productToDelete, {
       onSuccess: () => {
@@ -127,21 +38,6 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
         });
         
         setProductToDelete(null);
-        
-        // Verify the product is truly gone from localStorage after deletion
-        const verifyProducts = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
-        if (verifyProducts.some(p => p.id === productToDelete)) {
-          console.warn("Product still exists in localStorage after deletion, forcing removal");
-          const forceRemoval = verifyProducts.filter(p => p.id !== productToDelete);
-          storageService.setItem(STORAGE_KEYS.PRODUCTS, forceRemoval);
-        }
-        
-        // Store the deleted ID in localStorage for persistence across refreshes
-        const deletedIds = JSON.parse(localStorage.getItem('deletedProductIds') || '[]');
-        if (!deletedIds.includes(productToDelete)) {
-          deletedIds.push(productToDelete);
-          localStorage.setItem('deletedProductIds', JSON.stringify(deletedIds));
-        }
       },
       onError: (error) => {
         toast({
@@ -150,12 +46,28 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
           description: "Ocorreu um erro ao tentar excluir o produto.",
         });
         
-        // On error, remove from deletedProductIds to allow it to show again
-        setDeletedProductIds(prev => prev.filter(id => id !== productToDelete));
         setProductToDelete(null);
-        setDeletionInProgress(false);
       }
     });
+  };
+
+  // Helper function to determine stock status
+  const getStockStatus = (product: Product) => {
+    const { stock, minimumStock } = product;
+    
+    if (stock === 0) {
+      return { status: 'outOfStock', label: 'Esgotado', color: 'text-red-600' };
+    }
+    
+    if (minimumStock && stock <= minimumStock) {
+      return { status: 'belowMinimum', label: 'Abaixo do Mínimo', color: 'text-red-600' };
+    }
+    
+    if (minimumStock && stock <= minimumStock * 1.5) {
+      return { status: 'nearMinimum', label: 'Próximo do Mínimo', color: 'text-amber-600' };
+    }
+    
+    return { status: 'inStock', label: 'Em Estoque', color: 'text-green-600' };
   };
 
   const columns: ColumnDef<Product>[] = [
@@ -170,65 +82,149 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
       accessorKey: "name",
       header: "Nome do Produto",
       cell: ({ row }) => (
-        <ProductDisplay name={row.original.name} image={row.original.image} />
+        <div className="flex items-center gap-2">
+          {row.original.image ? (
+            <img
+              src={row.original.image}
+              alt={row.original.name}
+              className="h-8 w-8 rounded-md object-cover"
+            />
+          ) : (
+            <Package className="h-8 w-8 text-muted-foreground" />
+          )}
+          <span>{row.original.name}</span>
+        </div>
       ),
     },
     {
       accessorKey: "category",
       header: "Categoria",
-      cell: ({ row }) => {
-        // Garantir que category existe antes de acessar name
-        const categoryName = row.original.category?.name || 'Sem categoria';
-        return <Badge variant="outline">{categoryName}</Badge>;
-      },
+      cell: ({ row }) => (
+        <Badge variant="outline">{row.original.category.name}</Badge>
+      ),
     },
     {
       accessorKey: "expirationDate",
       header: "Data de Validade",
       cell: ({ row }) => {
-        const expDate = row.original.expirationDate;
-        console.log('Expiration date for', row.original.name, ':', expDate);
-        return <ExpirationDate expirationDate={expDate} />;
+        const expirationDate = row.original.expirationDate;
+        if (!expirationDate) return <span className="text-muted-foreground">Não definida</span>;
+        
+        const today = new Date();
+        const expDate = new Date(expirationDate);
+        const daysUntilExpiration = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        
+        let badgeVariant = "outline";
+        if (daysUntilExpiration <= 0) {
+          badgeVariant = "destructive";
+        } else if (daysUntilExpiration <= 30) {
+          badgeVariant = "warning";
+        }
+        
+        return (
+          <Badge variant={badgeVariant as any}>
+            {format(expDate, "dd/MM/yyyy")}
+          </Badge>
+        );
       },
     },
     {
       accessorKey: "stock",
       header: "Estoque",
-      cell: ({ row }) => (
-        <StockStatus product={row.original} />
-      ),
+      cell: ({ row }) => {
+        const product = row.original;
+        const stockStatus = getStockStatus(product);
+        
+        return (
+          <div className="flex items-center gap-2">
+            <span className={`font-medium ${stockStatus.color}`}>
+              {product.stock}
+            </span>
+            {(stockStatus.status === 'belowMinimum' || stockStatus.status === 'nearMinimum') && (
+              <div className="relative" title={stockStatus.label}>
+                <AlertTriangle className={`h-4 w-4 ${stockStatus.status === 'belowMinimum' ? 'text-red-600' : 'text-amber-600'}`} />
+                {product.minimumStock && (
+                  <span className="text-xs text-muted-foreground ml-1">
+                    Min: {product.minimumStock}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "salePrice",
       header: "Preço de Venda",
-      cell: ({ row }) => {
-        const price = row.original.salePrice || 0;
-        console.log('Sale price for', row.original.name, ':', price);
-        return <div className="font-medium">{formatCurrency(price)}</div>;
-      },
+      cell: ({ row }) => (
+        <div className="font-medium">{formatCurrency(row.original.salePrice)}</div>
+      ),
     },
     {
       id: "actions",
       header: "Ações",
       cell: ({ row }) => (
-        <ProductActions
-          productId={row.original.id}
-          productName={row.original.name}
-          onEditProduct={onEditProduct}
-          isDeleting={isDeleting && productToDelete === row.original.id}
-          onDeleteConfirm={handleDeleteProduct}
-          isDeleteDialogOpen={productToDelete === row.original.id}
-          setDeleteDialogOpen={(open) => {
-            if (open) {
-              setProductToDelete(row.original.id);
-            } else {
-              setProductToDelete(null);
-            }
-          }}
-        />
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onEditProduct(row.original.id)}
+            title="Editar"
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <AlertDialog open={productToDelete === row.original.id} onOpenChange={(open) => !open && setProductToDelete(null)}>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setProductToDelete(row.original.id)}
+                title="Excluir"
+                disabled={isDeleting}
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação não pode ser desfeita. Isso excluirá permanentemente o produto 
+                  "{row.original.name}" e removerá os dados associados.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleDeleteProduct} 
+                  className="bg-destructive text-destructive-foreground"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? 'Excluindo...' : 'Excluir'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       ),
     },
   ];
+
+  // Filter products based on search input
+  const filteredProducts = products ? products.filter(product => {
+    if (!searchValue) return true;
+    
+    const searchLower = searchValue.toLowerCase();
+    return (
+      product.name.toLowerCase().includes(searchLower) ||
+      product.code.toLowerCase().includes(searchLower)
+    );
+  }) : [];
+
+  const clearSearch = () => {
+    setSearchValue('');
+  };
 
   if (error) {
     return (
@@ -240,15 +236,32 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
 
   return (
     <div className="space-y-4">
-      <SearchBar 
-        searchValue={searchValue} 
-        setSearchValue={setSearchValue} 
-      />
+      <div className="relative">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Pesquisar por código ou nome do produto..."
+            className="pl-8 pr-8"
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+          />
+          {searchValue && (
+            <button 
+              onClick={clearSearch}
+              className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+              aria-label="Limpar pesquisa"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
       <div className="rounded-md border shadow">
         <DataTable
           columns={columns}
           data={filteredProducts}
-          isLoading={isLoading || deletionInProgress}
+          isLoading={isLoading}
         />
       </div>
     </div>

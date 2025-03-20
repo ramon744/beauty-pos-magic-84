@@ -1,8 +1,6 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Promotion } from '@/types';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
-import { toast } from '@/hooks/use-toast';
 
 // Types for promotion statistics
 interface PromotionStatistics {
@@ -97,22 +95,16 @@ const initializeData = () => {
 // Helper function to calculate statistics
 const updateStatistics = (): PromotionStatistics => {
   const promotions = storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS) || [];
-  const deletedPromotionIds = JSON.parse(localStorage.getItem('deletedPromotionIds') || '[]');
-  
-  // Filter out deleted promotions
-  const availablePromotions = promotions.filter(
-    promotion => !deletedPromotionIds.includes(promotion.id)
-  );
   
   const now = new Date();
   
   const statistics: PromotionStatistics = {
-    totalPromotions: availablePromotions.length,
-    activePromotions: availablePromotions.filter(p => p.isActive).length,
-    upcomingPromotions: availablePromotions.filter(p => {
+    totalPromotions: promotions.length,
+    activePromotions: promotions.filter(p => p.isActive).length,
+    upcomingPromotions: promotions.filter(p => {
       return p.isActive && new Date(p.startDate) > now;
     }).length,
-    expiredPromotions: availablePromotions.filter(p => {
+    expiredPromotions: promotions.filter(p => {
       return new Date(p.endDate) < now;
     }).length,
   };
@@ -123,107 +115,30 @@ const updateStatistics = (): PromotionStatistics => {
 
 // Initialize data with a check to avoid duplicating entries
 const initializeIfNeeded = () => {
-  // Verificar se os dados existem no Supabase primeiro
-  try {
-    const existingPromotions = storageService.getFromSupabase<Promotion[]>('promotions')
-      .then(promotions => {
-        if (!promotions || promotions.length === 0) {
-          // Se não houver promoções no Supabase, inicialize com os dados locais
-          console.log("Inicializando dados de promoções no Supabase");
-          initialPromotions.forEach(async (promotion) => {
-            try {
-              await storageService.saveToSupabase('promotions', promotion);
-            } catch (error) {
-              console.error("Erro ao salvar promoção:", error);
-            }
-          });
-        }
-      })
-      .catch(error => {
-        console.error("Erro ao verificar promoções no Supabase:", error);
-      });
-  } catch (error) {
-    console.error("Falha ao inicializar dados:", error);
+  const existingPromotions = storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS);
+  if (!existingPromotions || existingPromotions.length === 0) {
+    initializeData();
+    console.log("Initialized promotion data in localStorage");
   }
 };
 
 // Run initialization
-try {
-  initializeIfNeeded();
-} catch (error) {
-  console.error("Erro ao inicializar dados:", error);
-}
-
-// Helper to get deleted promotion IDs
-const getDeletedPromotionIds = (): string[] => {
-  return JSON.parse(localStorage.getItem('deletedPromotionIds') || '[]');
-};
-
-// Helper function to ensure we're working with a proper Promotion array
-const ensurePromotionArray = (data: any): Promotion[] => {
-  if (!data) return [];
-  
-  // If it's already an array of Promotion objects
-  if (Array.isArray(data) && data.length > 0 && 'id' in data[0]) {
-    return data as Promotion[];
-  }
-  
-  // If it's a nested array, try to flatten it
-  if (Array.isArray(data) && Array.isArray(data[0])) {
-    return data[0] as Promotion[];
-  }
-  
-  // If it's a single Promotion object
-  if (!Array.isArray(data) && 'id' in data) {
-    return [data as Promotion];
-  }
-  
-  return [];
-};
+initializeIfNeeded();
 
 // Hook for fetching all promotions
 export function useFetchPromotions() {
   return useQuery({
     queryKey: ['promotions'],
     queryFn: async () => {
-      try {
-        // Try fetching from Supabase first
-        const allPromotions = await storageService.getFromSupabase<Promotion[]>('promotions');
-        
-        // Ensure we have a proper array of Promotion objects
-        const promotionsArray = ensurePromotionArray(allPromotions);
-        
-        // Update localStorage with latest data
-        if (promotionsArray.length > 0) {
-          storageService.setItem(STORAGE_KEYS.PROMOTIONS, promotionsArray);
-        }
-        
-        // Filter out deleted promotions
-        const deletedIds = getDeletedPromotionIds();
-        return promotionsArray.filter(promotion => !deletedIds.includes(promotion.id));
-      } catch (error) {
-        console.error("Erro ao buscar promoções:", error);
-        
-        // Show message if offline or error
-        if (!navigator.onLine) {
-          toast({
-            variant: "destructive",
-            title: "Erro de conexão",
-            description: "Não foi possível buscar as promoções. O aplicativo precisa de conexão com a internet."
-          });
-        } else {
-          toast({
-            variant: "destructive",
-            title: "Erro ao buscar promoções",
-            description: "Ocorreu um erro ao buscar as promoções."
-          });
-        }
-        
-        // Return data from localStorage as fallback
-        const localPromotions = storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS) || [];
-        const deletedIds = getDeletedPromotionIds();
-        return localPromotions.filter(promotion => !deletedIds.includes(promotion.id));
+      // Ensure data is initialized if empty
+      const promotions = storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS);
+      if (!promotions || promotions.length === 0) {
+        initializeData();
+        console.log("Re-initialized promotion data during fetch");
       }
+      
+      // Fetch from localStorage
+      return storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS) || [];
     },
   });
 }
@@ -232,47 +147,16 @@ export function useFetchPromotions() {
 export function useFetchPromotion(id: string) {
   return useQuery({
     queryKey: ['promotion', id],
-    queryFn: async (): Promise<Promotion> => {
+    queryFn: async () => {
       // Skip the request if id is empty
-      if (!id) return {} as Promotion;
+      if (!id) return null;
       
-      // Check if promotion is deleted
-      const deletedIds = getDeletedPromotionIds();
-      if (deletedIds.includes(id)) {
-        throw new Error('Promotion has been deleted');
-      }
+      // Fetch from localStorage
+      const promotions = storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS) || [];
+      const promotion = promotions.find(p => p.id === id);
+      if (!promotion) throw new Error('Promotion not found');
       
-      try {
-        // Try fetching from Supabase first
-        const promotionsData = await storageService.getFromSupabase<Promotion[]>('promotions', 'id', id);
-        
-        // Ensure we have a proper array of Promotion objects
-        const promotions = ensurePromotionArray(promotionsData);
-        
-        if (promotions.length > 0) {
-          return promotions[0];
-        }
-        
-        throw new Error('Promotion not found');
-      } catch (error) {
-        console.error(`Erro ao buscar promoção ${id}:`, error);
-        
-        // Show message if offline
-        if (!navigator.onLine) {
-          toast({
-            variant: "destructive",
-            title: "Erro de conexão",
-            description: "Não foi possível buscar os detalhes da promoção. O aplicativo precisa de conexão com a internet."
-          });
-        }
-        
-        // Try to get from localStorage as fallback
-        const promotions = storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS) || [];
-        const promotion = promotions.find(p => p.id === id);
-        if (!promotion) throw new Error('Promotion not found');
-        
-        return promotion;
-      }
+      return promotion;
     },
     enabled: !!id, // Only run the query if id is provided
   });
@@ -283,55 +167,16 @@ export function usePromotionStatistics() {
   return useQuery({
     queryKey: ['promotion-statistics'],
     queryFn: async (): Promise<PromotionStatistics> => {
-      try {
-        // Fetch all promotions to calculate updated statistics
-        const promotionsData = await storageService.getFromSupabase<Promotion[]>('promotions');
-        
-        // Ensure we have a proper array of Promotion objects
-        const promotions = ensurePromotionArray(promotionsData);
-        
-        // Filter out deleted promotions
-        const deletedIds = getDeletedPromotionIds();
-        const availablePromotions = promotions.filter(promotion => !deletedIds.includes(promotion.id));
-        
-        const now = new Date();
-        
-        const statistics: PromotionStatistics = {
-          totalPromotions: availablePromotions.length,
-          activePromotions: availablePromotions.filter(p => p.isActive).length,
-          upcomingPromotions: availablePromotions.filter(p => {
-            return p.isActive && new Date(p.startDate) > now;
-          }).length,
-          expiredPromotions: availablePromotions.filter(p => {
-            return new Date(p.endDate) < now;
-          }).length,
-        };
-        
-        // Save statistics to localStorage for compatibility
-        storageService.setItem(STORAGE_KEYS.PROMOTIONS_STATISTICS, statistics);
-        
-        return statistics;
-      } catch (error) {
-        console.error("Erro ao buscar estatísticas:", error);
-        
-        // Show message if offline
-        if (!navigator.onLine) {
-          toast({
-            variant: "destructive",
-            title: "Erro de conexão",
-            description: "Não foi possível buscar as estatísticas. O aplicativo precisa de conexão com a internet."
-          });
-        }
-        
-        // Use localStorage statistics as fallback
-        const stats = storageService.getItem<PromotionStatistics>(STORAGE_KEYS.PROMOTIONS_STATISTICS);
-        if (stats) {
-          return stats;
-        }
-        
-        // Calculate based on local promotions if no stats in localStorage
+      // If statistics don't exist, calculate them
+      const stats = storageService.getItem<PromotionStatistics>(STORAGE_KEYS.PROMOTIONS_STATISTICS);
+      if (!stats) {
         return updateStatistics();
       }
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      return stats;
     },
   });
 }
@@ -342,44 +187,29 @@ export function useSavePromotion() {
   
   return useMutation({
     mutationFn: async (promotion: Promotion) => {
-      if (!navigator.onLine) {
-        toast({
-          variant: "destructive",
-          title: "Erro de conexão",
-          description: "Não foi possível salvar a promoção. O aplicativo precisa de conexão com a internet."
-        });
-        throw new Error('Aplicativo está offline. Não é possível salvar a promoção.');
+      // Get the current promotions from localStorage
+      const promotions = storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS) || [];
+      
+      // Find if the promotion already exists
+      const index = promotions.findIndex(p => p.id === promotion.id);
+      
+      // Update or add the promotion
+      if (index >= 0) {
+        promotions[index] = promotion;
+      } else {
+        promotions.push(promotion);
       }
       
-      try {
-        // Salvar no Supabase
-        const savedPromotion = await storageService.saveToSupabase('promotions', promotion);
-        
-        // Atualizar localStorage para compatibilidade
-        const promotions = storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS) || [];
-        const index = promotions.findIndex(p => p.id === promotion.id);
-        
-        if (index >= 0) {
-          promotions[index] = savedPromotion;
-        } else {
-          promotions.push(savedPromotion);
-        }
-        
-        storageService.setItem(STORAGE_KEYS.PROMOTIONS, promotions);
-        
-        // Atualizar estatísticas
-        updateStatistics();
-        
-        return savedPromotion;
-      } catch (error) {
-        console.error('Erro ao salvar promoção:', error);
-        toast({
-          variant: "destructive",
-          title: "Erro ao salvar",
-          description: "Não foi possível salvar a promoção. Tente novamente."
-        });
-        throw error;
-      }
+      // Save the updated promotions back to localStorage
+      storageService.setItem(STORAGE_KEYS.PROMOTIONS, promotions);
+      
+      // Update statistics
+      updateStatistics();
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      return promotion;
     },
     onSuccess: () => {
       // Invalidate queries to refetch the data
@@ -395,52 +225,22 @@ export function useDeletePromotion() {
   
   return useMutation({
     mutationFn: async (promotionId: string) => {
-      if (!navigator.onLine) {
-        toast({
-          variant: "destructive",
-          title: "Erro de conexão",
-          description: "Não foi possível excluir a promoção. O aplicativo precisa de conexão com a internet."
-        });
-        throw new Error('Aplicativo está offline. Não é possível excluir a promoção.');
-      }
+      // Get the current promotions from localStorage
+      const promotions = storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS) || [];
       
-      try {
-        // Excluir do Supabase
-        await storageService.removeFromSupabase('promotions', promotionId);
-        
-        // Atualizar localStorage para compatibilidade
-        const promotions = storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS) || [];
-        const updatedPromotions = promotions.filter(p => p.id !== promotionId);
-        storageService.setItem(STORAGE_KEYS.PROMOTIONS, updatedPromotions);
-        
-        // Store the deleted ID in localStorage for persistence
-        const deletedIds = getDeletedPromotionIds();
-        if (!deletedIds.includes(promotionId)) {
-          deletedIds.push(promotionId);
-          localStorage.setItem('deletedPromotionIds', JSON.stringify(deletedIds));
-        }
-        
-        // Atualizar estatísticas
-        updateStatistics();
-        
-        return promotionId;
-      } catch (error) {
-        console.error('Erro ao excluir promoção:', error);
-        toast({
-          variant: "destructive",
-          title: "Erro ao excluir",
-          description: "Não foi possível excluir a promoção. Tente novamente."
-        });
-        
-        // Mesmo com erro no Supabase, garantir que o ID está na lista de excluídos
-        const deletedIds = getDeletedPromotionIds();
-        if (!deletedIds.includes(promotionId)) {
-          deletedIds.push(promotionId);
-          localStorage.setItem('deletedPromotionIds', JSON.stringify(deletedIds));
-        }
-        
-        throw error;
-      }
+      // Filter out the promotion to delete
+      const updatedPromotions = promotions.filter(p => p.id !== promotionId);
+      
+      // Save the updated promotions back to localStorage
+      storageService.setItem(STORAGE_KEYS.PROMOTIONS, updatedPromotions);
+      
+      // Update statistics
+      updateStatistics();
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      return promotionId;
     },
     onSuccess: () => {
       // Invalidate queries to refetch the data
@@ -456,69 +256,64 @@ export function useRemoveProductFromPromotion() {
   
   return useMutation({
     mutationFn: async ({ promotionId, productId }: { promotionId: string, productId: string }) => {
-      if (!navigator.onLine) {
-        toast({
-          variant: "destructive",
-          title: "Erro de conexão",
-          description: "Não foi possível remover o produto da promoção. O aplicativo precisa de conexão com a internet."
-        });
-        throw new Error('Aplicativo está offline. Não é possível modificar a promoção.');
+      // Get the current promotions from localStorage
+      const promotions = storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS) || [];
+      
+      // Find the promotion
+      const promotionIndex = promotions.findIndex(p => p.id === promotionId);
+      
+      if (promotionIndex === -1) {
+        throw new Error('Promotion not found');
       }
       
-      try {
-        // Fetch promotion from Supabase
-        const promotionsData = await storageService.getFromSupabase<Promotion[]>('promotions', 'id', promotionId);
+      const promotion = promotions[promotionIndex];
+      
+      // Handle based on promotion type
+      if (promotion.type === 'bundle' && promotion.bundleProducts) {
+        // For bundle promotions, remove the product from the bundleProducts array
+        promotion.bundleProducts = promotion.bundleProducts.filter(id => id !== productId);
         
-        // Ensure we have a proper array of Promotion objects
-        const promotions = ensurePromotionArray(promotionsData);
+        // Update the promotion in the array
+        promotions[promotionIndex] = promotion;
         
-        if (promotions.length === 0) {
-          throw new Error('Promotion not found');
-        }
+        // Save the updated promotions back to localStorage
+        storageService.setItem(STORAGE_KEYS.PROMOTIONS, promotions);
+      } else if (promotion.productIds && promotion.productIds.includes(productId)) {
+        // For multiple products promotions, remove the product from the productIds array
+        promotion.productIds = promotion.productIds.filter(id => id !== productId);
         
-        // Get the promotion object
-        const promotion = promotions[0];
+        // Update the promotion in the array
+        promotions[promotionIndex] = promotion;
         
-        // Handle based on promotion type
-        if (promotion.type === 'bundle' && promotion.bundleProducts) {
-          // For bundle promotions, remove the product from the bundleProducts array
-          promotion.bundleProducts = promotion.bundleProducts.filter(id => id !== productId);
-        } else if (promotion.productIds && promotion.productIds.includes(productId)) {
-          // For multiple products promotions, remove the product from the productIds array
-          promotion.productIds = promotion.productIds.filter(id => id !== productId);
-        } else if (promotion.productId === productId) {
-          // For other promotion types, if the main product is being removed, handle accordingly
-          promotion.productId = undefined;
-        } else if (promotion.secondaryProductId === productId) {
-          // If the secondary product is being removed (for buy_x_get_y promotions)
-          promotion.secondaryProductId = undefined;
-        }
+        // Save the updated promotions back to localStorage
+        storageService.setItem(STORAGE_KEYS.PROMOTIONS, promotions);
+      } else if (promotion.productId === productId) {
+        // For other promotion types, if the main product is being removed, handle accordingly
+        promotion.productId = undefined;
         
-        // Save updated promotion to Supabase
-        await storageService.saveToSupabase('promotions', promotion);
+        // Update the promotion in the array
+        promotions[promotionIndex] = promotion;
         
-        // Update localStorage for compatibility
-        const localPromotions = storageService.getItem<Promotion[]>(STORAGE_KEYS.PROMOTIONS) || [];
-        const promotionIndex = localPromotions.findIndex(p => p.id === promotionId);
+        // Save the updated promotions back to localStorage
+        storageService.setItem(STORAGE_KEYS.PROMOTIONS, promotions);
+      } else if (promotion.secondaryProductId === productId) {
+        // If the secondary product is being removed (for buy_x_get_y promotions)
+        promotion.secondaryProductId = undefined;
         
-        if (promotionIndex >= 0) {
-          localPromotions[promotionIndex] = promotion;
-          storageService.setItem(STORAGE_KEYS.PROMOTIONS, localPromotions);
-        }
+        // Update the promotion in the array
+        promotions[promotionIndex] = promotion;
         
-        // Update statistics
-        updateStatistics();
-        
-        return { promotionId, productId };
-      } catch (error) {
-        console.error('Erro ao remover produto da promoção:', error);
-        toast({
-          variant: "destructive",
-          title: "Erro ao modificar promoção",
-          description: "Não foi possível remover o produto da promoção. Tente novamente."
-        });
-        throw error;
+        // Save the updated promotions back to localStorage
+        storageService.setItem(STORAGE_KEYS.PROMOTIONS, promotions);
       }
+      
+      // Update statistics
+      updateStatistics();
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      return { promotionId, productId };
     },
     onSuccess: (_, variables) => {
       // Invalidate queries to refetch the data

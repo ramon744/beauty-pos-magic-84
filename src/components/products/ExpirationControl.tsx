@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { useFetchProducts } from '@/hooks/use-products';
 import { Product } from '@/types';
@@ -74,9 +75,7 @@ const formatExpirationInfo = (product: Product) => {
 };
 
 export const ExpirationControl = () => {
-  // The useFetchProducts hook now automatically filters out deleted products
   const { data: products, isLoading } = useFetchProducts();
-  
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sortField, setSortField] = useState<SortField>('daysRemaining');

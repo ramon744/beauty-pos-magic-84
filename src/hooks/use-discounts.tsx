@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useFetchProducts } from '@/hooks/use-products';
 import { useFetchPromotions } from '@/hooks/use-promotions';
-import { Product, Promotion } from '@/types';
+import { Product } from '@/types';
 import { 
   getAvailablePromotions, 
   getBestPromotion, 
@@ -23,7 +23,7 @@ export const useDiscounts = (cart: CartItem[], cartSubtotal: number) => {
   const [selectedPromotionId, setSelectedPromotionId] = useState<string | null>(null);
   
   const { data: products = [] } = useFetchProducts();
-  const { data: promotionsData = [] } = useFetchPromotions();
+  const { data: promotions = [] } = useFetchPromotions();
 
   const cartItemsForPromotions = useMemo(() => {
     return cart.map(item => {
@@ -57,37 +57,17 @@ export const useDiscounts = (cart: CartItem[], cartSubtotal: number) => {
     });
   }, [cart, products]);
 
-  // Helper function to ensure we're working with an array of Promotion objects
-  const ensurePromotionsArray = (data: any): Promotion[] => {
-    if (!data) return [];
-    if (Array.isArray(data) && data.length > 0 && 'id' in data[0]) {
-      return data as Promotion[];
-    }
-    if (Array.isArray(data) && Array.isArray(data[0])) {
-      return data[0] as Promotion[];
-    }
-    return [];
-  };
-
   const availablePromotions = useMemo(() => {
     if (cart.length === 0) return [];
-    
-    // Ensure we're working with an array of Promotion objects
-    const promotionsArray = ensurePromotionsArray(promotionsData);
-    
-    // Pass the properly typed promotions array to the function
-    return getAvailablePromotions(
-      cartItemsForPromotions, 
-      promotionsArray
-    );
-  }, [cartItemsForPromotions, promotionsData, cart.length]);
+    return getAvailablePromotions(cartItemsForPromotions, promotions);
+  }, [cartItemsForPromotions, promotions, cart.length]);
 
   const appliedPromotion = useMemo((): AppliedPromotion | null => {
     if (cart.length === 0 || availablePromotions.length === 0) return null;
     
     // Only apply a promotion if explicitly selected
     if (selectedPromotionId) {
-      const selectedPromotion = availablePromotions.find((p) => p.id === selectedPromotionId);
+      const selectedPromotion = availablePromotions.find(p => p.id === selectedPromotionId);
       if (selectedPromotion) {
         return calculatePromotionDiscount(cartItemsForPromotions, selectedPromotion, products);
       }
@@ -104,15 +84,9 @@ export const useDiscounts = (cart: CartItem[], cartSubtotal: number) => {
 
   const appliedPromotionDetails = useMemo(() => {
     if (!appliedPromotion) return null;
-    
-    // Ensure promotionsData is treated as an array of Promotion objects
-    const promotionsArray = ensurePromotionsArray(promotionsData);
-    
-    // Find the promotion with the matching ID
-    const promotion = promotionsArray.find(p => p.id === appliedPromotion.promotionId);
-    
+    const promotion = promotions.find(p => p.id === appliedPromotion.promotionId);
     return promotion || null;
-  }, [appliedPromotion, promotionsData]);
+  }, [appliedPromotion, promotions]);
 
   const manualDiscountAmount = useMemo(() => {
     return manualDiscount 

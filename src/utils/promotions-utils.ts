@@ -1,3 +1,4 @@
+
 import { Product, Promotion, CartItem } from '@/types';
 
 export type AppliedPromotion = {

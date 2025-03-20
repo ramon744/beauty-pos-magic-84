@@ -18,7 +18,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { format, isValid } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
@@ -122,8 +122,7 @@ const InventoryControl = () => {
       {
         productId: product.id,
         quantity: Math.abs(adjustment),
-        reason: 'Ajuste rápido de estoque',
-        adjustmentType: adjustment > 0 ? 'add' : 'remove'
+        reason: 'Ajuste rápido de estoque'
       },
       {
         onSuccess: () => {
@@ -174,11 +173,8 @@ const InventoryControl = () => {
     adjustStock(
       {
         productId: selectedProduct.id,
-        quantity: adjustmentType === 'balance' 
-          ? Math.abs(newStock - selectedProduct.stock) 
-          : adjustmentQuantity,
-        reason: adjustmentReason || `Ajuste de estoque (${adjustmentType})`,
-        adjustmentType: adjustmentType
+        quantity: Math.abs(newStock - selectedProduct.stock),
+        reason: adjustmentReason || `Ajuste de estoque (${adjustmentType})`
       },
       {
         onSuccess: () => {
@@ -359,19 +355,7 @@ const InventoryControl = () => {
   };
 
   const formatDateTime = (date: Date | string) => {
-    try {
-      const dateObj = typeof date === 'string' ? new Date(date) : date;
-      
-      // Check if the date is valid before formatting
-      if (!isValid(dateObj)) {
-        return 'Data inválida';
-      }
-      
-      return format(dateObj, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-    } catch (err) {
-      console.error("Error formatting date:", err, date);
-      return "Data inválida";
-    }
+    return format(new Date(date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
   };
 
   return (
@@ -549,7 +533,7 @@ const InventoryControl = () => {
                           <TableCell className="whitespace-nowrap">
                             <div className="flex items-center space-x-1">
                               <User className="h-3 w-3" />
-                              <span>{entry.userName || user?.name || "Usuário do Sistema"}</span>
+                              <span>{entry.userName}</span>
                             </div>
                           </TableCell>
                           <TableCell className="max-w-xs truncate">
@@ -590,7 +574,7 @@ const InventoryControl = () => {
 
             <div className="flex items-center space-x-2">
               <div className="font-medium min-w-[120px]">Responsável:</div>
-              <div className="font-bold">{user?.name || 'Usuário do Sistema'} ({user?.role === 'admin' ? 'Administrador' : 'Gerente'})</div>
+              <div className="font-bold">{user?.name} ({user?.role === 'admin' ? 'Administrador' : 'Gerente'})</div>
             </div>
 
             {adjustmentType === 'balance' ? (
@@ -713,3 +697,4 @@ const InventoryControl = () => {
 };
 
 export default InventoryControl;
+

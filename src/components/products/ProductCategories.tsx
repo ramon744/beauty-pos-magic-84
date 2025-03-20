@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useCategories, useFetchProducts, useSaveProduct } from '@/hooks/use-products';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Plus, Save, X, Edit, Trash, Search, Clock, ArrowRight, Filter, RotateCcw, Calendar, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Category, Product } from '@/types';
-import { storageService, STORAGE_KEYS } from '@/services/storage-service';
+import { storageService } from '@/services/storage-service';
 import {
   Dialog,
   DialogContent,
@@ -48,7 +49,10 @@ import {
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { fromTable, extractDataFromSupabase } from '@/services/supabase-helper';
+
+const CATEGORIES_STORAGE_KEY = 'categories';
+const PRODUCTS_STORAGE_KEY = 'products';
+const TEMP_CATEGORY_STORAGE_KEY = 'temp-category-assignments';
 
 interface ProductCategoriesProps {
   fullWidth?: boolean;
@@ -61,14 +65,11 @@ interface TempCategoryAssignment {
   expireAt: Date;
 }
 
-const TEMP_CATEGORY_STORAGE_KEY = 'temp-category-assignments';
-const PRODUCTS_STORAGE_KEY = STORAGE_KEYS.PRODUCTS;
-const CATEGORIES_STORAGE_KEY = STORAGE_KEYS.CATEGORIES;
-
 export function ProductCategories({ fullWidth = false }: ProductCategoriesProps) {
   const { toast } = useToast();
   const { data: categories, isLoading, refetch } = useCategories();
-  const { data: products, refetch: refetchProducts } = useFetchProducts();
+  const { data: products } = useFetchProducts();
+  // Fixed: Changed mutateAsync to mutate since the hook doesn't provide mutateAsync
   const { mutate: saveProduct } = useSaveProduct();
   const [newCategory, setNewCategory] = useState('');
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -177,18 +178,18 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
     }
   };
 
-  const handleAddCategory = async () => {
+  const handleAddCategory = () => {
     if (!newCategory.trim()) return;
     
     try {
-      const currentCategories = storageService.getItem<Category[]>(STORAGE_KEYS.CATEGORIES) || [];
+      const currentCategories = storageService.getItem<Category[]>(CATEGORIES_STORAGE_KEY) || [];
       
       const newCategoryObj: Category = {
         id: crypto.randomUUID(),
         name: newCategory.trim()
       };
       
-      await storageService.saveToSupabase('categories', newCategoryObj);
+      storageService.setItem(CATEGORIES_STORAGE_KEY, [...currentCategories, newCategoryObj]);
       
       toast({
         title: "Categoria adicionada",
@@ -209,14 +210,17 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
     }
   };
 
-  const handleUpdateCategory = async () => {
+  const handleUpdateCategory = () => {
     if (!editingCategory || !editingCategory.name.trim()) return;
     
     try {
-      await storageService.saveToSupabase('categories', {
-        ...editingCategory,
-        name: editingCategory.name.trim()
-      });
+      const currentCategories = storageService.getItem<Category[]>(CATEGORIES_STORAGE_KEY) || [];
+      
+      const updatedCategories = currentCategories.map(cat => 
+        cat.id === editingCategory.id ? { ...cat, name: editingCategory.name.trim() } : cat
+      );
+      
+      storageService.setItem(CATEGORIES_STORAGE_KEY, updatedCategories);
       
       toast({
         title: "Categoria atualizada",
@@ -237,9 +241,9 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
   };
 
   const handleInitiateDelete = (category: Category) => {
-    const productsData = storageService.getItem<Product[]>(PRODUCTS_STORAGE_KEY) || [];
+    const products = storageService.getItem<Product[]>(PRODUCTS_STORAGE_KEY) || [];
     
-    const productsWithCategory = productsData.filter(product => product.category.id === category.id);
+    const productsWithCategory = products.filter(product => product.category.id === category.id);
     
     if (productsWithCategory.length > 0) {
       setCategoryToDelete(category);
@@ -250,10 +254,10 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
     }
   };
 
-  const handleConfirmDelete = async (category: Category, targetCategoryId?: string) => {
+  const handleConfirmDelete = (category: Category, targetCategoryId?: string) => {
     try {
-      const currentCategories = storageService.getItem<Category[]>(STORAGE_KEYS.CATEGORIES) || [];
-      const productsData = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
+      const currentCategories = storageService.getItem<Category[]>(CATEGORIES_STORAGE_KEY) || [];
+      const products = storageService.getItem<Product[]>(PRODUCTS_STORAGE_KEY) || [];
       
       const updatedCategories = currentCategories.filter(cat => cat.id !== category.id);
       
@@ -261,32 +265,27 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
         const targetCategory = currentCategories.find(cat => cat.id === targetCategoryId);
         
         if (targetCategory) {
-          const updatePromises = [];
-          
-          for (const product of productsData) {
+          const updatedProducts = products.map(product => {
             if (product.category.id === category.id) {
-              const updatedProduct = {
+              return {
                 ...product,
                 category: targetCategory,
                 updatedAt: new Date()
               };
-              
-              updatePromises.push(
-                saveProduct(updatedProduct, {
-                  onSuccess: () => {},
-                  onError: () => {}
-                })
-              );
             }
-          }
+            return product;
+          });
           
-          await Promise.all(updatePromises);
+          storageService.setItem(PRODUCTS_STORAGE_KEY, updatedProducts);
+          
+          toast({
+            title: "Produtos migrados",
+            description: `Os produtos foram migrados para a categoria "${targetCategory.name}".`,
+          });
         }
       }
       
-      await storageService.removeFromSupabase('categories', category.id);
-      
-      storageService.setItem(STORAGE_KEYS.CATEGORIES, updatedCategories);
+      storageService.setItem(CATEGORIES_STORAGE_KEY, updatedCategories);
       
       updateProductStatistics();
       
@@ -295,7 +294,6 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
         description: `A categoria "${category.name}" foi excluída com sucesso.`,
       });
       
-      refetchProducts();
       refetch();
       
       setCategoryToDelete(null);
@@ -364,34 +362,24 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
         throw new Error("Categoria não encontrada");
       }
       
-      const updatePromises = [];
-      
       for (const productId of selectedProducts) {
         const product = allProducts.find(p => p.id === productId);
         if (product) {
-          const updatedProduct = {
+          await saveProduct({
             ...product,
             category: targetCategory,
             updatedAt: new Date()
-          };
-          
-          updatePromises.push(
-            saveProduct(updatedProduct, {
-              onSuccess: () => {},
-              onError: () => {}
-            })
-          );
+          }, {
+            onSuccess: () => {},
+            onError: () => {}
+          });
         }
       }
-      
-      await Promise.all(updatePromises);
       
       toast({
         title: "Produtos movidos",
         description: `${selectedProducts.length} produto(s) movidos para a categoria "${targetCategory.name}".`,
       });
-      
-      refetchProducts();
       
       setSelectedProducts([]);
     } catch (error) {
@@ -918,7 +906,7 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
               
               {getActiveTemporaryAssignments().length === 0 ? (
                 <div className="text-center p-4 border rounded-md text-muted-foreground text-sm">
-                  Não há atribui��ões temporárias ativas no momento.
+                  Não há atribuições temporárias ativas no momento.
                 </div>
               ) : (
                 <div className="border rounded-md">
@@ -989,7 +977,7 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
                 onValueChange={setSelectedTargetCategory}
                 disabled={availableCategoriesForMigration.length === 0}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecione uma categoria" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1000,25 +988,34 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
                   ))}
                 </SelectContent>
               </Select>
+              
+              {availableCategoriesForMigration.length === 0 && (
+                <p className="text-sm text-destructive mt-2">
+                  Não há outras categorias disponíveis. Crie uma nova categoria primeiro.
+                </p>
+              )}
             </div>
             
             <DialogFooter>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => {
                   setShowDeleteDialog(false);
                   setCategoryToDelete(null);
-                  setSelectedTargetCategory('');
                 }}
               >
                 Cancelar
               </Button>
-              <Button 
-                variant="destructive" 
-                onClick={() => categoryToDelete && handleConfirmDelete(categoryToDelete, selectedTargetCategory)}
-                disabled={!selectedTargetCategory}
+              <Button
+                onClick={() => {
+                  if (categoryToDelete && selectedTargetCategory) {
+                    handleConfirmDelete(categoryToDelete, selectedTargetCategory);
+                  }
+                }}
+                disabled={!selectedTargetCategory || availableCategoriesForMigration.length === 0}
+                variant="default"
               >
-                Confirmar migração e exclusão
+                Migrar e Excluir
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1027,25 +1024,26 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
         <Dialog open={showTempCategoryDialog} onOpenChange={(open) => {
           if (!open) {
             setShowTempCategoryDialog(false);
-            setSelectedTempCategory('');
           }
         }}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Atribuir categoria temporária</DialogTitle>
+              <DialogTitle>Atribuir Categoria Temporária</DialogTitle>
               <DialogDescription>
-                Selecione uma categoria temporária e o período de validade.
+                Os produtos selecionados serão movidos para a categoria escolhida
+                temporariamente e retornarão automaticamente às suas categorias
+                originais após o período definido.
               </DialogDescription>
             </DialogHeader>
             
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="tempCategorySelect">Categoria temporária</Label>
+                <Label htmlFor="temp-category">Categoria Temporária</Label>
                 <Select
                   value={selectedTempCategory}
                   onValueChange={setSelectedTempCategory}
                 >
-                  <SelectTrigger id="tempCategorySelect">
+                  <SelectTrigger id="temp-category" className="w-full">
                     <SelectValue placeholder="Selecione uma categoria" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1059,42 +1057,40 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
               </div>
               
               <div className="space-y-2">
-                <Label>Duração</Label>
+                <Label htmlFor="temp-duration">Duração</Label>
                 <Select
                   value={tempDuration}
                   onValueChange={setTempDuration}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="temp-duration" className="w-full">
                     <SelectValue placeholder="Selecione a duração" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="1">1 dia</SelectItem>
                     <SelectItem value="3">3 dias</SelectItem>
                     <SelectItem value="7">7 dias</SelectItem>
+                    <SelectItem value="14">14 dias</SelectItem>
                     <SelectItem value="30">30 dias</SelectItem>
-                    <SelectItem value="custom">Personalizado</SelectItem>
+                    <SelectItem value="custom">Data e hora personalizadas</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               
               {tempDuration === 'custom' && (
                 <div className="space-y-2">
-                  <Label>Data e hora de expiração</Label>
-                  <div className="flex items-center gap-2">
+                  <Label>Data e Hora de Expiração</Label>
+                  <div className="flex flex-col space-y-2">
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
-                          className={cn(
-                            "justify-start text-left font-normal w-full",
-                            !customDate && "text-muted-foreground"
-                          )}
+                          className="w-full justify-start text-left font-normal"
                         >
                           <Calendar className="mr-2 h-4 w-4" />
-                          {customDate ? format(customDate, "dd/MM/yyyy") : "Selecione uma data"}
+                          {customDate ? format(customDate, "PPP") : "Selecione a data"}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
+                      <PopoverContent className="w-auto p-0">
                         <CalendarComponent
                           mode="single"
                           selected={customDate}
@@ -1104,24 +1100,43 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
                       </PopoverContent>
                     </Popover>
                     
-                    <div className="flex space-x-1 items-center">
-                      <Input
-                        type="number"
-                        min="0"
-                        max="23"
-                        value={customTimeHours}
-                        onChange={(e) => setCustomTimeHours(e.target.value)}
-                        className="w-16"
-                      />
-                      <span>:</span>
-                      <Input
-                        type="number"
-                        min="0"
-                        max="59"
-                        value={customTimeMinutes}
-                        onChange={(e) => setCustomTimeMinutes(e.target.value)}
-                        className="w-16"
-                      />
+                    <div className="flex space-x-2">
+                      <div className="w-1/2">
+                        <Label htmlFor="hour">Hora</Label>
+                        <Select
+                          value={customTimeHours}
+                          onValueChange={setCustomTimeHours}
+                        >
+                          <SelectTrigger id="hour" className="w-full">
+                            <SelectValue placeholder="Hora" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 24 }).map((_, idx) => (
+                              <SelectItem key={idx} value={idx.toString().padStart(2, '0')}>
+                                {idx.toString().padStart(2, '0')}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="w-1/2">
+                        <Label htmlFor="minute">Minuto</Label>
+                        <Select
+                          value={customTimeMinutes}
+                          onValueChange={setCustomTimeMinutes}
+                        >
+                          <SelectTrigger id="minute" className="w-full">
+                            <SelectValue placeholder="Minuto" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 60 }).map((_, idx) => (
+                              <SelectItem key={idx} value={idx.toString().padStart(2, '0')}>
+                                {idx.toString().padStart(2, '0')}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1129,17 +1144,17 @@ export function ProductCategories({ fullWidth = false }: ProductCategoriesProps)
             </div>
             
             <DialogFooter>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setShowTempCategoryDialog(false)}
               >
                 Cancelar
               </Button>
-              <Button 
+              <Button
                 onClick={handleAssignTempCategory}
                 disabled={!selectedTempCategory}
               >
-                Confirmar
+                Atribuir
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { useFetchPromotions, useDeletePromotion } from '@/hooks/use-promotions';
 import { useFetchProducts } from '@/hooks/use-products';
 import { useCategories } from '@/hooks/use-products';
@@ -26,12 +27,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 
 interface PromotionsListProps {
   onEditPromotion: (promotionId: string) => void;
 }
 
+// Utility function to get promotion type display name
 const getPromotionTypeLabel = (type: PromotionType): string => {
   const labels: Record<PromotionType, string> = {
     discount_percentage: 'Desconto Percentual',
@@ -44,43 +46,32 @@ const getPromotionTypeLabel = (type: PromotionType): string => {
 };
 
 export default function PromotionsList({ onEditPromotion }: PromotionsListProps) {
-  const { data: promotionsData = [], isLoading } = useFetchPromotions();
+  const { data: promotions = [], isLoading } = useFetchPromotions();
   const { data: products = [] } = useFetchProducts();
   const { data: categories = [] } = useCategories();
   const { mutate: deletePromotion } = useDeletePromotion();
   const { toast } = useToast();
   
-  const promotions = Array.isArray(promotionsData) ? promotionsData : [];
-  
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [promotionToDelete, setPromotionToDelete] = useState<string | null>(null);
-  const [deletedPromotionIds, setDeletedPromotionIds] = useState<string[]>([]);
 
-  useEffect(() => {
-    const deletedIds = JSON.parse(localStorage.getItem('deletedPromotionIds') || '[]');
-    setDeletedPromotionIds(deletedIds);
-  }, []);
-
-  useEffect(() => {
-    if (deletedPromotionIds.length > 0) {
-      localStorage.setItem('deletedPromotionIds', JSON.stringify(deletedPromotionIds));
-    }
-  }, [deletedPromotionIds]);
-
+  // Get product name by id
   const getProductName = (productId?: string) => {
     if (!productId) return 'Todos os produtos';
     const product = products.find(p => p.id === productId);
     return product ? product.name : 'Produto não encontrado';
   };
 
+  // Get category name by id
   const getCategoryName = (categoryId?: string) => {
     if (!categoryId) return 'Todas as categorias';
     const category = categories.find(c => c.id === categoryId);
     return category ? category.name : 'Categoria não encontrada';
   };
 
+  // Format promotion details
   const getPromotionDetails = (promotion: Promotion): string => {
     switch (promotion.type) {
       case 'discount_percentage':
@@ -105,6 +96,7 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
     }
   };
 
+  // Check if a promotion is active
   const isPromotionActive = (promotion: Promotion): boolean => {
     const now = new Date();
     return promotion.isActive && 
@@ -112,6 +104,7 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
            promotion.endDate >= now;
   };
 
+  // Get status badge for promotion
   const getStatusBadge = (promotion: Promotion) => {
     const now = new Date();
     
@@ -130,15 +123,17 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
     return <Badge className="bg-green-500">Ativo</Badge>;
   };
 
-  const filteredPromotions = promotions
-    .filter(promotion => !deletedPromotionIds.includes(promotion.id))
-    .filter((promotion: Promotion) => {
+  // Filter promotions based on search and filters
+  const filteredPromotions = promotions.filter(promotion => {
+    // Filter by search term
     const matchesSearch = 
       promotion.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       promotion.description.toLowerCase().includes(searchTerm.toLowerCase());
     
+    // Filter by type
     const matchesType = typeFilter === 'all' || promotion.type === typeFilter;
     
+    // Filter by status
     let matchesStatus = true;
     const now = new Date();
     
@@ -155,14 +150,14 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
     return matchesSearch && matchesType && matchesStatus;
   });
 
+  // Handle delete confirmation
   const handleDeleteClick = (promotionId: string) => {
     setPromotionToDelete(promotionId);
   };
 
+  // Handle actual deletion
   const handleConfirmDelete = () => {
     if (promotionToDelete) {
-      setDeletedPromotionIds(prev => [...prev, promotionToDelete]);
-      
       deletePromotion(promotionToDelete, {
         onSuccess: () => {
           toast({
@@ -170,16 +165,8 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
             description: 'A promoção foi excluída com sucesso',
           });
           setPromotionToDelete(null);
-          
-          const deletedIds = JSON.parse(localStorage.getItem('deletedPromotionIds') || '[]');
-          if (!deletedIds.includes(promotionToDelete)) {
-            deletedIds.push(promotionToDelete);
-            localStorage.setItem('deletedPromotionIds', JSON.stringify(deletedIds));
-          }
         },
         onError: () => {
-          setDeletedPromotionIds(prev => prev.filter(id => id !== promotionToDelete));
-          
           toast({
             variant: 'destructive',
             title: 'Erro',
@@ -247,7 +234,7 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredPromotions.map((promotion: Promotion) => (
+          {filteredPromotions.map((promotion) => (
             <Card key={promotion.id} className="overflow-hidden">
               <CardContent className="p-0">
                 <div className="p-6">
@@ -294,6 +281,7 @@ export default function PromotionsList({ onEditPromotion }: PromotionsListProps)
         </div>
       )}
 
+      {/* Delete Confirmation Dialog */}
       <AlertDialog 
         open={promotionToDelete !== null} 
         onOpenChange={(open) => !open && setPromotionToDelete(null)}
