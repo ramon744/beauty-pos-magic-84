@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useFetchProducts } from '@/hooks/use-products';
 import { useFetchPromotions } from '@/hooks/use-promotions';
-import { Product } from '@/types';
+import { Product, Promotion } from '@/types';
 import { 
   getAvailablePromotions, 
   getBestPromotion, 

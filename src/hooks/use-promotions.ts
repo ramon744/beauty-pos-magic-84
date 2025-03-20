@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Promotion } from '@/types';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
@@ -206,9 +207,9 @@ export function useFetchPromotions() {
 export function useFetchPromotion(id: string) {
   return useQuery({
     queryKey: ['promotion', id],
-    queryFn: async () => {
+    queryFn: async (): Promise<Promotion> => {
       // Skip the request if id is empty
-      if (!id) return null;
+      if (!id) return {} as Promotion;
       
       // Check if promotion is deleted
       const deletedIds = getDeletedPromotionIds();
@@ -221,7 +222,7 @@ export function useFetchPromotion(id: string) {
         const promotions = await storageService.getFromSupabase<Promotion[]>('promotions', 'id', id);
         
         if (promotions && promotions.length > 0) {
-          // Explicitly cast to Promotion to fix TypeScript type issues
+          // Convert the first item to Promotion type explicitly
           return promotions[0] as Promotion;
         }
         
@@ -444,6 +445,7 @@ export function useRemoveProductFromPromotion() {
           throw new Error('Promotion not found');
         }
         
+        // Explicitly cast to Promotion to fix TypeScript type issues
         const promotion = promotions[0] as Promotion;
         
         // Handle based on promotion type
