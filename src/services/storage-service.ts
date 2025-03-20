@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { fromTable, extractDataFromSupabase } from './supabase-helper';
 
@@ -188,6 +187,11 @@ export const storageService = {
   syncPendingOperations: async (): Promise<{ success: boolean, pendingCount: number }> => {
     return { success: true, pendingCount: 0 }; // Não há operações para sincronizar no modo online-only
   }
+};
+
+// Acesse tabelas do Supabase
+export const fromSupabase = (table: string) => {
+  return fromTable(table);
 };
 
 // Helper to get the appropriate storage key for a table

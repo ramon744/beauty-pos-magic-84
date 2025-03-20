@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Product, Category } from '@/types';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
@@ -11,7 +10,6 @@ const getProductsFromStorage = (): Product[] => {
     return storedProducts;
   }
   
-  // If no products in storage, use mock data
   const mockProducts: Product[] = [
     {
       id: '1',
@@ -54,7 +52,6 @@ const getProductsFromStorage = (): Product[] => {
     }
   ];
   
-  // Initialize storage with mock data
   storageService.setItem(STORAGE_KEYS.PRODUCTS, mockProducts);
   return mockProducts;
 };
@@ -76,21 +73,17 @@ const fetchProducts = async (): Promise<Product[]> => {
   }
   
   try {
-    // Buscar do Supabase
     const products = await storageService.getFromSupabase<Product>('products');
     
-    // Atualizar localStorage para compatibilidade
     if (products && products.length > 0) {
       storageService.setItem(STORAGE_KEYS.PRODUCTS, products);
     }
     
-    // Filter out deleted products
     const deletedIds = getDeletedProductIds();
     return products.filter(p => !deletedIds.includes(p.id));
   } catch (error) {
     console.error('Erro ao buscar produtos:', error);
     
-    // Caso de erro, tentar usar dados locais como fallback
     const allProducts = getProductsFromStorage();
     const deletedIds = getDeletedProductIds();
     return allProducts.filter(p => !deletedIds.includes(p.id));
@@ -120,13 +113,11 @@ export const useFetchProduct = (productId: string) => {
           description: "Não foi possível buscar os detalhes do produto. O aplicativo precisa de conexão com a internet."
         });
         
-        // Tentar usar dados locais como fallback
         const products = getProductsFromStorage();
         return products.find(p => p.id === productId);
       }
       
       try {
-        // Buscar do Supabase
         const products = await storageService.getFromSupabase<Product>('products', 'id', productId);
         if (products && products.length > 0) {
           return products[0];
@@ -136,7 +127,6 @@ export const useFetchProduct = (productId: string) => {
       } catch (error) {
         console.error(`Erro ao buscar produto ${productId}:`, error);
         
-        // Tentar usar dados locais como fallback
         const products = getProductsFromStorage();
         const product = products.find(p => p.id === productId);
         
@@ -158,14 +148,12 @@ const getCategoriesFromStorage = (): Category[] => {
     return storedCategories;
   }
   
-  // If no categories in storage, use mock data
   const mockCategories: Category[] = [
     { id: '1', name: 'Electronics' },
     { id: '2', name: 'Clothing' },
     { id: '3', name: 'Food & Beverages' }
   ];
   
-  // Initialize storage with mock data
   storageService.setItem(STORAGE_KEYS.CATEGORIES, mockCategories);
   return mockCategories;
 };
@@ -182,15 +170,12 @@ export const useCategories = () => {
           description: "Não foi possível buscar as categorias. O aplicativo precisa de conexão com a internet."
         });
         
-        // Tentar usar dados locais como fallback
         return getCategoriesFromStorage();
       }
       
       try {
-        // Buscar do Supabase
         const categories = await storageService.getFromSupabase<Category>('categories');
         
-        // Atualizar localStorage para compatibilidade
         if (categories && categories.length > 0) {
           storageService.setItem(STORAGE_KEYS.CATEGORIES, categories);
           return categories;
@@ -200,11 +185,54 @@ export const useCategories = () => {
       } catch (error) {
         console.error('Erro ao buscar categorias:', error);
         
-        // Tentar usar dados locais como fallback
         return getCategoriesFromStorage();
       }
     },
   });
+};
+
+// Função auxiliar para mapear um objeto Product para o formato aceito pelo Supabase
+const mapProductToSupabase = (product: Product) => {
+  return {
+    id: product.id,
+    name: product.name,
+    description: product.description,
+    code: product.code,
+    category_id: product.category.id,
+    category_name: product.category.name,
+    sale_price: product.salePrice,
+    cost_price: product.costPrice,
+    stock: product.stock,
+    minimum_stock: product.minimumStock,
+    image: product.image,
+    supplier_ids: product.supplierIds,
+    expiration_date: product.expirationDate,
+    created_at: product.createdAt,
+    updated_at: product.updatedAt,
+  };
+};
+
+// Função auxiliar para mapear dados do Supabase para o formato Product
+const mapSupabaseToProduct = (data: any): Product => {
+  return {
+    id: data.id,
+    name: data.name,
+    description: data.description,
+    code: data.code,
+    category: {
+      id: data.category_id,
+      name: data.category_name
+    },
+    salePrice: data.sale_price,
+    costPrice: data.cost_price,
+    stock: data.stock,
+    minimumStock: data.minimum_stock,
+    image: data.image,
+    supplierIds: data.supplier_ids,
+    expirationDate: data.expiration_date ? new Date(data.expiration_date) : null,
+    createdAt: new Date(data.created_at),
+    updatedAt: new Date(data.updated_at),
+  };
 };
 
 // Improved save product function that updates localStorage and Supabase
@@ -225,10 +253,21 @@ export const useSaveProduct = () => {
       console.log('Saving product:', product);
       
       try {
-        // Salvar no Supabase
-        const savedProduct = await storageService.saveToSupabase('products', product);
+        const supabaseProduct = mapProductToSupabase(product);
         
-        // Atualizar localStorage para compatibilidade
+        const { data, error } = await storageService.fromSupabase('products')
+          .upsert(supabaseProduct)
+          .select();
+        
+        if (error) {
+          console.error('Error saving to products:', error);
+          throw error;
+        }
+        
+        const savedProduct = data && data.length > 0 
+          ? mapSupabaseToProduct(data[0]) 
+          : product;
+        
         const products = getProductsFromStorage();
         const existingProductIndex = products.findIndex(p => p.id === product.id);
         
@@ -252,7 +291,6 @@ export const useSaveProduct = () => {
       }
     },
     onSuccess: () => {
-      // Invalidate queries to refetch data
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['product'] });
       queryClient.invalidateQueries({ queryKey: ['productStats'] });
@@ -278,7 +316,6 @@ export const useDeleteProduct = () => {
       console.log('Deleting product:', productId);
       
       try {
-        // 1. Buscar detalhes do produto
         const products = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
         const productToDelete = products.find(p => p.id === productId);
         
@@ -288,7 +325,6 @@ export const useDeleteProduct = () => {
           console.log(`Found product to delete: ${productToDelete.name}`);
         }
         
-        // 2. Apagar do histórico de estoque primeiro
         try {
           console.log(`Attempting to delete related stock history for product ${productId}`);
           const stockHistoryItems = await storageService.getFromSupabase<any>('stock_history', 'product_id', productId);
@@ -300,7 +336,6 @@ export const useDeleteProduct = () => {
             }
           }
           
-          // Atualizar localStorage para compatibilidade
           const stockHistory = storageService.getItem<any[]>(STORAGE_KEYS.STOCKS) || [];
           const updatedStockHistory = stockHistory.filter(item => item.productId !== productId);
           storageService.setItem(STORAGE_KEYS.STOCKS, updatedStockHistory);
@@ -308,15 +343,12 @@ export const useDeleteProduct = () => {
           console.error('Error deleting related stock history:', error);
         }
         
-        // 3. Apagar produto do Supabase
         console.log(`Deleting product ${productId} from Supabase`);
         await storageService.removeFromSupabase('products', productId);
         
-        // 4. Atualizar localStorage para compatibilidade
         const updatedProducts = products.filter(p => p.id !== productId);
         storageService.setItem(STORAGE_KEYS.PRODUCTS, updatedProducts);
         
-        // 5. Registrar ID excluído para persistência
         const deletedIds = getDeletedProductIds();
         if (!deletedIds.includes(productId)) {
           deletedIds.push(productId);
@@ -332,7 +364,6 @@ export const useDeleteProduct = () => {
           description: "Não foi possível excluir o produto. Tente novamente."
         });
         
-        // Mesmo com erro, registrar como excluído localmente
         const deletedIds = getDeletedProductIds();
         if (!deletedIds.includes(productId)) {
           deletedIds.push(productId);
@@ -344,7 +375,6 @@ export const useDeleteProduct = () => {
     },
     onSuccess: (productId) => {
       console.log(`Product ${productId} successfully deleted`);
-      // Invalidate queries to refetch data for ALL related components
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['productStats'] });
       queryClient.invalidateQueries({ queryKey: ['stockHistory'] });
@@ -370,7 +400,6 @@ export const useStockAdjustment = () => {
       console.log('Adjusting stock:', data);
       
       try {
-        // Buscar produto do Supabase
         const products = await storageService.getFromSupabase<Product>('products', 'id', data.productId);
         
         if (!products || products.length === 0) {
@@ -381,7 +410,6 @@ export const useStockAdjustment = () => {
         const previousStock = product.stock;
         let newStock = previousStock;
         
-        // Calcular novo estoque baseado no tipo de ajuste
         if (data.adjustmentType === 'balance') {
           newStock = data.quantity;
         } else if (data.adjustmentType === 'remove') {
@@ -390,13 +418,11 @@ export const useStockAdjustment = () => {
           newStock = previousStock + data.quantity;
         }
         
-        // Atualizar produto no Supabase
         product.stock = newStock;
         product.updatedAt = new Date();
         
         await storageService.saveToSupabase('products', product);
         
-        // Atualizar localStorage para compatibilidade
         const localProducts = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
         const productIndex = localProducts.findIndex(p => p.id === data.productId);
         
@@ -406,7 +432,6 @@ export const useStockAdjustment = () => {
           storageService.setItem(STORAGE_KEYS.PRODUCTS, localProducts);
         }
         
-        // Registrar histórico de estoque
         const historyEntry = {
           id: crypto.randomUUID(),
           productId: data.productId,
@@ -417,13 +442,11 @@ export const useStockAdjustment = () => {
           quantity: data.adjustmentType === 'balance' ? Math.abs(newStock - previousStock) : data.quantity,
           adjustmentType: data.adjustmentType || 'add',
           reason: data.reason,
-          userName: 'Current User', // This should be replaced with the actual user
+          userName: 'Current User',
         };
         
-        // Salvar histórico no Supabase
         await storageService.saveToSupabase('stock_history', historyEntry);
         
-        // Atualizar localStorage para compatibilidade
         const stockHistory = storageService.getItem<any[]>(STORAGE_KEYS.STOCKS) || [];
         stockHistory.push(historyEntry);
         storageService.setItem(STORAGE_KEYS.STOCKS, stockHistory);
@@ -440,7 +463,6 @@ export const useStockAdjustment = () => {
       }
     },
     onSuccess: () => {
-      // Invalidate queries to refetch data
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['stockHistory'] });
       queryClient.invalidateQueries({ queryKey: ['productStats'] });
@@ -460,11 +482,9 @@ export const useStockHistory = (productId: string) => {
           description: "Não foi possível buscar o histórico de estoque. O aplicativo precisa de conexão com a internet."
         });
         
-        // Tentar usar dados locais como fallback
         const stockHistory = storageService.getItem<any[]>(STORAGE_KEYS.STOCKS) || [];
         const deletedIds = getDeletedProductIds();
         
-        // Filtrar itens excluídos e ordenar por data
         const filteredByDeletion = stockHistory.filter(item => !deletedIds.includes(item.productId));
         const filteredHistory = productId 
           ? filteredByDeletion.filter(item => item.productId === productId)
@@ -480,7 +500,6 @@ export const useStockHistory = (productId: string) => {
       }
       
       try {
-        // Buscar histórico de estoque do Supabase
         let stockHistory;
         
         if (productId) {
@@ -489,25 +508,21 @@ export const useStockHistory = (productId: string) => {
           stockHistory = await storageService.getFromSupabase<any>('stock_history');
         }
         
-        // Atualizar localStorage para compatibilidade
         if (stockHistory && stockHistory.length > 0) {
           storageService.setItem(STORAGE_KEYS.STOCKS, stockHistory);
         }
         
-        // Ordenar por data
         stockHistory.sort((a, b) => {
           const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
           const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
           return dateB - dateA;
         });
         
-        // Filtrar produtos excluídos
         const deletedIds = getDeletedProductIds();
         return stockHistory.filter(item => !deletedIds.includes(item.productId));
       } catch (error) {
         console.error('Erro ao buscar histórico de estoque:', error);
         
-        // Tentar usar dados locais como fallback
         const stockHistory = storageService.getItem<any[]>(STORAGE_KEYS.STOCKS) || [];
         const deletedIds = getDeletedProductIds();
         
@@ -537,12 +552,10 @@ export const useStatistics = () => {
     queryKey: ['productStats'],
     queryFn: async () => {
       if (!products || !categories) {
-        // Se não temos dados de produtos ou categorias, podemos usar dados locais
         const localProducts = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
         const localCategories = storageService.getItem<Category[]>(STORAGE_KEYS.CATEGORIES) || [];
         const deletedIds = getDeletedProductIds();
         
-        // Filtrar produtos excluídos
         const availableProducts = localProducts.filter(p => !deletedIds.includes(p.id));
         
         return {
@@ -558,7 +571,6 @@ export const useStatistics = () => {
         };
       }
       
-      // Calculate actual statistics based on products data
       const stats = {
         totalProducts: products?.length || 0,
         stockValue: products?.reduce((total, product) => total + (product.stock * product.costPrice), 0) || 0,
@@ -573,7 +585,6 @@ export const useStatistics = () => {
       
       return stats;
     },
-    // Ensure the statistics are recalculated when products or categories change
     enabled: true,
   });
 };
