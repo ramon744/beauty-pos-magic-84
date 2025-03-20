@@ -17,20 +17,25 @@ export function ExpirationDate({ expirationDate }: ExpirationDateProps) {
     if (expirationDate instanceof Date) {
       expDate = expirationDate;
     } else if (typeof expirationDate === 'string') {
-      // Try to parse ISO format first (from database)
+      // First, try to parse ISO format
       expDate = parseISO(expirationDate);
       
       // If invalid, try other date formats
       if (!isValid(expDate)) {
         const parts = expirationDate.split(/[-\/]/);
         if (parts.length === 3) {
-          // Try DD/MM/YYYY format
-          expDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+          // Try DD/MM/YYYY or MM/DD/YYYY format
+          expDate = new Date(
+            parseInt(parts[2]), 
+            parseInt(parts[1]) - 1, 
+            parseInt(parts[0])
+          );
         }
       }
       
+      // If still invalid, return the raw string
       if (!isValid(expDate)) {
-        return <span className="text-muted-foreground">Formato inválido</span>;
+        return <span className="text-muted-foreground">{expirationDate}</span>;
       }
     } else {
       return <span className="text-muted-foreground">Formato inválido</span>;
@@ -52,6 +57,9 @@ export function ExpirationDate({ expirationDate }: ExpirationDateProps) {
     );
   } catch (error) {
     console.error('Error formatting expiration date:', error, 'Value was:', expirationDate);
-    return <span className="text-muted-foreground">Formato inválido</span>;
+    // Return the raw value if we can't format it
+    return <span className="text-muted-foreground">
+      {typeof expirationDate === 'string' ? expirationDate : 'Formato inválido'}
+    </span>;
   }
 }

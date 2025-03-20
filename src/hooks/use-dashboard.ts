@@ -115,7 +115,18 @@ function useProducts() {
     queryKey: ['products'],
     queryFn: async () => {
       const products = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS) || [];
-      return products;
+      
+      // Process products to ensure proper property access
+      return products.map(product => {
+        return {
+          ...product,
+          category: product.category || { id: '', name: 'Sem categoria' },
+          salePrice: typeof product.salePrice === 'number' ? product.salePrice : Number(product.salePrice) || 0,
+          costPrice: typeof product.costPrice === 'number' ? product.costPrice : Number(product.costPrice) || 0,
+          stock: typeof product.stock === 'number' ? product.stock : Number(product.stock) || 0,
+          minimumStock: typeof product.minimumStock === 'number' ? product.minimumStock : Number(product.minimumStock) || 0
+        };
+      });
     },
   });
 }

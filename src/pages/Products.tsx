@@ -43,7 +43,7 @@ const Products = () => {
   };
 
   // Process products to ensure all required properties exist
-  const safeProducts = (products || []).map((product: any) => {
+  const safeProducts = (products || []).map((product: Product) => {
     // Ensure category exists
     const category = product.category || { id: '', name: 'Sem categoria' };
     

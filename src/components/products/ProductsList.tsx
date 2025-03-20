@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { DataTable } from '@/components/common/DataTable';
 import { Badge } from '@/components/ui/badge';
@@ -81,8 +80,7 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
       // Ensure all products have the required properties
       const processedProducts = filtered.map(product => {
         // Make sure we have a valid category object
-        const category = product.category || 
-                        { id: '', name: 'Sem categoria' };
+        const category = product.category || { id: '', name: 'Sem categoria' };
                           
         return {
           ...product,
