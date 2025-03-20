@@ -9,7 +9,128 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          category_id: string
+          category_name: string
+          code: string
+          cost_price: number
+          created_at: string
+          description: string | null
+          expiration_date: string | null
+          id: string
+          image: string | null
+          minimum_stock: number | null
+          name: string
+          sale_price: number
+          stock: number
+          supplier_ids: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          category_name: string
+          code: string
+          cost_price: number
+          created_at?: string
+          description?: string | null
+          expiration_date?: string | null
+          id?: string
+          image?: string | null
+          minimum_stock?: number | null
+          name: string
+          sale_price: number
+          stock?: number
+          supplier_ids?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          category_name?: string
+          code?: string
+          cost_price?: number
+          created_at?: string
+          description?: string | null
+          expiration_date?: string | null
+          id?: string
+          image?: string | null
+          minimum_stock?: number | null
+          name?: string
+          sale_price?: number
+          stock?: number
+          supplier_ids?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      stock_history: {
+        Row: {
+          adjustment_type: string
+          id: string
+          new_stock: number
+          previous_stock: number
+          product_id: string
+          product_name: string
+          quantity: number
+          reason: string
+          timestamp: string
+          user_name: string
+        }
+        Insert: {
+          adjustment_type: string
+          id?: string
+          new_stock: number
+          previous_stock: number
+          product_id: string
+          product_name: string
+          quantity: number
+          reason: string
+          timestamp?: string
+          user_name: string
+        }
+        Update: {
+          adjustment_type?: string
+          id?: string
+          new_stock?: number
+          previous_stock?: number
+          product_id?: string
+          product_name?: string
+          quantity?: number
+          reason?: string
+          timestamp?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_history_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

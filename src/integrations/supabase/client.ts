@@ -22,32 +22,36 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   },
 });
 
+// Função para criar um procedimento armazenado
+const createRpcFunction = async () => {
+  try {
+    // Criar função para criar tabelas sob demanda
+    const { error } = await supabase.rpc('create_table_if_not_exists', { table_name: 'dummy' });
+    
+    if (error && error.message.includes('function "create_table_if_not_exists" does not exist')) {
+      console.log('RPC function does not exist, but tables are already created directly. This is normal.');
+    } else if (error) {
+      console.error('Error calling RPC function:', error);
+    } else {
+      console.log('RPC function exists and works correctly');
+    }
+  } catch (error) {
+    console.error('Failed to check RPC function:', error);
+  }
+};
+
 // Check if tables exist and create them if not
 (async () => {
   try {
     // Check if tables have been created
     const tablesCreated = localStorage.getItem('tablesCreated');
     if (!tablesCreated) {
-      console.log('Tables will be created if they don\'t exist...');
-
-      // Use the fromTable helper to bypass TypeScript limitations
-      // Products table
-      const { error: productsError } = await fromTable('rpc')
-        .execute('create_table_if_not_exists', { table_name: 'products' });
-      if (productsError) console.error('Error creating products table:', productsError);
-
-      // Categories table
-      const { error: categoriesError } = await fromTable('rpc')
-        .execute('create_table_if_not_exists', { table_name: 'categories' });
-      if (categoriesError) console.error('Error creating categories table:', categoriesError);
-
-      // Stock history table
-      const { error: stockHistoryError } = await fromTable('rpc')
-        .execute('create_table_if_not_exists', { table_name: 'stock_history' });
-      if (stockHistoryError) console.error('Error creating stock_history table:', stockHistoryError);
-
+      console.log('Tables were created directly through SQL migration.');
       localStorage.setItem('tablesCreated', 'true');
     }
+
+    // Check RPC function existence
+    await createRpcFunction();
 
     // Check if migration has already been run
     const migrationCompleted = localStorage.getItem('migrationCompleted');
