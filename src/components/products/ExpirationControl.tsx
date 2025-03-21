@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useFetchProducts } from '@/hooks/use-products';
 import { Product } from '@/types';
@@ -12,18 +11,15 @@ import { AlertTriangle, CalendarClock, CalendarX, CheckCircle2, Search, SortAsc,
 import { format, isAfter, isBefore, addDays, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-// Define expiration categories
 type ExpirationCategory = 'expired' | 'expiringSoon' | 'valid' | 'noExpiration';
 type SortDirection = 'asc' | 'desc';
 type SortField = 'name' | 'code' | 'expirationDate' | 'daysRemaining';
 
-// Helper function to calculate days until expiration
 const getDaysUntilExpiration = (expirationDate: Date | undefined): number | null => {
   if (!expirationDate) return null;
   return differenceInDays(expirationDate, new Date());
 };
 
-// Helper function to determine product expiration category
 const getExpirationCategory = (product: Product): ExpirationCategory => {
   if (!product.expirationDate) return 'noExpiration';
   
@@ -40,7 +36,6 @@ const getExpirationCategory = (product: Product): ExpirationCategory => {
   }
 };
 
-// Helper function to get badge color based on expiration category
 const getExpirationBadge = (category: ExpirationCategory) => {
   switch (category) {
     case 'expired':
@@ -54,7 +49,6 @@ const getExpirationBadge = (category: ExpirationCategory) => {
   }
 };
 
-// Helper function to format the expiration date and days remaining
 const formatExpirationInfo = (product: Product) => {
   if (!product.expirationDate) return 'Não aplicável';
   
@@ -81,7 +75,6 @@ export const ExpirationControl = () => {
   const [sortField, setSortField] = useState<SortField>('daysRemaining');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   
-  // Categorize and filter products
   const categorizedProducts = useMemo(() => {
     if (!products) return { all: [], expired: [], expiringSoon: [], valid: [], noExpiration: [] };
     
@@ -101,7 +94,6 @@ export const ExpirationControl = () => {
     return result;
   }, [products, searchQuery]);
   
-  // Sort products based on current sort field and direction
   const sortedProducts = useMemo(() => {
     if (!categorizedProducts[selectedCategory as keyof typeof categorizedProducts]) {
       return [];
@@ -117,7 +109,6 @@ export const ExpirationControl = () => {
           ? a.code.localeCompare(b.code)
           : b.code.localeCompare(a.code);
       } else if (sortField === 'expirationDate' || sortField === 'daysRemaining') {
-        // If no expiration date, place at the end for asc, beginning for desc
         if (!a.expirationDate && !b.expirationDate) return 0;
         if (!a.expirationDate) return sortDirection === 'asc' ? 1 : -1;
         if (!b.expirationDate) return sortDirection === 'asc' ? -1 : 1;
@@ -133,7 +124,6 @@ export const ExpirationControl = () => {
     });
   }, [categorizedProducts, selectedCategory, sortField, sortDirection]);
   
-  // Handle sort toggle
   const handleSortToggle = (field: SortField) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -143,7 +133,6 @@ export const ExpirationControl = () => {
     }
   };
   
-  // Get statistics for expiration categories
   const getStats = () => {
     return {
       total: categorizedProducts.all.length,
@@ -166,7 +155,6 @@ export const ExpirationControl = () => {
   
   return (
     <div className="space-y-6">
-      {/* Search and filters */}
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -179,7 +167,6 @@ export const ExpirationControl = () => {
         </div>
       </div>
       
-      {/* Expiration Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-destructive/10 border-destructive/20">
           <CardHeader className="pb-2">
@@ -244,7 +231,6 @@ export const ExpirationControl = () => {
         </Card>
       </div>
       
-      {/* Tabs for different expiration categories */}
       <Tabs
         defaultValue="all"
         value={selectedCategory}
@@ -276,7 +262,6 @@ export const ExpirationControl = () => {
           </TabsTrigger>
         </TabsList>
         
-        {/* Tab content with products table */}
         <TabsContent value={selectedCategory} className="space-y-4">
           <Card>
             <CardContent className="pt-6">

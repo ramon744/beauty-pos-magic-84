@@ -64,7 +64,17 @@ const fetchProducts = async (): Promise<Product[]> => {
   return new Promise((resolve) => {
     setTimeout(() => {
       const products = getProductsFromStorage();
-      resolve(products);
+      // Ensure all products have categories to avoid undefined.name errors
+      const validatedProducts = products.map(product => {
+        if (!product.category) {
+          return {
+            ...product,
+            category: { id: '0', name: 'Sem categoria' }
+          };
+        }
+        return product;
+      });
+      resolve(validatedProducts);
     }, 500);
   });
 };
@@ -90,6 +100,10 @@ export const useFetchProduct = (productId: string) => {
         setTimeout(() => {
           const products = getProductsFromStorage();
           const product = products.find(p => p.id === productId);
+          // Ensure product has a category to avoid undefined.name errors
+          if (product && !product.category) {
+            product.category = { id: '0', name: 'Sem categoria' };
+          }
           resolve(product);
         }, 300);
       });
@@ -148,6 +162,11 @@ export const useSaveProduct = () => {
           
           // Find if product already exists
           const existingProductIndex = products.findIndex(p => p.id === product.id);
+          
+          // Ensure product has a category to avoid undefined.name errors
+          if (!product.category) {
+            product.category = { id: '0', name: 'Sem categoria' };
+          }
           
           if (existingProductIndex >= 0) {
             // Update existing product

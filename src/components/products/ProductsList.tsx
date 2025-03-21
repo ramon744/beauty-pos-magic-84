@@ -100,7 +100,7 @@ export default function ProductsList({ onEditProduct }: ProductsListProps) {
       accessorKey: "category",
       header: "Categoria",
       cell: ({ row }) => (
-        <Badge variant="outline">{row.original.category.name}</Badge>
+        <Badge variant="outline">{row.original.category?.name || 'Sem categoria'}</Badge>
       ),
     },
     {
