@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Product, Category } from '@/types';
 import { storageService, STORAGE_KEYS } from '@/services/storage-service';
@@ -6,11 +5,13 @@ import { storageService, STORAGE_KEYS } from '@/services/storage-service';
 // Get products from storage or use mock data if not available
 const getProductsFromStorage = (): Product[] => {
   const storedProducts = storageService.getItem<Product[]>(STORAGE_KEYS.PRODUCTS);
-  if (storedProducts && storedProducts.length > 0) {
+  
+  // Apenas retorne os produtos armazenados, mesmo que seja um array vazio
+  if (storedProducts !== null) {
     return storedProducts;
   }
   
-  // If no products in storage, use mock data
+  // Se não houver produtos no storage (null), use os dados mockados
   const mockProducts: Product[] = [
     {
       id: '1',
@@ -115,11 +116,13 @@ export const useFetchProduct = (productId: string) => {
 // Get categories from storage or use mock data if not available
 const getCategoriesFromStorage = (): Category[] => {
   const storedCategories = storageService.getItem<Category[]>(STORAGE_KEYS.CATEGORIES);
-  if (storedCategories && storedCategories.length > 0) {
+  
+  // Apenas retorne as categorias armazenadas, mesmo que seja um array vazio
+  if (storedCategories !== null) {
     return storedCategories;
   }
   
-  // If no categories in storage, use mock data
+  // Se não houver categorias no storage (null), use os dados mockados
   const mockCategories: Category[] = [
     { id: '1', name: 'Electronics' },
     { id: '2', name: 'Clothing' },
@@ -208,7 +211,7 @@ export const useDeleteProduct = () => {
           // Filter out the deleted product
           const updatedProducts = products.filter(p => p.id !== productId);
           
-          // Save updated products to storage
+          // Save updated products to storage, mesmo que seja um array vazio
           storageService.setItem(STORAGE_KEYS.PRODUCTS, updatedProducts);
           
           resolve(productId);
